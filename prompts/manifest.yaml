@@ -1,0 +1,86 @@
+schema_version: 1
+prompts:
+  - key: ask.base
+    path: ask/base.md
+    description: Who Ask is, what it can search, and how it researches and cites. The main prompt of every answer, and the one to read first.
+  - key: ask.answer_discipline
+    path: ask/answer-discipline.md
+    description: "How every answer is written: the answer first and in the form asked for, as confident as the evidence, cited inline, and no commands pieced together from fragments."
+  - key: ask.terminal_output
+    path: ask/terminal-output.md
+    description: How Ask hands back a finished answer and any images that go with it.
+  - key: ask.surface.http
+    path: ask/surface-http.md
+    description: "How answers are written for the HTTP API, MCP clients and `diderot ask`, where the reader is often another agent: every part answered, with the names and links to act on."
+  - key: ask.surface.slack
+    path: ask/surface-slack.md
+    description: "How answers are written for Slack: Markdown with inline links as citations, and a length that fits the question."
+  - key: ask.observability.delegation
+    path: ask/observability-delegation.md
+    description: When Ask passes a question to the observability assistant, what it tells the assistant, and how it uses the report that comes back.
+  - key: ask.observability.role
+    path: ask/o11y-role.md
+    description: Who the observability assistant is, and that it knows only the request Ask sends it.
+  - key: ask.observability.discipline
+    path: ask/o11y-discipline.md
+    description: "How the assistant investigates: settle the service and time window first, compare with normal, treat gaps in the data as findings, and check recent changes."
+  - key: ask.observability.report
+    path: ask/o11y-report.md
+    description: "The sections of the assistant's report: what it saw, what it concludes, what it could not establish, and any images."
+  - key: ask.observability.sentry_discipline
+    path: ask/o11y-sentry-discipline.md
+    description: How the assistant searches Sentry. Used while it has Sentry tools.
+  - key: ask.observability.grafana_discipline
+    path: ask/o11y-grafana-discipline.md
+    description: How the assistant finds Grafana datasources, metrics and labels before it queries. Used while it has Grafana tools.
+  - key: ask.observability.grafana_report
+    path: ask/o11y-grafana-report.md
+    description: When the assistant includes a Grafana panel as an image with its answer.
+  - key: ask.observability.workflow.alert
+    path: ask/o11y-workflow-alert.md
+    description: Steps for investigating a firing alert.
+  - key: ask.observability.workflow.slo
+    path: ask/o11y-workflow-slo.md
+    description: Steps for investigating an SLO and its error budget.
+  - key: ask.observability.workflow.exploration
+    path: ask/o11y-workflow-exploration.md
+    description: Steps for finding which metrics, logs and labels exist before writing a query.
+  - key: ask.observability.workflow.incident
+    path: ask/o11y-workflow-incident.md
+    description: "Steps for investigating an incident: its impact and time window, then metrics, logs and traces."
+  - key: ask.observability.workflow.sentry
+    path: ask/o11y-workflow-sentry.md
+    description: Steps for investigating a Sentry issue or event.
+  - key: ask.observability.syntax.promql
+    path: ask/o11y-syntax-promql.md
+    description: Rules for writing Prometheus queries.
+  - key: ask.observability.syntax.logql
+    path: ask/o11y-syntax-logql.md
+    description: Rules for writing Loki log queries.
+  - key: ask.observability.syntax.traceql
+    path: ask/o11y-syntax-traceql.md
+    description: Rules for writing Tempo trace queries.
+  - key: session.title
+    path: session/title.md
+    description: Names each coding-agent session in a few words.
+  - key: ask.title
+    path: ask/title.md
+    description: Names each Ask conversation so the person who asked can find it again.
+  - key: connector.document_extract
+    path: connector/document-extract.md
+    description: Transcribes a PDF page that has little or no text of its own, such as a scan, word for word.
+  - key: connector.image_caption
+    path: connector/image-caption.md
+    description: Describes each image attached to a message, a ticket, a document or an agent session and transcribes its text, so it can be searched.
+  - key: scheduled_report.individual_daily
+    path: reports/individual-daily.md
+    description: "The question behind the daily report for one person: what they finished, decided, and are blocked on."
+  - key: scheduled_report.team_weekly
+    path: reports/team-weekly.md
+    description: "The question behind the weekly team report: what shipped, what was decided, and what is at risk."
+  - key: summary.session_map
+    path: summary/session-map.md
+    description: "Summarizes each part of a long coding-agent session. Changing it makes every session that is still growing summarize all of its parts again."
+  - key: summary.session_reduce
+    path: summary/session-reduce.md
+    description: "Combines the summaries of a session's parts into one, or updates the earlier summary of a session that has grown."

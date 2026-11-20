@@ -1,0 +1,58 @@
+{{define "content"}}
+{{template "page-header" (header "Access" "Who can sign in, who is an administrator, and where Ask answers in Slack.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "setup-progress" .Setup}}
+
+{{with .Summary}}
+<section class="section" aria-labelledby="signin-heading">
+  <div class="section-header">
+    <h2 id="signin-heading">Sign-in</h2>
+    <p>These are set in the deployment. Once Diderot is live, anyone who can sign in can ask and search, and sees only what their own access allows.</p>
+  </div>
+  <dl class="kv">
+    <div><dt>API and MCP sign-in<span class="sub"><code>DIDEROT_AUTH_MODE</code></span></dt><dd>{{$.APISignIn}} <span class="id">{{.AuthMode}}</span></dd></div>
+    <div><dt>Browser sign-in</dt><dd>{{range $i, $m := .BrowserSignIn}}{{if $i}}<br>{{end}}{{$m}}{{else}}<span class="muted">none</span>{{end}}</dd></div>
+    <div><dt>Administrator groups<span class="sub"><code>DIDEROT_ADMIN_GROUPS</code></span></dt><dd>{{range $i, $g := .AdminGroups}}{{if $i}}, {{end}}<code>{{$g}}</code>{{else}}<span class="muted">none</span>{{end}}</dd></div>
+    <div><dt>Groups that can manage their own agent sessions<span class="sub"><code>DIDEROT_SELF_SERVICE_GROUPS</code></span></dt><dd>{{range $i, $g := .SelfServiceGroups}}{{if $i}}, {{end}}<code>{{$g}}</code>{{else}}<span class="muted">none</span>{{end}}</dd></div>
+    <div><dt>Authorization policy file<span class="sub"><code>DIDEROT_AUTHORIZATION_POLICY_PATH</code></span></dt><dd>{{with .PolicyPath}}<code>{{.}}</code>{{else}}<span class="muted">none</span>{{end}}</dd></div>
+  </dl>
+</section>
+
+<section class="section" aria-labelledby="channels-heading">
+  <div class="section-header">
+    <h2 id="channels-heading">Ask in Slack</h2>
+    {{if .Channels}}<span class="section-actions"><a href="/admin/connectors/slack/channels?filter=ask">View these channels</a></span>{{end}}
+  </div>
+  {{if .Channels}}
+  <div class="stats">
+    <div class="stat"><span class="stat-label">Channels where Ask answers</span><span class="stat-value">{{len .Channels}}</span></div>
+    <div class="stat"><span class="stat-label">Private channels among them</span><span class="stat-value">{{$.PrivateChannels}}</span></div>
+    <div class="stat"><span class="stat-label">Open to people outside your organization</span><span class="stat-value">{{$.ExternalChannels}}</span><span class="stat-note">Guests and Slack Connect members may ask there.</span></div>
+  </div>
+  {{else if $.SlackOn}}
+  <div class="empty"><h3>Ask is not on in any Slack channel</h3><p>Channels where Ask answers are counted here. Turn Ask on for a channel from its page.</p><a class="button" href="/admin/connectors/slack/channels">Open the Slack channels</a></div>
+  {{else}}
+  <div class="empty"><h3>Slack is not connected</h3><p>Once the Slack connector is on, the channels where Ask answers are counted here.</p><a class="button" href="/admin/connectors/slack">Set up Slack</a></div>
+  {{end}}
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="review-heading">
+  <div class="section-header"><h2 id="review-heading">Review</h2></div>
+  {{if .Summary.Acknowledged}}
+  <p>{{badge "good" "reviewed"}} {{actor .Summary.AcknowledgedBy}} confirmed that these settings are as intended.</p>
+  {{else}}
+  <div class="panel panel-attention">
+    <p>Read the settings above and confirm they are what you intend. This marks the Access step of setup as done and changes nothing else.</p>
+    <form method="post" action="/admin/settings/actions/acknowledge-access">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="version" value="{{.OrgVersion}}">
+      <button class="button button-primary" type="submit">Mark access as reviewed</button>
+    </form>
+  </div>
+  {{end}}
+</section>
+{{end}}

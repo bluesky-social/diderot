@@ -1,0 +1,10 @@
+{{define "content"}}
+{{template "page-header" (header (printf "Earlier Ask prompt %d" .Prompt.ID) "The prompt Ask followed before Diderot kept versions of its prompts. Older conversations link here. It cannot be edited or made live." (crumb "Prompts" "/admin/prompts"))}}
+
+<dl class="kv">
+  <div><dt>Saved</dt><dd>{{time .Prompt.CreatedAt}}{{with .Prompt.CreatedBy}} by {{actor .}}{{end}}</dd></div>
+  {{with .Prompt.Note}}<div><dt>Note</dt><dd>{{.}}</dd></div>{{end}}
+</dl>
+
+<pre class="prompt-text">{{.Prompt.Body}}</pre>
+{{end}}

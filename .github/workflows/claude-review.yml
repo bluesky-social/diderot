@@ -1,0 +1,66 @@
+name: claude-review
+
+# Claude reviews same-repository pull requests opened by people with write
+# access. The workflow, its hardening, and its trust model live in
+# bluesky-social/.github; review guidance stays in
+# .github/claude-review-prompt.md in this repository.
+#
+# The review job carries the model API key, so a secretless gate job
+# decides first. It requires a head branch in this repository (a fork pull
+# request never starts it) and a pull request author whose permission on
+# this repository is write, maintain, or admin. The author is the one checked
+# because the title, description, and diff the model reads are theirs; a push
+# to a same-repository branch already takes write access. The check reads
+# repos/{owner}/{repo}/collaborators/{author}/permission with the gate's
+# GITHUB_TOKEN, which needs only Metadata read (any declared permission
+# carries it). Organization members pass through their team's access, whether
+# their membership is public or private. An outside collaborator passes only
+# with write access or higher; read or triage access, no access, or an API
+# error skips the review.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  gate:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Require an author with write access
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+          # Fail closed: an API error reads as no access.
+          permission="$(gh api "repos/${GH_REPO}/collaborators/${AUTHOR}/permission" --jq '.permission' || echo none)"
+          if [[ "${permission}" =~ ^(admin|maintain|write)$ ]]; then
+            echo "allowed=true" >>"${GITHUB_OUTPUT}"
+          else
+            echo "::notice::${AUTHOR} has '${permission}' access; Claude reviews only pull requests opened by collaborators with write access."
+            echo "allowed=false" >>"${GITHUB_OUTPUT}"
+          fi
+
+  review:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
+    uses: bluesky-social/.github/.github/workflows/claude-review.yml@v1
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+    secrets:
+      AGENT_GATEWAY_CLAUDE_GH_REVIEW_KEY: ${{ secrets.AGENT_GATEWAY_CLAUDE_GH_REVIEW_KEY }}

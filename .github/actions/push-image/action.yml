@@ -1,0 +1,114 @@
+name: Push the server image
+description: >-
+  Builds the repository's Dockerfile for linux/amd64 and linux/arm64, pushes
+  the image, under the same tags, to ghcr.io/bluesky-social/diderot and to the
+  diderot repository in Bluesky's ECR, and attests its build provenance on
+  GHCR. The calling job needs contents read, packages write, id-token write,
+  attestations write, and artifact-metadata write, and the checkout to build.
+
+inputs:
+  aws-role-arn:
+    description: IAM role that may push to the diderot ECR repository, assumed with the job's GitHub OIDC token.
+    required: true
+  version:
+    description: The Dockerfile's VERSION build argument, which the binary reports as its version.
+    required: true
+  tags:
+    description: docker/metadata-action tag rules, applied to both registries.
+    required: true
+  latest:
+    description: Also tag the GHCR image latest. ECR never gets it.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Assume the ECR push role
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      with:
+        role-to-assume: ${{ inputs.aws-role-arn }}
+        aws-region: us-east-2
+        # The logs are public: show the account ID, which is part of the
+        # registry hostname, as ***.
+        mask-aws-account-id: true
+
+    - name: Log in to ECR
+      id: ecr
+      uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+    - name: Log in to GHCR
+      uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+    - name: Image tags and labels
+      id: meta
+      uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+      with:
+        images: |
+          ghcr.io/bluesky-social/diderot
+          ${{ steps.ecr.outputs.registry }}/diderot
+        tags: ${{ inputs.tags }}
+        # Only the given tags: the ECR repository's tags are immutable, so a
+        # moving tag such as latest would fail the second push.
+        flavor: latest=false
+
+    # latest goes to GHCR alone, whose tags may move.
+    - name: Tags to push
+      id: tags
+      shell: bash
+      env:
+        TAGS: ${{ steps.meta.outputs.tags }}
+        LATEST: ${{ inputs.latest }}
+      run: |
+        {
+          echo 'tags<<EOF'
+          echo "$TAGS"
+          if [[ $LATEST == true ]]; then
+            echo ghcr.io/bluesky-social/diderot:latest
+          fi
+          echo EOF
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Build and push
+      id: build
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+      env:
+        # The build summary and the build record it uploads as an artifact
+        # name every tag pushed, ECR hostname included. Log masking does not
+        # reach inside an artifact anyone can download, so make neither.
+        DOCKER_BUILD_SUMMARY: "false"
+        DOCKER_BUILD_RECORD_UPLOAD: "false"
+      with:
+        context: .
+        # The Dockerfile cross-compiles, so arm64 needs no emulation.
+        platforms: linux/amd64,linux/arm64
+        push: true
+        # Layers only, no image names.
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        # BuildKit's provenance attestation lists every name the image was
+        # pushed under as a subject, so the one stored beside the public GHCR
+        # image would carry the ECR hostname too. The next step attests the
+        # image under its GHCR name alone.
+        provenance: false
+        tags: ${{ steps.tags.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          VERSION=${{ inputs.version }}
+
+    # Signed build provenance for the image's digest (the same in both
+    # registries), stored beside it on GHCR and with the repository's
+    # attestations:
+    # gh attestation verify oci://ghcr.io/bluesky-social/diderot:<tag> --repo bluesky-social/diderot
+    - name: Attest the image
+      uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+      with:
+        subject-name: ghcr.io/bluesky-social/diderot
+        subject-digest: ${{ steps.build.outputs.digest }}
+        push-to-registry: true

@@ -1,0 +1,33 @@
+name: quickstart
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  smoke:
+    # The Docker Compose quickstart, end to end: build the image, start the
+    # stack against a stub model provider, ingest a fixture, retrieve it, and
+    # ask about it (scripts/quickstart-smoke.sh). A GitHub-hosted runner with
+    # no secrets, the way an outside contributor's fork would run it.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+      - name: Quickstart smoke
+        run: scripts/quickstart-smoke.sh

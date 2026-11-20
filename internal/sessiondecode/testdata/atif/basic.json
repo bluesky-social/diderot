@@ -1,0 +1,33 @@
+{
+  "schema_version": "ATIF-v1.8",
+  "session_id": "synthetic-run-1",
+  "trajectory_id": "traj-main",
+  "agent": {"name": "terminus-2", "version": "2.0.0", "model_name": "synthetic-model-default"},
+  "steps": [
+    {"step_id": 1, "source": "system", "message": "You are a careful coding agent."},
+    {"step_id": 2, "timestamp": "2026-11-01T12:00:00Z", "source": "user", "message": "Find why the build fails.", "extra": {"stable_step_id": "u-0001"}},
+    {"step_id": 3, "timestamp": "2026-11-01T12:00:05Z", "source": "agent", "model_name": "synthetic-model-1",
+     "message": "Running the build.", "reasoning_content": "The build log will say.",
+     "tool_calls": [{"tool_call_id": "call_build", "function_name": "bash", "arguments": {"cmd": "make"}}],
+     "observation": {"results": [{"source_call_id": "call_build", "content": "error: missing header foo.h"}]},
+     "metrics": {"prompt_tokens": 120, "completion_tokens": 30}},
+    {"step_id": 4, "source": "agent", "message": "",
+     "tool_calls": [{"tool_call_id": "call_ls", "function_name": "bash", "arguments": {"cmd": "ls include"}},
+                    {"tool_call_id": "call_view", "function_name": "view_image", "arguments": {"path": "diagram.png"}}],
+     "observation": {"results": [
+       {"source_call_id": "call_ls", "content": [{"type": "text", "text": "bar.h"}]},
+       {"source_call_id": "call_view", "content": [{"type": "image", "source": {"media_type": "image/png", "path": "images/diagram.png"}}]}
+     ]}},
+    {"step_id": 5, "timestamp": "2026-11-01T12:01:00Z", "source": "system", "message": "Summary: the build needs foo.h.",
+     "extra": {"context_management": {"type": "compaction", "boundary": "replace"}}},
+    {"step_id": 6, "timestamp": "2026-11-01T12:01:30Z", "source": "agent", "message": [{"type": "text", "text": "foo.h was renamed to bar.h; updating the include."}, {"type": "audio", "source": {"media_type": "audio/wav", "path": "a.wav"}}],
+     "extra": {"stable_step_id": "a-0006"}},
+    {"step_id": 7, "timestamp": "2026-11-01T12:02:00Z", "source": "agent", "message": "Delegating verification.",
+     "observation": {"results": [{"subagent_trajectory_ref": [{"trajectory_id": "traj-verify"}]}]}}
+  ],
+  "final_metrics": {"total_prompt_tokens": 500},
+  "subagent_trajectories": [
+    {"schema_version": "ATIF-v1.8", "trajectory_id": "traj-verify", "agent": {"name": "verifier"},
+     "steps": [{"step_id": 1, "source": "user", "message": "Verify the build."}]}
+  ]
+}

@@ -1,0 +1,58 @@
+{{define "signin"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · Diderot</title>
+  <link rel="icon" href="/auth/favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <link rel="apple-touch-icon" href="/auth/apple-touch-icon.png">
+  <link rel="stylesheet" href="/auth/admin.css">
+</head>
+<body>
+  <main class="signin">
+    <p class="brand">{{mark}}<span class="brand-name">Diderot</span></p>
+    <h1>{{.Title}}</h1>
+    {{if .Error}}<div class="notice notice-bad" role="alert"><p>{{.Error}}</p></div>{{end}}
+    {{if .Message}}<p>{{.Message}}</p>{{end}}
+    {{if .SignOut}}
+    <form class="form" method="post" action="{{.SignOut}}">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      {{if .Principal}}<p class="muted">Signed in as {{actor .Principal}}.</p>{{end}}
+      <div class="form-actions"><button class="button button-primary" type="submit">Sign out</button></div>
+    </form>
+    {{end}}
+    {{if or .OIDC .Bootstrap .StaticToken}}
+    <div class="signin-methods">
+      {{if .OIDC}}<p><a class="button button-primary" href="{{.OIDC}}">Sign in with your identity provider</a></p>{{end}}
+      {{if .StaticToken}}
+      <form class="form" method="post" action="/auth/login" aria-labelledby="token-heading">
+        <h2 id="token-heading">API token</h2>
+        <p>The browser keeps a session, not the token.</p>
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="method" value="token">
+        <input type="hidden" name="return_to" value="{{.ReturnTo}}">
+        <div class="field"><label for="signin-token">Token</label><input id="signin-token" type="password" name="token" autocomplete="off" required></div>
+        <div class="form-actions"><button class="button{{if not .OIDC}} button-primary{{end}}" type="submit">Sign in with token</button></div>
+      </form>
+      {{end}}
+      {{if .Bootstrap}}
+      <form class="form" method="post" action="/auth/login" aria-labelledby="bootstrap-heading">
+        <h2 id="bootstrap-heading">First-time setup</h2>
+        <p>A new install starts with one account: username <code>admin</code>, password <code>admin</code>. Sign in with it, follow the setup checklist, and turn it off before you go live.</p>
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="method" value="bootstrap">
+        <input type="hidden" name="return_to" value="{{.ReturnTo}}">
+        <div class="field"><label for="signin-username">Username</label><input id="signin-username" name="username" autocomplete="username" autocapitalize="none" required></div>
+        <div class="field"><label for="signin-password">Password</label><input id="signin-password" type="password" name="password" autocomplete="current-password" required></div>
+        <div class="form-actions"><button class="button{{if not (or .OIDC .StaticToken)}} button-primary{{end}}" type="submit">Sign in as admin</button></div>
+      </form>
+      {{end}}
+    </div>
+    {{end}}
+    {{if .SignIn}}<p><a class="button button-primary" href="{{.SignIn}}">Sign in</a></p>{{end}}
+  </main>
+</body>
+</html>
+{{end}}

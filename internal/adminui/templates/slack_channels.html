@@ -1,0 +1,84 @@
+{{define "content"}}
+{{template "page-header" (header "Slack" .Lead (crumb "Connectors" "/admin/connectors"))}}
+{{template "tabs" .Tabs}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{if not .SlackOn}}<div class="notice notice-attention"><p>Slack is off, so channels can't be changed and nothing new is read.</p><a href="/admin/connectors/slack">Slack settings</a></div>{{end}}
+
+{{if .Connected}}
+<form class="filter-bar" method="get" action="/admin/connectors/slack/channels" role="search" aria-label="Find a channel">
+  <div class="field channel-search">
+    <label for="channel-search">Channel name or ID</label>
+    <input id="channel-search" type="search" name="q" value="{{.Search}}" placeholder="platform">
+  </div>
+  {{if .Filter}}<input type="hidden" name="filter" value="{{.Filter}}">{{end}}
+  <div class="filter-bar-actions">
+    <button class="button" type="submit">Search</button>
+    {{if .Search}}<a href="/admin/connectors/slack/channels{{if .Filter}}?filter={{.Filter}}{{end}}">Clear</a>{{end}}
+  </div>
+</form>
+
+{{template "tabs" .Filters}}
+
+{{if .Channels}}
+<div class="table-wrap">
+  <table class="table table-stack">
+    <thead>
+      <tr>
+        <th scope="col">Channel</th>
+        <th scope="col">State</th>
+        <th scope="col">Ask</th>
+        <th scope="col">Documents</th>
+        <th scope="col" class="num">Messages</th>
+        <th scope="col">Last read</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Channels}}
+      <tr>
+        <th scope="row"><a class="row-link" href="/admin/connectors/slack/channels/{{.ID}}">{{.Label}}</a><span class="sub">{{if .Private}}private{{else}}public{{end}}{{if .External}} · shared outside{{end}} · <span class="id">{{.ID}}</span></span></th>
+        <td data-label="State">{{with .State}}{{badge .Tone .Word}}{{end}}{{with .LastError}}<span class="sub">{{.}}</span>{{else}}{{if and .Left (not .Archived) (not .Blocked)}}<span class="sub">The bot left or was removed</span>{{end}}{{end}}</td>
+        <td data-label="Ask">{{if .AskEnabled}}on{{else}}<span class="muted">off</span>{{end}}</td>
+        <td data-label="Documents">{{if .DocsEnabled}}on{{else}}<span class="muted">off</span>{{end}}</td>
+        <td class="num" data-label="Messages">{{count .Messages}}</td>
+        <td data-label="Last read">{{if .Member}}{{if .Reading}}reading now{{else if .LastSync}}{{time .LastSync}}{{else}}<span class="muted">not yet</span>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{template "pagination" .Pages}}
+{{else}}
+<div class="empty"><h2>No channels match</h2><p>Try another name, show every channel, or add the bot to a channel that is not listed yet.</p><a class="button" href="/admin/connectors/slack/channels">Show all channels</a></div>
+{{end}}
+{{template "add-bot" .}}
+{{else}}
+<div class="empty">
+  <h2>No channels yet</h2>
+  <p>Channels appear here once Slack is on and the bot is in them. Add the bot to a channel in Slack, or let it join every public channel with the channel mode setting.</p>
+  <a class="button" href="/admin/connectors/slack">Slack settings</a>
+</div>
+{{template "add-bot" .}}
+{{end}}
+{{end}}
+{{define "add-bot"}}
+{{if .SlackOn}}
+<section class="section" id="add" aria-labelledby="add-heading">
+  <div class="section-header">
+    <h2 id="add-heading">Add the bot to a channel</h2>
+    <p>For a channel that is not listed yet. Diderot starts reading a channel once the bot is in it.</p>
+  </div>
+  {{if .UserTokenSet}}
+  <form class="form" method="post" action="/admin/connectors/slack/channels/invite">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="field"><label for="add-channel">Channel name, ID or link</label><input id="add-channel" name="channel" required placeholder="#platform" aria-describedby="add-channel-help"><p class="help" id="add-channel-help">A private channel works only if the person the user token belongs to is in it.</p></div>
+    <div class="form-actions"><button class="button" type="submit">Add the bot</button></div>
+  </form>
+  {{else}}
+  <p class="help">Adding the bot from here needs a Slack user token, and none is set. <a href="/admin/connectors/slack">Add one in Slack settings</a>, or invite the bot from Slack by mentioning it in the channel.</p>
+  {{end}}
+</section>
+{{end}}
+{{end}}
+

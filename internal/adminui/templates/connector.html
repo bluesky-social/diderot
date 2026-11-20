@@ -1,0 +1,148 @@
+{{define "content"}}
+{{template "page-header" ((header .Name .Summary (crumb "Connectors" "/admin/connectors")).WithBadge .State.Tone .State.Word)}}
+{{with .Tabs}}{{template "tabs" .}}{{end}}
+
+{{template "setup-progress" .Setup}}
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="panel connector-state{{if .State.Attention}} panel-attention{{end}}" aria-labelledby="state-heading">
+  <div class="connector-state-text">
+    <h2 id="state-heading" class="visually-hidden">State</h2>
+    <p>{{.StateText}}</p>
+    {{if .View.Enabled}}
+      {{with changedBy .View.UpdatedBy}}<p class="help">Last changed by {{.}}, {{time $.View.UpdatedAt}}.</p>{{end}}
+    {{else if .NeverSetUp}}
+      <p class="help">Fill in the settings below, then save and turn it on. Diderot tests them first.</p>
+    {{else}}
+      <p class="help">Turning it on saves the settings below and tests them first.</p>
+    {{end}}
+  </div>
+  {{if .View.Enabled}}
+  <form method="post" action="/admin/connectors/{{.View.Name}}/disable">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    <button class="button button-danger" type="submit">Turn off</button>
+  </form>
+  {{else}}
+  {{/* Enter in a field submits the form's first submit button, which would turn the connector on: this hidden Save comes first. */}}
+  <button type="submit" form="connector-settings" hidden tabindex="-1">Save</button>
+  {{if not .NeverSetUp}}<button class="button" type="submit" form="connector-settings" formaction="/admin/connectors/{{.View.Name}}/enable">Turn on</button>{{end}}
+  {{end}}
+</section>
+
+{{with .Status}}
+<section class="section" aria-labelledby="status-heading">
+  <div class="section-header"><h2 id="status-heading">Status</h2></div>
+  <dl class="kv">
+    {{range .Rows}}<div><dt>{{.Label}}</dt><dd>{{if .IsTime}}{{if .Time}}{{time .Time}}{{else}}<span class="muted">never</span>{{end}}{{else}}{{.Text}}{{with .ID}} <span class="id">{{.}}</span>{{end}}{{end}}{{with .Detail}} <span class="muted">· {{.}}</span>{{end}}</dd></div>{{end}}
+  </dl>
+  {{with .Note}}<p class="muted">{{.}}</p>{{end}}
+</section>
+{{end}}
+
+{{if .View.Enabled}}{{template "connector_sections" .}}{{end}}
+
+<section class="section" aria-labelledby="settings-heading">
+  <div class="section-header"><h2 id="settings-heading">Settings</h2></div>
+  <form class="form" id="connector-settings" method="post" action="/admin/connectors/{{.View.Name}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    {{range .Fields}}{{template "connector-field" .}}{{else}}<p class="muted">It has nothing to set on this page.</p>{{end}}
+    <div class="form-actions">
+      {{if .NeverSetUp}}
+      <button class="button button-primary" type="submit" formaction="/admin/connectors/{{.View.Name}}/enable">Save and turn on</button>
+      <button class="button" type="submit">Save</button>
+      {{else}}
+      <button class="button button-primary" type="submit">Save</button>
+      {{end}}
+      <button class="button" type="submit" formaction="/admin/connectors/{{.View.Name}}/test">Test</button>
+      <p class="help">Test checks these settings without saving them. Save keeps them and tests them{{if .NeverSetUp}}, and leaves the connector off{{end}}.</p>
+    </div>
+  </form>
+  {{with .Report}}
+  <div class="connector-test" id="test-result">
+    <p class="cluster">{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}}
+      <span>{{if $.Draft}}Test of the settings above, {{time .At}}. Nothing was saved.{{else}}Last test, {{time .At}} by {{actor .By}}.{{end}}</span></p>
+    {{if and .Passed (not $.Draft)}}
+    <details class="disclosure"><summary>Show what it checked</summary>{{template "connector-checks" .Checks}}</details>
+    {{else}}
+    {{template "connector-checks" .Checks}}
+    {{end}}
+    {{if or $.Draft (not $.View.Enabled)}}{{with .Facts}}
+    <dl class="kv kv-compact" aria-label="What the test found">{{range .}}<div><dt>{{.Label}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>
+    {{end}}{{end}}
+  </div>
+  {{end}}
+</section>
+
+{{if not .View.Enabled}}{{template "connector_sections" .}}{{end}}
+
+{{with .Backfill}}
+<section class="section" aria-labelledby="backfill-heading">
+  <div class="section-header"><h2 id="backfill-heading">Read everything again</h2><p>{{.Summary}} New and changed items appear as it goes; a large source can take hours.</p></div>
+  <form class="form" method="post" action="/admin/connectors/{{$.View.Name}}/backfill">
+    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+    {{range .Fields}}
+    <div class="field">
+      <label for="backfill-{{.Key}}">{{.Label}} <span class="optional">(optional)</span></label>
+      <input id="backfill-{{.Key}}" name="field.{{.Key}}"{{if .Help}} aria-describedby="backfill-{{.Key}}-help"{{end}}>
+      {{if .Help}}<p class="help" id="backfill-{{.Key}}-help">{{.Help}}</p>{{end}}
+    </div>
+    {{end}}
+    <label class="check"><input type="checkbox" name="confirm" value="backfill" required> <span>{{.Confirm}}</span></label>
+    <div class="form-actions"><button class="button" type="submit">{{.Action}}</button></div>
+  </form>
+</section>
+{{end}}
+{{end}}
+
+{{define "connector-field"}}
+<div class="field">
+  {{if eq .Kind "bool"}}
+  <label class="check"><input type="checkbox" id="field-{{.Key}}" name="field.{{.Key}}" value="true"{{if .Checked}} checked{{end}}> <span>{{.Label}}</span>{{with .Help}}<span class="help">{{.}}</span>{{end}}</label>
+  {{else if eq .Kind "secret"}}
+    {{if .Secret.Env}}
+    <span class="label">{{.Label}}</span>
+    <p>Set by the deployment (<code>{{.Secret.Env}}</code>).</p>
+    {{with .Help}}<p class="help">{{.}}</p>{{end}}
+    {{else if .CanStore}}
+    <label for="secret-{{.Key}}">{{.Label}}{{if .Optional}} <span class="optional">(optional)</span>{{end}}</label>
+    <input id="secret-{{.Key}}" type="password" name="secret.{{.Key}}" autocomplete="off"{{if .Secret.Saved}} placeholder="Saved. Paste a new one to replace it."{{end}}{{if .Help}} aria-describedby="field-{{.Key}}-help"{{end}}{{if .Error}} aria-invalid="true"{{end}}>
+    {{if .Help}}<p class="help" id="field-{{.Key}}-help">{{.Help}}</p>{{end}}
+    {{if and .Secret.Saved (not .Required)}}<label class="check"><input type="checkbox" name="secret.{{.Key}}.remove" value="true"{{if .Remove}} checked{{end}}> <span>Remove the saved value</span></label>{{end}}
+    {{else}}
+    <label for="secret-{{.Key}}">{{.Label}}{{if .Optional}} <span class="optional">(optional)</span>{{end}}</label>
+    <input id="secret-{{.Key}}" type="password" disabled>
+    <p class="help">To paste it here, set <code>DIDEROT_CONFIG_KEYS</code> in the deployment. Or set <code>{{.Env}}</code> there instead.</p>
+    {{end}}
+  {{else}}
+  <label for="field-{{.Key}}">{{.Label}}{{if .Optional}} <span class="optional">(optional)</span>{{end}}</label>
+    {{if eq .Kind "enum"}}
+    <select id="field-{{.Key}}" name="field.{{.Key}}"{{if .Help}} aria-describedby="field-{{.Key}}-help"{{end}}>{{$value := .Value}}{{range .Options}}<option value="{{.Value}}"{{if eq .Value $value}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+    {{else if eq .Kind "list"}}
+    <textarea id="field-{{.Key}}" name="field.{{.Key}}" placeholder="One per line"{{if .Help}} aria-describedby="field-{{.Key}}-help"{{end}}{{if .Error}} aria-invalid="true"{{end}}>{{.Value}}</textarea>
+    {{else if eq .Kind "int"}}
+    <input id="field-{{.Key}}" name="field.{{.Key}}" value="{{.Value}}" inputmode="numeric"{{if .Help}} aria-describedby="field-{{.Key}}-help"{{end}}{{if .Error}} aria-invalid="true"{{end}}>
+    {{else}}
+    <input id="field-{{.Key}}" name="field.{{.Key}}" value="{{.Value}}"{{if .Help}} aria-describedby="field-{{.Key}}-help"{{end}}{{if .Error}} aria-invalid="true"{{end}}>
+    {{end}}
+  {{if .Help}}<p class="help" id="field-{{.Key}}-help">{{.Help}}</p>{{end}}
+  {{end}}
+  {{with .PromptVar}}<p class="help">Prompts can use it as <code>{{"{{"}}{{.}}{{"}}"}}</code>.</p>{{end}}
+  {{with .Error}}<p class="error" role="alert">{{.}}</p>{{end}}
+</div>
+{{end}}
+
+{{define "connector-checks"}}
+<div class="table-wrap">
+  <table class="table table-compact">
+    <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">What it found</th></tr></thead>
+    <tbody>
+    {{range .}}
+      <tr><th scope="row">{{.Name}}</th><td>{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}}</td><td>{{.Detail}}{{with .Remedy}}<span class="sub">To fix: {{.}}</span>{{end}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

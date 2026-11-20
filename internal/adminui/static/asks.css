@@ -1,0 +1,68 @@
+/* Ask: the conversations list (ask_sessions.html), one transcript
+   (ask_session.html), and the feedback page (ask_feedback.html). Layout
+   unique to these pages only. */
+
+/* The lists. */
+.filter-bar .ask-search { flex: 3 1 16rem; }
+.ask-more { flex: 0 0 100%; font-size: var(--text-sm); }
+.ask-more-fields { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.ask-row-title { display: grid; gap: .125rem; }
+.ask-row-title strong { font-weight: 600; }
+.ask-row-line { display: -webkit-box; overflow: hidden; color: var(--dim); font-size: var(--text-sm); -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.ask-row-reason { color: var(--bad-ink); -webkit-line-clamp: 2; }
+.ask-row-took { display: none; }
+/* On a narrow screen a row is its title, then its state and the rest on
+   one wrapping line. */
+@media (max-width: 760px) {
+  .records-ask .record-link, .records-feedback .record-link { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); align-items: center; padding-right: var(--space-4); }
+  .records-ask .ask-row-title, .records-feedback .ask-row-title { flex: 0 0 100%; order: -2; margin-bottom: var(--space-1); }
+  .records-ask .ask-row-state, .records-feedback .ask-row-state { order: -1; }
+  .ask-row-meta { color: var(--dim); font-size: var(--text-sm); }
+  .ask-row-meta .sub, .ask-row-state .sub { display: inline; margin-left: var(--space-1); }
+  .ask-row-meta:has(> .muted:only-child), .ask-row-meta:empty { display: none; }
+  .ask-row-took { display: inline; }
+}
+
+/* The feedback page. */
+.feedback-reactions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); padding: 0; list-style: none; }
+.feedback-reactions li { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* The transcript. */
+.ask-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--space-3); padding: 0; list-style: none; }
+.ask-images > li { margin: 0; }
+.ask-image { display: grid; place-items: center; min-height: 6rem; max-height: 16rem; overflow: hidden; border-radius: var(--radius); background: var(--sunk); }
+.ask-image img { display: block; max-width: 100%; max-height: 16rem; object-fit: contain; }
+
+.ask-conversation { max-width: 60rem; padding: 0; list-style: none; }
+.ask-conversation > li { min-width: 0; margin: 0; }
+.ask-conversation > li + li { margin-top: var(--space-6); padding-top: var(--space-6); border-top: 1px solid var(--line); }
+.ask-exchange > * + * { margin-top: var(--space-4); }
+.ask-question { padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-left: 3px solid var(--human); border-radius: var(--radius); background: var(--raised); }
+.ask-question > * + * { margin-top: var(--space-2); }
+.ask-question-who { color: var(--dim); font-size: var(--text-sm); }
+.ask-question-who strong { margin-right: var(--space-2); color: var(--ink); font-weight: 600; }
+.ask-question-text.prose { font-family: var(--sans); }
+.ask-question-extra { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
+.ask-question-extra > details { min-width: 0; }
+.ask-question-extra > details[open] { flex: 0 0 100%; }
+.ask-text { white-space: pre-wrap; }
+
+.ask-work > * + * { margin-top: var(--space-2); }
+.ask-work-heading { color: var(--dim); font-size: var(--text-sm); font-weight: 500; }
+.ask-work-heading .muted { margin-left: var(--space-2); font-weight: 400; }
+.records-steps h4 { color: var(--dim); font-size: var(--text-sm); font-weight: 500; }
+.ask-step-name { font-weight: 500; }
+.ask-step-found { color: var(--dim); font-size: var(--text-sm); }
+.ask-step-error { display: -webkit-box; overflow: hidden; color: var(--bad-ink); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.ask-output { max-height: 28rem; overflow: auto; }
+.ask-note { padding: var(--space-3) var(--space-6) var(--space-3) var(--space-4); color: var(--dim); font-size: var(--text-sm); }
+
+.ask-answer { padding-left: var(--space-4); border-left: 3px solid var(--machine); }
+.ask-answer > * + * { margin-top: var(--space-3); }
+.ask-answer-meta { color: var(--faint); font-size: var(--text-sm); }
+/* The thumbs people gave an answer in Slack, one person a line. */
+.ask-ratings { font-size: var(--text-sm); }
+.ask-ratings > * + * { margin-top: var(--space-1); }
+.ask-ratings ul { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); padding: 0; list-style: none; }
+.ask-ratings li { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; margin: 0; }
+.ask-ratings time, .ask-reactions { color: var(--dim); }

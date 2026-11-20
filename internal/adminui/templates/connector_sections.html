@@ -1,0 +1,286 @@
+{{define "connector_sections"}}
+{{with .Slack}}
+<section class="section" aria-labelledby="channels-heading">
+  <div class="section-header">
+    <h2 id="channels-heading">Channels</h2>
+    <span class="section-actions"><a href="/admin/connectors/slack/channels">All channels</a></span>
+  </div>
+  <div class="stats">
+    <a class="stat" href="/admin/connectors/slack/channels"><span class="stat-label">The bot is in</span><span class="stat-value">{{count .Member}}</span><span class="stat-note">of {{count .All}} channels Diderot knows</span></a>
+    <a class="stat" href="/admin/connectors/slack/channels?filter=ask"><span class="stat-label">Ask is on in</span><span class="stat-value">{{count .Ask}}</span><span class="stat-note">channels</span></a>
+    <a class="stat" href="/admin/connectors/slack/channels?filter=documents"><span class="stat-label">Documents are indexed in</span><span class="stat-value">{{count .Documents}}</span><span class="stat-note">channels</span></a>
+    <a class="stat" href="/admin/connectors/slack/channels?filter=errors"><span class="stat-label">Can't be read</span><span class="stat-value">{{count .Errors}}</span><span class="stat-note">{{if .Errors}}See why{{else}}channels{{end}}</span></a>
+  </div>
+  {{if .Documents}}<p class="muted">After changing the document model, <a href="/admin/operations/jobs#slack-documents">read every channel's documents again</a>.</p>{{end}}
+</section>
+{{end}}
+{{with .Notion}}
+<section class="section" aria-labelledby="notion-pages-heading">
+  <div class="section-header">
+    <h2 id="notion-pages-heading">Pages Diderot indexes</h2>
+    <p>Diderot reads each page or database listed here, and every page under it, once a day. Share a page with the integration in Notion before you add it.</p>
+  </div>
+  {{if .Roots}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Page</th><th scope="col">Last read</th><th scope="col">Result</th><th scope="col">Added</th>{{if .Mutable}}<th scope="col" class="actions"><span class="visually-hidden">Remove</span></th>{{end}}</tr></thead>
+      <tbody>
+      {{range .Roots}}
+        <tr>
+          <th scope="row">{{if .Label}}{{.Label}}<span class="sub">{{.Type}} <span class="id">{{.ID}}</span></span>{{else}}<span class="id">{{.ID}}</span><span class="sub">{{.Type}}</span>{{end}}</th>
+          <td class="nowrap" data-label="Last read">{{if .LastWalk}}{{time .LastWalk}}{{else}}<span class="muted">not yet</span>{{end}}</td>
+          <td data-label="Result">{{if eq .Status "complete"}}{{badge "good" "ok"}}{{else if eq .Status "failed"}}{{badge "bad" "failed"}}{{with .Error}}<span class="sub">{{.}}</span>{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
+          <td data-label="Added">{{actor .AddedBy}}<span class="sub">{{time .AddedAt}}</span></td>
+          {{if $.Notion.Mutable}}
+          <td class="actions">
+            <details class="disclosure notion-remove">
+              <summary>Remove</summary>
+              <form method="post" action="/admin/connectors/notion/roots/remove">
+                <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                <input type="hidden" name="input" value="{{.ID}}">
+                <label class="check"><input type="checkbox" name="confirm" value="remove" required> <span>Take it and the pages under it out of search</span></label>
+                <button class="button button-small button-danger" type="submit">Remove</button>
+              </form>
+            </details>
+          </td>
+          {{end}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="empty"><h3>No pages yet</h3><p>Add the address of a Notion page or database below. Diderot indexes it and every page under it.</p></div>
+  {{end}}
+
+  {{if .Mutable}}
+  <form class="form" method="post" action="/admin/connectors/notion/roots" aria-labelledby="notion-add-heading">
+    <h3 id="notion-add-heading">Add a page</h3>
+    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+    <div class="field-row">
+      <div class="field"><label for="notion-input">Page or database address</label><input id="notion-input" name="input" required placeholder="https://www.notion.so/…"></div>
+      <div class="field"><label for="notion-label">Name it <span class="optional">(optional)</span></label><input id="notion-label" name="label" placeholder="Engineering"></div>
+    </div>
+    <div class="form-actions"><button class="button" type="submit">Add page</button></div>
+  </form>
+  {{end}}
+
+  {{if .Shared}}
+  <details class="disclosure" id="notion-shared"{{if .Searched}} open{{end}}>
+    <summary>Pages shared with the integration: {{.Shared}}{{if .Uncovered}}, {{.Uncovered}} not indexed{{end}}</summary>
+    <p class="muted">Notion's search finds every page shared with the integration. Only those under a page listed above are indexed.{{if .Mutable}} Add one to index it and every page under it.{{end}}</p>
+    {{if or .Search (gt .Shared (len .Discoveries))}}
+    <form class="filter-bar" method="get" action="/admin/connectors/notion#notion-shared" role="search" aria-label="Find a shared page">
+      <div class="field">
+        <label for="notion-shared-search">Page title or address</label>
+        <input id="notion-shared-search" type="search" name="shared" value="{{.Search}}" placeholder="Runbooks">
+      </div>
+      <div class="filter-bar-actions">
+        <button class="button" type="submit">Search</button>
+        {{if .Search}}<a href="/admin/connectors/notion?shared_page=1#notion-shared">Clear</a>{{end}}
+      </div>
+    </form>
+    {{end}}
+    {{if .Discoveries}}
+    <div class="table-wrap">
+      <table class="table table-compact table-stack">
+        <thead><tr><th scope="col">Page</th><th scope="col">Indexed</th><th scope="col">Last seen</th>{{if .Mutable}}<th scope="col" class="actions"><span class="visually-hidden">Add</span></th>{{end}}</tr></thead>
+        <tbody>
+        {{range .Discoveries}}
+          <tr>
+            <th scope="row">{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noreferrer">{{if .Title}}{{.Title}}{{else}}Untitled{{end}}</a>{{else if .Title}}{{.Title}}{{else}}Untitled{{end}}<span class="sub">{{.Type}} <span class="id">{{.ID}}</span></span></th>
+            <td data-label="Indexed">{{if .Covered}}yes{{else}}<span class="muted">no</span>{{end}}</td>
+            <td data-label="Last seen">{{time .LastSeen}}</td>
+            {{if $.Notion.Mutable}}
+            <td class="actions">
+              {{if not .Covered}}
+              <form method="post" action="/admin/connectors/notion/roots">
+                <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                <input type="hidden" name="input" value="{{.ID}}">
+                <input type="hidden" name="label" value="{{.Title}}">
+                <button class="button button-small" type="submit" aria-label="Add {{or .Title "this page"}}">Add</button>
+              </form>
+              {{end}}
+            </td>
+            {{end}}
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "pagination" .Pages}}
+    {{else}}
+    <div class="empty"><h3>No shared page matches</h3><p>Try another title, or show every shared page.</p><a class="button" href="/admin/connectors/notion?shared_page=1#notion-shared">Show all shared pages</a></div>
+    {{end}}
+  </details>
+  {{end}}
+</section>
+{{end}}
+{{with .Discord}}
+<section class="section" aria-labelledby="discord-channels-heading">
+  <div class="section-header">
+    <h2 id="discord-channels-heading">Channels</h2>
+    <p>Diderot indexes the channels you choose here, with their threads and forum posts, in every server the bot is in. Each chosen channel's messages are readable by the people you pick. A channel that is private in Discord has no default: pick who may read it.</p>
+  </div>
+  {{if .Error}}<p class="notice notice-bad">The servers couldn't be read: {{.Error}}.</p>{{end}}
+  {{if not .ReadAt}}
+  <div class="empty"><h3>No servers yet</h3><p>Turn Discord on. Diderot lists the bot's servers and channels here within a minute.</p></div>
+  {{else}}
+  <p class="muted">{{count .Chosen}} {{if eq .Chosen 1}}channel{{else}}channels{{end}} chosen. Servers last read {{time .ReadAt}}.</p>
+  <h3 id="discord-ask">Ask in Discord</h3>
+  <p>Ask answers where you turn it on: a mention starts a thread with the answer, <code>/ask</code> asks (privately with <code>private:True</code>), and the message commands Summarize thread and Summarize thread privately summarize a thread. An answer in a channel uses only public content and the chosen channels everyone in it can read in Discord; a direct message or a private answer, what its asker can read.</p>
+  {{if .InviteURL}}<p>Add the bot to a server with the permissions it needs: <a href="{{.InviteURL}}">invite link</a>. It needs View Channel, Read Message History, Send Messages, Send Messages in Threads, Create Public Threads, Add Reactions, Embed Links, Attach Files and Use Application Commands.</p>{{end}}
+  <form method="post" action="/admin/connectors/discord/ask/dms">
+    <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+    {{if .AskDirectMessages}}
+    <p>{{badge "good" "on"}} Ask answers direct messages from members of the servers where it is on.</p>
+    <input type="hidden" name="on" value="no">
+    <button class="button button-small" type="submit">Stop answering direct messages</button>
+    {{else}}
+    <p>{{badge "neutral" "off"}} Ask doesn't answer direct messages.</p>
+    <input type="hidden" name="on" value="yes">
+    <button class="button button-small" type="submit">Answer direct messages</button>
+    {{end}}
+  </form>
+  {{range .Guilds}}
+  <h3 id="discord-guild-{{.ID}}">{{.Name}}</h3>
+  <form method="post" action="/admin/connectors/discord/ask/guild">
+    <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+    <input type="hidden" name="guild" value="{{.ID}}">
+    {{if .Ask}}
+    <p>{{badge "good" "Ask on"}} Ask answers in this server's channels, except those turned off below.</p>
+    <input type="hidden" name="on" value="no">
+    <button class="button button-small" type="submit">Turn Ask off in {{.Name}}</button>
+    {{else}}
+    <p>{{badge "neutral" "Ask off"}} Ask doesn't answer in this server.</p>
+    <input type="hidden" name="on" value="yes">
+    <button class="button button-small" type="submit">Turn Ask on in {{.Name}}</button>
+    {{end}}
+  </form>
+  <form method="post" action="/admin/connectors/discord/ask/trusted">
+    <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+    <input type="hidden" name="guild" value="{{.ID}}">
+    {{if .Trusted}}
+    <p>{{badge "attention" "Trusted"}} This server's members are your organisation's own people: Ask here also answers from content everyone who can use Diderot may read, so anyone who is a member of the server can ask about it.</p>
+    <input type="hidden" name="trusted" value="no">
+    <button class="button button-small" type="submit">Stop trusting {{.Name}}</button>
+    {{else}}
+    <p class="muted">Trust this server only if everyone in it belongs to your organisation. Ask here would then also answer from content everyone who can use Diderot may read, so anyone who is a member of the server could ask about it.</p>
+    <input type="hidden" name="trusted" value="yes">
+    <button class="button button-small" type="submit">Trust {{.Name}}</button>
+    {{end}}
+  </form>
+  {{if .Channels}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Channel</th><th scope="col">Indexed</th><th scope="col">Messages</th><th scope="col">Last read</th><th scope="col">Ask</th><th scope="col" class="actions"><span class="visually-hidden">Change</span></th></tr></thead>
+      <tbody>
+      {{range .Channels}}{{template "discord_channel_row" .}}{{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="muted">The bot can see no text, announcement or forum channel in this server.</p>
+  {{end}}
+  {{end}}
+  {{if .GoneGuilds}}
+  <h3>Servers the bot has left</h3>
+  <p class="muted">Ask is still on, or the server still trusted, in these servers the bot is no longer in. Turn them off so they don't apply if the bot rejoins.</p>
+  {{range .GoneGuilds}}
+  <div class="cluster"><span>Server {{.ID}}</span>
+  {{if .Ask}}<form method="post" action="/admin/connectors/discord/ask/guild"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="guild" value="{{.ID}}"><input type="hidden" name="on" value="no"><button class="button button-small" type="submit">Turn Ask off</button></form>{{end}}
+  {{if .Trusted}}<form method="post" action="/admin/connectors/discord/ask/trusted"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="guild" value="{{.ID}}"><input type="hidden" name="trusted" value="no"><button class="button button-small" type="submit">Stop trusting it</button></form>{{end}}
+  </div>
+  {{end}}
+  {{end}}
+  {{if .Gone}}
+  <h3>No longer in Discord</h3>
+  <p class="muted">Discord no longer shows the bot these chosen channels. Remove them to take their messages out of search.</p>
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Channel</th><th scope="col">Indexed</th><th scope="col">Messages</th><th scope="col">Last read</th><th scope="col">Ask</th><th scope="col" class="actions"><span class="visually-hidden">Change</span></th></tr></thead>
+      <tbody>
+      {{range .Gone}}{{template "discord_channel_row" .}}{{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  {{end}}
+</section>
+{{end}}
+{{end}}
+
+{{define "discord_visibility_fields"}}
+<fieldset class="field">
+  <legend>Who may read its messages in Diderot</legend>
+  <label class="check"><input type="radio" name="visibility" value="everyone"{{if .Chosen}}{{if eq .Visibility "everyone"}} checked{{end}}{{else if not .Private}} checked{{end}} required> <span>Everyone who can use Diderot</span></label>
+  <label class="check"><input type="radio" name="visibility" value="policy"{{if eq .Visibility "policy"}} checked{{end}}> <span>Only the groups the authorization policy grants this scope:</span></label>
+  <label for="discord-policy-{{.ID}}" class="visually-hidden">Policy scope name</label>
+  <input id="discord-policy-{{.ID}}" name="policy" value="{{.Policy}}" placeholder="discord-mods" pattern="[a-z0-9][a-z0-9_\-]{0,62}">
+  <p class="muted">The policy grants it as corpus:<em>name</em>.</p>
+</fieldset>
+{{if .Private}}
+<label class="check"><input type="checkbox" name="confirm_private" value="yes" required> <span>This channel is private in Discord. I have chosen who may read it here.</span></label>
+{{end}}
+{{end}}
+
+{{define "discord_channel_row"}}
+{{$c := .}}
+<tr>
+  <th scope="row">#{{$c.Name}}<span class="sub">{{if $c.Category}}{{$c.Category}} · {{end}}{{$c.Kind}}{{if $c.Private}} · private in Discord{{end}}</span>{{if and (not $c.Readable) $c.Kind}}<span class="sub">{{badge "attention" "bot can't read"}}</span>{{end}}</th>
+  <td data-label="Indexed">
+    {{if $c.Removing}}{{badge "neutral" "removing"}}
+    {{else if $c.Chosen}}{{if $c.Error}}{{badge "bad" "can't be read"}}<span class="sub">{{$c.Error}}</span>{{else if $c.Reading}}{{badge "neutral" "reading"}}{{else}}{{badge "good" "yes"}}{{end}}
+      <span class="sub">{{if eq $c.Visibility "policy"}}Groups granted corpus:{{$c.Policy}}{{else}}Everyone who can use Diderot{{end}}</span>
+    {{else}}<span class="muted">no</span>{{end}}
+  </td>
+  <td data-label="Messages">{{if $c.Chosen}}{{count $c.Messages}}{{else}}<span class="muted">—</span>{{end}}</td>
+  <td class="nowrap" data-label="Last read">{{if $c.LastRead}}{{time $c.LastRead}}{{else}}<span class="muted">—</span>{{end}}</td>
+  <td data-label="Ask">
+    {{if $c.GuildAsk}}
+    <form method="post" action="/admin/connectors/discord/ask/channel">
+      <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+      <input type="hidden" name="channel" value="{{$c.ID}}">
+      {{if $c.Ask}}{{badge "good" "on"}}<input type="hidden" name="on" value="no"> <button class="button button-small" type="submit">Turn off</button>
+      {{else}}{{badge "neutral" "off"}}<input type="hidden" name="on" value="yes"> <button class="button button-small" type="submit">Turn on</button>{{end}}
+    </form>
+    {{else}}<span class="muted">—</span>{{end}}
+  </td>
+  <td class="actions">
+    {{if $c.Removing}}
+    {{else if $c.Chosen}}
+    <details class="disclosure">
+      <summary>Change</summary>
+      <form method="post" action="/admin/connectors/discord/channels">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <input type="hidden" name="channel" value="{{$c.ID}}">
+        <input type="hidden" name="change" value="yes">
+        {{template "discord_visibility_fields" .}}
+        <button class="button button-small" type="submit">Save visibility</button>
+      </form>
+      <form method="post" action="/admin/connectors/discord/channels/reread">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <input type="hidden" name="channel" value="{{$c.ID}}">
+        <button class="button button-small" type="submit">Read its history again</button>
+      </form>
+      <form method="post" action="/admin/connectors/discord/channels/remove">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <input type="hidden" name="channel" value="{{$c.ID}}">
+        <label class="check"><input type="checkbox" name="confirm" value="remove" required> <span>Take its messages out of search</span></label>
+        <button class="button button-small button-danger" type="submit">Remove</button>
+      </form>
+    </details>
+    {{else if $c.Readable}}
+    <details class="disclosure">
+      <summary>Index</summary>
+      <form method="post" action="/admin/connectors/discord/channels">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <input type="hidden" name="channel" value="{{$c.ID}}">
+        {{template "discord_visibility_fields" .}}
+        <button class="button button-small" type="submit">Index #{{$c.Name}}</button>
+      </form>
+    </details>
+    {{end}}
+  </td>
+</tr>
+{{end}}

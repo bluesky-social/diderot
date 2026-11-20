@@ -1,0 +1,11 @@
+{
+  "theme": "dark",
+  "mcpServers": {
+    "diderot": {
+      "auth": {
+        "CLIENT_ID": "public-client"
+      },
+      "url": "https://gateway.example.com/mcp"
+    }
+  } /* trailing */
+}

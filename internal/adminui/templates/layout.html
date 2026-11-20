@@ -1,0 +1,43 @@
+{{define "layout"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · Diderot</title>
+  <link rel="icon" href="/auth/favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <link rel="apple-touch-icon" href="/auth/apple-touch-icon.png">
+  <link rel="stylesheet" href="/admin/static/admin.css">
+  {{if .Stylesheet}}<link rel="stylesheet" href="/admin/static/{{.Stylesheet}}">{{end}}
+  <script src="/admin/static/admin.js" defer></script>
+  {{if .Script}}<script src="/admin/static/{{.Script}}" defer></script>{{end}}
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a class="brand" href="/admin/">
+        {{mark}}
+        <span class="brand-name">Diderot</span>
+        {{if .OrgName}}<span class="brand-org" title="{{.OrgName}}">{{.OrgName}}</span>{{end}}
+      </a>
+      <nav class="app-nav" aria-label="Main">
+        {{range .MainNav}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+      </nav>
+      <div class="account">
+        <span class="account-name" title="{{.Principal.Email}}">{{actor .Principal.Email}}</span>
+        {{if and .SignOutURL .SignOutToken}}<form method="post" action="{{.SignOutURL}}"><input type="hidden" name="csrf_token" value="{{.SignOutToken}}"><button class="button-link" type="submit">Sign out</button></form>{{end}}
+      </div>
+    </div>
+  </header>
+  {{with .Banner}}<div class="app-banner{{if .Bad}} app-banner-bad{{end}}" role="{{if .Bad}}alert{{else}}status{{end}}"><p>{{.Text}} <a href="{{.Href}}">{{.LinkText}}</a></p></div>{{end}}
+  <main class="page">
+    {{template "content" .}}
+  </main>
+  <footer class="app-footer">
+    <span>Diderot {{.Version}}</span>
+    {{if .GrafanaURL}}<a href="{{.GrafanaURL}}" target="_blank" rel="noreferrer">Metrics dashboard</a>{{end}}
+  </footer>
+</body>
+</html>
+{{end}}

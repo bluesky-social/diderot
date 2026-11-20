@@ -1,0 +1,14 @@
+[Unit]
+Description=Ship coding-agent sessions to Diderot
+
+[Service]
+ExecStart="/Users/ada/My Tools/diderot" sessions run
+Environment="XDG_CONFIG_HOME=/Users/ada/50%%"
+Environment="XDG_STATE_HOME=/Users/ada/state & more"
+StandardOutput=append:/Users/ada/.local/state/diderot/sessions.log
+StandardError=append:/Users/ada/.local/state/diderot/sessions.log
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

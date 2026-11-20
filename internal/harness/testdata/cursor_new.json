@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "diderot": {
+      "headers": {
+        "Authorization": "Bearer tok-123"
+      },
+      "url": "https://diderot.example.com/mcp"
+    }
+  }
+}

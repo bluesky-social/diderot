@@ -1,0 +1,48 @@
+services:
+  qdrant:
+    # Vector store for the development server and the integration tests,
+    # single-node. Only the gRPC port, which Diderot speaks, is published;
+    # nothing in Diderot uses the HTTP port (6333).
+    image: qdrant/qdrant:v1.20.2@sha256:d277592721d2e3b73f9b797b53cf05e6a5bb2134f6d13fdbda4ca51782afbcac
+    container_name: diderot-qdrant-1
+    ports:
+      - "16334:6334"
+    volumes:
+      - diderot-qdrant-data:/qdrant/storage
+    # Each test creates a collection and drops it afterwards, and Qdrant
+    # frees a dropped collection's memory lazily, so a full `just test`
+    # run needs about 3 GB; 2 GB runs out mid-suite. The cap keeps a leak
+    # from taking the whole Docker VM, and the restart policy brings Qdrant
+    # back after an out-of-memory kill (exit 137). If it hits the cap with
+    # only your own collections present, raise it.
+    mem_limit: 3g
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+    container_name: diderot-postgres-1
+    environment:
+      POSTGRES_USER: diderot
+      POSTGRES_PASSWORD: diderot
+      POSTGRES_DB: diderot
+    # Postgres's stock configuration suits Diderot (vectors live in
+    # Qdrant, not here), apart from more connections for parallel tests.
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      # Development only: don't wait for each commit to reach disk. It
+      # speeds up tests and backfills, and a crash loses only the last
+      # few commits. Never set this on a production database.
+      - "-c"
+      - "synchronous_commit=off"
+    ports:
+      - "15432:5432"
+    volumes:
+      # Postgres 18 keeps its data in a major-version subdirectory of
+      # /var/lib/postgresql, so mount the parent, not `.../data`.
+      - diderot-pgdata:/var/lib/postgresql
+
+volumes:
+  diderot-pgdata:
+  diderot-qdrant-data:

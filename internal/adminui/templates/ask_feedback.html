@@ -1,0 +1,87 @@
+{{define "content"}}
+{{template "page-header" (header "Feedback" "Ratings come from the thumbs on Slack answers: the buttons under each answer, and thumbs-up or thumbs-down reactions on it.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+<section class="section" aria-labelledby="ratings-heading">
+  <div class="section-header">
+    <h2 id="ratings-heading">Ratings</h2>
+    <p>Of the answers given {{.Range.During}}, counted by when the answer was given. Answers through the API or MCP can't be rated.</p>
+  </div>
+  {{template "tabs" .RangeTabs}}
+  {{if .Tally.Ratings}}
+  <div class="stats">
+    <a class="stat" href="{{.RatingHref "up"}}"><span class="stat-label">Helpful</span><span class="stat-value">{{count .Tally.Helpful}}</span><span class="stat-note">{{with .Previous}}{{count .Helpful}} in {{$.Range.Before}}{{else}}{{if eq .Tally.Helpful 1}}rating{{else}}ratings{{end}}{{end}}</span></a>
+    <a class="stat" href="{{.RatingHref "down"}}"><span class="stat-label">Not helpful</span><span class="stat-value">{{count .Tally.NotHelpful}}</span><span class="stat-note">{{with .Previous}}{{count .NotHelpful}} in {{$.Range.Before}}{{else}}{{if eq .Tally.NotHelpful 1}}rating{{else}}ratings{{end}}{{end}}</span></a>
+    <div class="stat"><span class="stat-label">Rated helpful</span><span class="stat-value">{{if .Tally.Enough}}{{.Tally.HelpfulShare}}%{{else}}—{{end}}</span><span class="stat-note">{{.RateNote}}</span></div>
+    <div class="stat"><span class="stat-label">Answers rated</span><span class="stat-value">{{count .Tally.RatedAnswers}}</span><span class="stat-note">{{if .Tally.Answers}}of {{count .Tally.Answers}} given in Slack ({{.Tally.RatedShare}}){{else}}No answers were given in Slack{{end}}</span></div>
+  </div>
+  {{template "chart" .Chart}}
+  {{with .Places}}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Where the answer was given</th><th scope="col" class="num">Helpful</th><th scope="col" class="num">Not helpful</th></tr></thead>
+      <tbody>
+      {{range .}}<tr><th scope="row">{{.Label}}</th><td class="num">{{count .Helpful}}</td><td class="num">{{count .NotHelpful}}</td></tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  {{else}}
+  <div class="empty">
+    <h3>No ratings {{.Range.During}}</h3>
+    <p>{{if .Tally.Answers}}Diderot gave {{.AnswersGiven}} in Slack {{.Range.During}}, and nobody rated one.{{else}}Diderot gave no answers in Slack {{.Range.During}}.{{end}} People rate an answer with the thumbs under it in Slack.</p>
+    {{if ne .Range.Key "all"}}<a class="button" href="?range=all">Show all time</a>{{end}}
+  </div>
+  {{end}}
+</section>
+
+{{if .OtherReactions}}
+<section class="section" aria-labelledby="reactions-heading">
+  <div class="section-header">
+    <h2 id="reactions-heading">Other reactions</h2>
+    <p>Reactions other than thumbs on the same answers. They aren't counted as ratings.</p>
+  </div>
+  <ul class="feedback-reactions" aria-label="Other reactions, most left first">
+    {{range .Reactions}}<li><code>:{{.Emoji}}:</code> <span>{{count .Count}}</span></li>{{end}}
+    {{with .MoreReactions}}<li class="muted">and {{count .}} more</li>{{end}}
+  </ul>
+</section>
+{{end}}
+
+{{if .Tally.Ratings}}
+<section class="section" aria-labelledby="answers-heading">
+  <div class="section-header">
+    <h2 id="answers-heading">Rated answers</h2>
+    <p>Open one to read the question, what Diderot did to answer it, and the answer.</p>
+  </div>
+  {{template "tabs" .RatingTabs}}
+  {{template "error" .FilterError}}
+  {{if .Answers}}
+  <div class="records records-feedback">
+    <div class="records-head" aria-hidden="true"><span>Answer</span><span>Rated by</span><span>Where</span><span>Answered</span><span>Rating</span></div>
+    <ol aria-label="Rated answers">
+      {{range .Answers}}
+      <li>
+        <a class="record-link" href="{{.Href}}">
+          <span class="record-wide ask-row-title">
+            <strong>{{.Title}}</strong>
+            {{with .Preview}}<span class="ask-row-line">{{.}}</span>{{end}}
+          </span>
+          <span class="ask-row-meta">{{range $i, $r := .Ratings}}{{if $i}}, {{end}}{{$r.Who}}{{end}}</span>
+          <span class="ask-row-meta">{{.Place.Label}}{{with .Place.Detail}}<span class="sub">{{.}}</span>{{end}}</span>
+          <span class="ask-row-meta">{{logtime .Answered}}</span>
+          <span class="ask-row-state">{{badge .Tone .Word}}{{if and .Helpful .NotHelpful}}<span class="sub">{{.Helpful}} helpful, {{.NotHelpful}} not</span>{{end}}</span>
+        </a>
+      </li>
+      {{end}}
+    </ol>
+  </div>
+  {{template "pagination" .Pages}}
+  {{else if .Rating}}
+  <div class="empty"><h3>No answer rated {{if eq .Rating "down"}}not helpful{{else}}helpful{{end}} {{.Range.During}}</h3><a class="button" href="?range={{.Range.Key}}#answers-heading">Show every rated answer</a></div>
+  {{else}}
+  <div class="empty"><h3>No more rated answers</h3><a class="button" href="?range={{.Range.Key}}#answers-heading">Show the newest</a></div>
+  {{end}}
+</section>
+{{end}}
+{{end}}

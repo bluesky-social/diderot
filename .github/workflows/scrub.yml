@@ -1,0 +1,39 @@
+name: scrub
+
+# Public-release scrub gate. Runs on GitHub-hosted runners with a read-only
+# token and no secrets.
+#
+#   scrub-gitleaks  gitleaks over the whole tree, not only new commits, with the
+#                   false positives in .gitleaks.toml exempted. Blocking.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITLEAKS: github.com/zricethezav/gitleaks/v8@v8.30.1
+
+jobs:
+  scrub-gitleaks:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Scan the tree for secrets
+        # gitleaks reads .gitleaks.toml from the scan root.
+        run: go run "${GITLEAKS}" dir --redact --no-banner .

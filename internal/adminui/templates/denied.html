@@ -1,0 +1,8 @@
+{{define "content"}}
+{{template "page-header" (header (printf "This account can't open %s" .Place) "")}}
+<div class="stack">
+  <p>You're signed in as <strong>{{actor .Principal.Email}}</strong>. {{if .Groups}}Only members of {{range $i, $g := .Groups}}{{if $i}} or {{end}}<code>{{$g}}</code>{{end}} can open {{.Place}}.{{else}}No group can open {{.Place}} yet.{{end}}</p>
+  <p class="muted">An administrator chooses those groups with <code>{{.Setting}}</code> in the deployment. Your identity provider or token file decides which groups you are in.</p>
+  {{with .Elsewhere}}<p><a class="button" href="{{.Href}}">{{.Label}}</a></p>{{end}}
+</div>
+{{end}}

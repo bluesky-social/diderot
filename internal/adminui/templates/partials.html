@@ -1,0 +1,87 @@
+{{/*
+  Shared partials, parsed with every page. The style guide page shows each.
+
+  page-header  {{template "page-header" (header "Title" "One sentence." (crumb "Parent" "/admin/parent"))}}
+               The lead and the crumbs are optional: pass "" for no lead.
+               (header …).WithBadge "good" "on"   a status badge beside the title
+               (header …).WithMeta .               a line of facts under the title: the page defines
+                                                   {{define "header-meta"}}<span>…</span><span>…</span>{{end}}
+               (header …).WithActions .            page-level actions on the right: the page defines
+                                                   {{define "header-actions"}}…buttons and forms…{{end}}
+               Both templates get the value passed to the With method.
+  tabs         {{template "tabs" (tabs "Accessible name" (tab "Label" "/href" true) (tab "Other" "/other" false))}}
+               Tabs go directly under the page header, on every page that has them. A page of a
+               section with tabs of its own (nav.go sectionTabs) draws them there with
+               {{with .SectionTabs}}{{template "tabs" .}}{{end}}.
+  notice       {{template "notice" .Notice}}     the result of an action, role="status"
+  error        {{template "error" .Error}}       a refused action, role="alert"
+               Both render nothing for an empty string.
+  pagination   {{template "pagination" .Pages}}  a pagination (format.go): Summary, BackURL and ForwardURL (any
+               may be empty). The links read Newer and Older unless BackLabel and ForwardLabel name them.
+  copy         {{template "copy" .ID}}           a Copy button for the identifier before it
+  chart        {{template "chart" .Chart}}       a barChart (format.go): counts over time
+  source-state, source-newest                    the State and Newest item cells of a row that lists a source
+
+  Funcs (format.go): time, logtime, duration, count, bytes, badge, actor, changedBy.
+*/}}
+
+{{define "page-header"}}
+<header class="page-header">
+  <div class="page-header-text">
+    {{if .Crumbs}}<nav class="breadcrumb" aria-label="Breadcrumb"><ol>{{range .Crumbs}}<li><a href="{{.Href}}">{{.Label}}</a></li>{{end}}<li aria-current="page">{{.Title}}</li></ol></nav>{{end}}
+    {{if .Badge}}<div class="page-title"><h1>{{.Title}}</h1>{{badge .Badge.Tone .Badge.Label}}</div>{{else}}<h1>{{.Title}}</h1>{{end}}
+    {{if .Lead}}<p class="lead">{{.Lead}}</p>{{end}}
+    {{if .HasMeta}}<p class="page-meta">{{template "header-meta" .MetaData}}</p>{{end}}
+  </div>
+  {{if .HasActions}}<div class="page-header-actions">{{template "header-actions" .ActionsData}}</div>{{end}}
+</header>
+{{end}}
+
+{{/* A page that passes WithMeta or WithActions defines its own. */}}
+{{define "header-meta"}}{{end}}
+{{define "header-actions"}}{{end}}
+
+{{define "tabs"}}
+<nav class="tabs" aria-label="{{.Label}}">
+  <ul>{{range .Tabs}}<li><a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}{{if .Counted}}<span class="tab-count">{{count .Count}}</span>{{end}}</a></li>{{end}}</ul>
+</nav>
+{{end}}
+
+{{/* A source's or connector's state, and a source's newest item, as every
+     table that lists them shows them. */}}
+{{define "source-state"}}<td data-label="State">{{badge .State.Tone .State.Word}}{{if .State.Reason}}<span class="sub">{{.State.Reason}}</span>{{else if .State.Note}}<span class="sub">{{.State.Note}}</span>{{else if and .NeverSetUp (eq .State.Word "off")}}<span class="sub">Not set up yet</span>{{end}}</td>{{end}}
+
+{{define "source-newest"}}<td class="nowrap" data-label="Newest item">{{if eq .State.Word "off"}}<span class="muted">—</span>{{else if .Newest}}{{time .Newest}}{{else}}<span class="muted">Nothing yet</span>{{end}}</td>{{end}}
+
+{{define "notice"}}{{if .}}<div class="notice notice-good" role="status"><p>{{.}}</p></div>{{end}}{{end}}
+
+{{define "error"}}{{if .}}<div class="notice notice-bad" role="alert"><p>{{.}}</p></div>{{end}}{{end}}
+
+{{define "pagination"}}
+<nav class="pagination" aria-label="Pages">
+  <span>{{.Summary}}</span>
+  <span class="pagination-links">
+    {{if .BackURL}}<a class="button button-small" href="{{.BackURL}}">{{.Back}}</a>{{end}}
+    {{if .ForwardURL}}<a class="button button-small" href="{{.ForwardURL}}">{{.Forward}}</a>{{end}}
+  </span>
+</nav>
+{{end}}
+
+{{define "copy"}}<button class="button button-small copy" type="button" data-copy-text="{{.}}">Copy</button><span class="visually-hidden" role="status" aria-live="polite"></span>{{end}}
+
+{{define "chart"}}
+<figure class="chart">
+  <figcaption>{{.Caption}}{{if .BadLabel}}<span class="chart-key" aria-hidden="true"><span>{{.RestLabel}}</span><span class="chart-key-bad">{{.BadLabel}}</span></span>{{end}}</figcaption>
+  <div class="chart-body">
+    <div class="chart-axis" aria-hidden="true"><span>{{.Top}}</span><span>{{.Middle}}</span><span>0</span></div>
+    <svg class="chart-plot" viewBox="0 0 {{.Width}} 100" preserveAspectRatio="none" role="img" aria-label="{{.Summary}}">
+      <line class="chart-grid" x1="0" y1="0" x2="{{.Width}}" y2="0" vector-effect="non-scaling-stroke"/>
+      <line class="chart-grid" x1="0" y1="50" x2="{{.Width}}" y2="50" vector-effect="non-scaling-stroke"/>
+      {{range .Drawn}}<g class="chart-bar"><title>{{or .Label (printf "%s: %d" (.Start.UTC.Format "Jan 2, 15:04 UTC") .Count)}}</title><rect x="{{.X}}" y="{{.Y}}" width="0.7" height="{{.Height}}"/>{{if .BadHeight}}<rect class="chart-bar-bad" x="{{.X}}" y="{{.Y}}" width="0.7" height="{{.BadHeight}}"/>{{end}}</g>{{end}}
+      <line class="chart-baseline" x1="0" y1="100" x2="{{.Width}}" y2="100" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
+  <div class="chart-time" aria-hidden="true"><span>{{.From}}</span><span>{{.To}}</span></div>
+  {{with .Note}}<p class="chart-note">{{.}}</p>{{end}}
+</figure>
+{{end}}

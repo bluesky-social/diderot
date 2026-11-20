@@ -1,0 +1,32 @@
+{{define "content"}}
+{{template "page-header" (header "Organization" "The name Diderot uses for your organization in its answers and prompts, and where you watch Diderot run.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "setup-progress" .Setup}}
+
+<form class="form" method="post" action="/admin/settings/organization">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="version" value="{{.Org.Version}}">
+  <div class="field">
+    <label for="org-name">Name</label>
+    <input id="org-name" name="name" value="{{.Org.Name}}" maxlength="{{.MaxName}}" placeholder="Example Corp" aria-describedby="org-name-help">
+    <p class="help" id="org-name-help">As you would write it in a sentence.</p>
+  </div>
+  <div class="field">
+    <label for="org-description">Description <span class="optional">(optional)</span></label>
+    <input id="org-description" name="description" value="{{.Org.Description}}" maxlength="{{.MaxDesc}}" placeholder="Builds delivery software for restaurants" aria-describedby="org-description-help">
+    <p class="help" id="org-description-help">One line about what the organization does. It helps Ask judge what a question is about.</p>
+  </div>
+  <div class="field">
+    <label for="org-dashboard">Operational dashboard <span class="optional">(optional)</span></label>
+    <input id="org-dashboard" name="dashboard" type="url" value="{{.Org.DashboardURL}}" placeholder="https://grafana.example.com/d/diderot" aria-describedby="org-dashboard-help">
+    <p class="help" id="org-dashboard-help">Where you watch Diderot's metrics, such as a Grafana dashboard. Every admin page links to it at the bottom.</p>
+  </div>
+  <div class="form-actions">
+    <button class="button button-primary" type="submit">Save organization</button>
+    {{with changedBy .Org.UpdatedBy}}<p class="help">Last changed by {{.}}{{if not $.Org.UpdatedAt.IsZero}}, {{time $.Org.UpdatedAt}}{{end}}.</p>{{end}}
+  </div>
+</form>
+{{end}}

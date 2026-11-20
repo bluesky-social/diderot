@@ -1,0 +1,37 @@
+/* The Prompts pages: layout no shared component covers. */
+
+/* Prompt and version lists: every group's "changed" column lines up. */
+.prompt-changed { width: 12rem; }
+.prompt-about { display: block; margin-top: var(--space-1); color: var(--dim); font-size: var(--text-sm); font-weight: 400; overflow-wrap: anywhere; }
+
+.prompt-live { overflow-wrap: anywhere; }
+.prompt-live > * + * { margin-top: var(--space-1); }
+
+.prompt-form { display: grid; gap: var(--space-4); }
+.prompt-note { max-width: 40rem; }
+.prompt-editor { min-height: 12rem; max-height: 75vh; line-height: 1.55; }
+
+/* Text read as written: a prompt's whole text, a tool's description. */
+.prompt-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.prompt-prose { max-width: 52rem; white-space: pre-line; overflow-wrap: anywhere; }
+
+.prompt-changes { padding: 0; list-style: none; }
+.prompt-changes > li + li { margin-top: var(--space-4); }
+.prompt-changes > li > details { margin-top: var(--space-2); }
+
+/* A prompt's text compared with the shipped text, and the draft's mark. */
+.prompt-state { width: 9rem; }
+.prompt-badges { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* A line diff: removed lines, then added ones, among unchanged context. The
+   sign before each line says which, so colour only repeats it. */
+.diff { border: 1px solid var(--line); border-radius: var(--radius); background: var(--sunk); font: var(--text-sm)/1.55 var(--mono); overflow: hidden; }
+.diff-line { display: block; position: relative; min-height: 1.55em; padding: 0 var(--space-3) 0 var(--space-6); color: var(--ink); text-decoration: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.diff-mark { position: absolute; left: var(--space-3); color: var(--faint); user-select: none; }
+.diff-add { background: color-mix(in srgb, var(--good) 16%, transparent); }
+.diff-add .diff-mark { color: var(--good); }
+.diff-del { background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.diff-del .diff-mark { color: var(--bad-ink); }
+.diff-skip { padding: var(--space-1) var(--space-3) var(--space-1) var(--space-6); border-block: 1px solid var(--line); background: var(--bg); color: var(--faint); font-family: var(--sans); }
+.diff-skip:first-child { border-top: 0; }
+.diff-skip:last-child { border-bottom: 0; }

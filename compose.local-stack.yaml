@@ -1,0 +1,56 @@
+# The databases and file storage of a throwaway local Diderot that runs
+# `diderot serve` from this checkout: scripts/local-stack-up.sh starts them
+# and the server, scripts/local-stack-down.sh removes everything. Its own
+# project, ports and volumes, so it never shares state with the development
+# databases (compose.yaml) or the quickstart.
+name: ${DIDEROT_LOCAL_STACK_PROJECT:-diderot-local}
+
+services:
+  postgres:
+    image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+    environment:
+      POSTGRES_USER: diderot
+      POSTGRES_PASSWORD: diderot
+      POSTGRES_DB: diderot
+    ports:
+      - "127.0.0.1:${DIDEROT_LOCAL_PG_PORT:-25432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "diderot", "-d", "diderot"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.2@sha256:d277592721d2e3b73f9b797b53cf05e6a5bb2134f6d13fdbda4ca51782afbcac
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+    ports:
+      - "127.0.0.1:${DIDEROT_LOCAL_QDRANT_PORT:-26334}:6334"
+      - "127.0.0.1:${DIDEROT_LOCAL_QDRANT_HTTP_PORT:-26333}:6333"
+    volumes:
+      - qdrant:/qdrant/storage
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/6333 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q ' 200 ' <&3
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # An S3-compatible store for attachments, so image captions and document
+  # extraction run. It keeps files inside its container and accepts any
+  # credentials.
+  files:
+    image: adobe/s3mock:4.12.4@sha256:e8d02904541324862264b05c3a262207d36c43e6de8c2cac177eab3c9fd75338
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: diderot-files
+    ports:
+      - "127.0.0.1:${DIDEROT_LOCAL_FILES_PORT:-29090}:9090"
+
+volumes:
+  pgdata:
+  qdrant:

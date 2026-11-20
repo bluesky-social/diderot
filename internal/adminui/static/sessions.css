@@ -1,0 +1,9 @@
+/* My sessions (sessions.html): the checkbox column. */
+.sessions-table .sessions-select { width: 1px; padding-right: 0; }
+.sessions-table .sessions-select input { margin-top: .2rem; }
+
+/* When the table stacks, a row's checkbox sits beside its title. */
+@media (max-width: 640px) {
+  .table-stack.sessions-table tbody tr { position: relative; padding-left: calc(var(--space-4) + 1.75rem); }
+  .table-stack.sessions-table tbody .sessions-select { position: absolute; top: var(--space-3); left: var(--space-4); grid-area: auto; width: auto; }
+}

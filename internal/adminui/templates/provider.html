@@ -1,0 +1,130 @@
+{{define "content"}}
+{{template "page-header" ((header .Name (printf "%s provider at %s." .KindTitle .BaseURL) (crumb "Models" "/admin/settings/models#providers")).WithBadge .State.Tone .State.Word)}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="panel connector-state{{if .State.Attention}} panel-attention{{end}}" aria-labelledby="state-heading">
+  <div class="connector-state-text">
+    <h2 id="state-heading" class="visually-hidden">State</h2>
+    <p>{{.StateText}}</p>
+    {{if .View.Enabled}}
+      {{with changedBy .View.UpdatedBy}}<p class="help">Last changed by {{.}}, {{time $.View.UpdatedAt}}.</p>{{end}}
+    {{else}}
+      <p class="help">Turning it on saves the settings below and lists its models first.</p>
+    {{end}}
+  </div>
+  {{if .View.Enabled}}
+  <form method="post" action="/admin/settings/providers/{{.Name}}/disable"{{if .ConfirmOff}} class="stack"{{end}}>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    {{if .ConfirmOff}}
+    <div class="notice notice-attention" role="alert">
+      <p><strong>Turning {{.Name}} off stops:</strong></p>
+      <ul class="stack">{{range .Depends}}<li>{{.}}</li>{{end}}</ul>
+      <label class="check"><input type="checkbox" name="confirm" value="off" required> <span>Stop these and turn {{.Name}} off</span><span class="help">Their models stay saved, and they start again when the provider is turned on.</span></label>
+    </div>
+    {{end}}
+    <button class="button button-danger" type="submit">Turn off</button>
+  </form>
+  {{else}}
+  <button type="submit" form="provider-settings" hidden tabindex="-1">Save</button>
+  <button class="button" type="submit" form="provider-settings" formaction="/admin/settings/providers/{{.Name}}/enable">Turn on</button>
+  {{end}}
+</section>
+
+{{with .Check}}
+<section class="section" aria-labelledby="check-heading">
+  <div class="section-header"><h2 id="check-heading">Latest listing</h2><p>Diderot lists the models of each provider that is on every 10 minutes.</p></div>
+  <p class="cluster">{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}} <span>{{time .At}}</span></p>
+  {{if not .Passed}}{{template "connector-checks" .Checks}}{{end}}
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="settings-heading">
+  <div class="section-header"><h2 id="settings-heading">Settings</h2></div>
+  <form class="form" id="provider-settings" method="post" action="/admin/settings/providers/{{.Name}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    {{template "connector-field" .Key}}
+    {{if .AllowsNoKey}}
+    <label class="check"><input type="checkbox" name="field.no_key" value="true"{{if .NoKey}} checked{{end}}> <span>It takes no API key</span><span class="help">For a server that needs none, such as a local model server or an embedder beside Diderot. Requests then carry no key, whatever is saved above.</span></label>
+    {{with index .FieldErrors "no_key"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    {{end}}
+    <div class="field">
+      <label for="field-headers">Extra request headers <span class="optional">(optional)</span></label>
+      <textarea id="field-headers" name="field.headers" class="mono" placeholder="X-Team: search" aria-describedby="field-headers-help"{{with index .FieldErrors "headers"}} aria-invalid="true"{{end}}>{{.Headers}}</textarea>
+      <p class="help" id="field-headers-help">One per line, as <code>Name: value</code>, sent with every request to this provider. Every administrator can read these: a header that is a credential goes under Secret request headers.</p>
+      {{with index .FieldErrors "headers"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    <div class="field">
+      <label for="secret-headers">Secret request headers <span class="optional">(optional)</span></label>
+      {{if .SecretHeaders.Secret.Env}}
+      <p>Set by the deployment (<code>{{.SecretHeaders.Secret.Env}}</code>).</p>
+      {{else if .SecretHeaders.CanStore}}
+      <textarea id="secret-headers" name="secret.secret_headers" class="mono" autocomplete="off" placeholder="{{if .SecretHeaders.Secret.Saved}}Saved. Enter all of them again to replace them.{{else}}X-Api-Token: the token{{end}}" aria-describedby="secret-headers-help"></textarea>
+      {{if .SecretHeaders.Secret.Saved}}<label class="check"><input type="checkbox" name="secret.secret_headers.remove" value="true"{{if .SecretHeaders.Remove}} checked{{end}}> <span>Remove the saved headers</span></label>{{end}}
+      {{else}}
+      <p class="help">To enter them here, set <code>DIDEROT_CONFIG_KEYS</code> in the deployment. Or set <code>{{.SecretHeaders.Env}}</code> there instead, one <code>Name: value</code> per line.</p>
+      {{end}}
+      <p class="help" id="secret-headers-help">One per line, as <code>Name: value</code>. Stored encrypted and never shown again, like the key.</p>
+      {{with index .FieldErrors "secret_headers"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    <div class="field">
+      <label for="field-models">Models offered <span class="optional">(optional)</span></label>
+      <textarea id="field-models" name="field.models" placeholder="One model ID per line" aria-describedby="field-models-help"{{with index .FieldErrors "models"}} aria-invalid="true"{{end}}>{{.Offered}}</textarea>
+      <p class="help" id="field-models-help">Leave it empty to offer every model the provider lists. Enter IDs to offer only those, or to offer models its list lacks, or all of its models when it has no list.</p>
+      {{with index .FieldErrors "models"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">Save</button>
+      <button class="button" type="submit" formaction="/admin/settings/providers/{{.Name}}/test">Test</button>
+      <p class="help">Test lists the provider's models with these settings without saving anything. Save keeps them and lists the models again.</p>
+    </div>
+  </form>
+  {{with .Report}}
+  <div class="connector-test" id="test-result">
+    <p class="cluster">{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}}
+      <span>{{if $.Draft}}Test of the settings above, {{time .At}}. Nothing was saved.{{else}}Last test, {{time .At}} by {{actor .By}}.{{end}}</span></p>
+    {{template "connector-checks" .Checks}}
+  </div>
+  {{end}}
+</section>
+
+<section class="section" id="menu" aria-labelledby="menu-heading">
+  <div class="section-header">
+    <h2 id="menu-heading">Models it offers</h2>
+    <p>{{if .Menu.NoListing}}The provider has no model list, so it offers the models entered above.{{else if .Menu.Offered}}The models entered above, with what the provider's list says about each.{{else}}Every model the provider lists, with what the list says about each.{{end}}{{with .Menu.At}} Listed {{time .}}.{{end}}</p>
+  </div>
+  {{if .Menu.Models}}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Model</th><th scope="col">Context</th><th scope="col">Images</th><th scope="col">Price</th><th scope="col">Ends</th></tr></thead>
+      <tbody>
+      {{range .Menu.Models}}
+        <tr>
+          <th scope="row"><span class="mono">{{.ID}}</span>{{with .Name}} <span class="sub">{{.}}</span>{{end}}{{if .Embedding}} <span class="sub">embeddings</span>{{end}}</th>
+          <td>{{if .ContextTokens}}{{count .ContextTokens}} tokens{{end}}</td>
+          <td>{{$.ImageInput .}}</td>
+          <td>{{$.Price .}}</td>
+          <td>{{if .Retires}}retires {{.Retires}}{{else if .Deprecated}}deprecated{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="empty">{{if .Menu.Error}}<h3>Models unknown</h3><p>The latest listing failed, so the models it offers are not known now. Fix what it reports and test again.</p>{{else}}<h3>No models yet</h3><p>Test or save the settings to list the provider's models.</p>{{end}}</div>
+  {{end}}
+</section>
+
+<section class="section" aria-labelledby="remove-heading">
+  <div class="section-header"><h2 id="remove-heading">Remove</h2></div>
+  <form class="form" method="post" action="/admin/settings/providers/{{.Name}}/delete">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    <label class="check"><input type="checkbox" name="confirm" value="remove" required> <span>Remove {{.Name}} and its saved key</span><span class="help">{{if .Depends}}It can't be removed while these use it: {{range $i, $j := .Depends}}{{if $i}}; {{end}}{{$j}}{{end}}. Give them another provider's model first.{{else}}No job uses its models, and it does not serve the embedding model.{{end}}</span></label>
+    <div class="form-actions"><button class="button button-danger" type="submit"{{if .Depends}} disabled{{end}}>Remove</button></div>
+  </form>
+</section>
+{{end}}

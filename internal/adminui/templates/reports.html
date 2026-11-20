@@ -1,0 +1,41 @@
+{{define "content"}}
+{{$header := header "Reports" "Questions Diderot answers on a schedule and delivers in Slack."}}
+{{if and .Reports .SlackOn}}{{$header = $header.WithActions .}}{{end}}
+{{template "page-header" $header}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+{{if .Reports}}
+{{template "report-waits" .}}
+<div class="table-wrap">
+  <table class="table table-stack">
+    <thead><tr><th scope="col">Report</th><th scope="col">Delivered to</th><th scope="col">Next run</th><th scope="col">Last run</th></tr></thead>
+    <tbody>
+    {{range .Reports}}
+      <tr>
+        <th scope="row"><a class="row-link" href="/admin/reports/{{.ID}}">{{.Name}}</a><span class="sub">{{.Schedule}}</span></th>
+        <td data-label="Delivered to">{{template "report-target-name" .Target}}{{if .Target.DM}}<span class="sub">Direct message</span>{{end}}</td>
+        <td class="nowrap" data-label="Next run">{{if not .Enabled}}{{badge "neutral" "off"}}{{else if .NextNote}}<span class="muted">{{.NextNote}}</span>{{else}}{{time .NextRun}}{{end}}</td>
+        <td class="nowrap" data-label="Last run">{{with .Last}}{{badge .Tone .Label}}<span class="sub">{{time .At}}</span>{{else}}<span class="muted">Not run yet</span>{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else if .SlackOn}}
+<div class="empty">
+  <h2>No reports yet</h2>
+  <p>A report asks Diderot a question on a schedule, such as what a team shipped this week, and delivers the answer in a Slack channel or a direct message.</p>
+  <a class="button button-primary" href="/admin/reports/new">New report</a>
+</div>
+{{else}}
+<div class="empty">
+  <h2>Reports need Slack</h2>
+  <p>A report asks Diderot a question on a schedule, such as what a team shipped this week, and delivers the answer in Slack. Turn on the Slack connector to create one.</p>
+  <a class="button button-primary" href="/admin/connectors/slack">Set up Slack</a>
+</div>
+{{end}}
+{{end}}
+
+{{define "header-actions"}}<a class="button button-primary" href="/admin/reports/new">New report</a>{{end}}

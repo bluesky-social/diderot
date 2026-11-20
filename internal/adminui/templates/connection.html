@@ -1,0 +1,185 @@
+{{define "content"}}
+{{template "page-header" ((header .Name (printf "%s connection: a server whose tools Ask can call." .KindTitle) (crumb "Connectors" "/admin/connectors#connections")).WithBadge .State.Tone .State.Word)}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="panel connector-state{{if .State.Attention}} panel-attention{{end}}" aria-labelledby="state-heading">
+  <div class="connector-state-text">
+    <h2 id="state-heading" class="visually-hidden">State</h2>
+    <p>{{.StateText}}</p>
+    {{if .View.Enabled}}
+      {{with changedBy .View.UpdatedBy}}<p class="help">Last changed by {{.}}, {{time $.View.UpdatedAt}}.</p>{{end}}
+    {{else if .NeverSetUp}}
+      <p class="help">Fill in the settings below and test them: the test lists the tools the server offers, to choose from. Then save and turn it on.</p>
+    {{else}}
+      <p class="help">Turning it on saves the settings below and tests them first.</p>
+    {{end}}
+  </div>
+  {{if .View.Enabled}}
+  <form method="post" action="/admin/connections/{{.Name}}/disable">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    <button class="button button-danger" type="submit">Turn off</button>
+  </form>
+  {{else}}
+  {{/* Enter in a field submits the form's first submit button, which would turn the connection on: this hidden Save comes first. */}}
+  <button type="submit" form="connection-settings" hidden tabindex="-1">Save</button>
+  {{if not .NeverSetUp}}<button class="button" type="submit" form="connection-settings" formaction="/admin/connections/{{.Name}}/enable">Turn on</button>{{end}}
+  {{end}}
+</section>
+
+{{with .Check}}
+<section class="section" aria-labelledby="check-heading">
+  <div class="section-header"><h2 id="check-heading">Latest check</h2><p>Diderot tests each connection that is on every 10 minutes.</p></div>
+  <p class="cluster">{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}} <span>{{time .At}}</span></p>
+  {{if not .Passed}}{{template "connector-checks" .Checks}}{{end}}
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="settings-heading">
+  <div class="section-header"><h2 id="settings-heading">Settings</h2></div>
+  <form class="form" id="connection-settings" method="post" action="/admin/connections/{{.Name}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+
+    {{if eq .Kind "sentry"}}
+    <div class="field-row">
+      <div class="field">
+        <label for="field-organization">Organization</label>
+        <input id="field-organization" name="field.sentry_organization" value="{{.Organization}}" autocomplete="off" aria-describedby="field-organization-help"{{with index .FieldErrors "sentry_organization"}} aria-invalid="true"{{end}}>
+        {{with index .FieldErrors "sentry_organization"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="field-project">Project</label>
+        <input id="field-project" name="field.sentry_project" value="{{.Project}}" autocomplete="off" aria-describedby="field-organization-help"{{with index .FieldErrors "sentry_project"}} aria-invalid="true"{{end}}>
+        {{with index .FieldErrors "sentry_project"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+    </div>
+    <p class="help" id="field-organization-help">As they appear in your Sentry addresses: <code>https://sentry.io/organizations/<em>organization</em>/projects/<em>project</em>/</code>. Ask reads this project only, through Sentry's read-only tools.</p>
+    {{else}}
+    <div class="field">
+      <label for="field-url">Server address</label>
+      <input id="field-url" name="field.url" value="{{.URL}}" placeholder="https://mcp.example.com/mcp" autocomplete="off" aria-describedby="field-url-help"{{with index .FieldErrors "url"}} aria-invalid="true"{{end}}>
+      <p class="help" id="field-url-help">The address of the MCP server{{if eq .Kind "grafana"}}: Grafana's MCP server, or a gateway that serves its tools under <code>grafana_</code> and <code>tempo_</code> names{{end}}. Use https; plain http is allowed only for a Kubernetes Service (<code>*.svc.cluster.local</code>).</p>
+      {{with index .FieldErrors "url"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    {{end}}
+
+    {{template "connector-field" .Credential}}
+
+    {{if eq .Kind "generic"}}
+    <div class="field">
+      <label for="field-agents">Who uses its tools</label>
+      <select id="field-agents" name="field.agents" aria-describedby="field-agents-help">{{$agents := .Agents}}{{range .AgentOptions}}<option value="{{.Value}}"{{if eq .Value $agents}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      <p class="help" id="field-agents-help">Ask calls them itself while it researches a question. The observability investigator is an agent Ask hands a question about live systems to; it researches with them in its own time and reports back.</p>
+      {{with index .FieldErrors "agents"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    {{else}}
+    <div class="field">
+      <span class="label">Who uses its tools</span>
+      <p>The observability investigator, an agent Ask hands a question about live systems to.</p>
+    </div>
+    {{end}}
+
+    <fieldset class="stack connection-tools" id="tools">
+      <legend>Tools Ask may call</legend>
+      <input type="hidden" name="tools" value="shown">
+      {{if .ToolsListed}}
+      <p class="help">The tools the server offered at the {{if .Draft}}test above{{else}}last test{{end}}. Ask calls them with this connection's credential for anyone who asks, so choose only tools that read.</p>
+      {{else if .Tools}}
+      <p class="help">Test the connection to see every tool the server offers.</p>
+      {{else}}
+      <p class="help">Test the connection to list the tools the server offers, then choose them here.</p>
+      {{end}}
+      {{range .Tools}}
+      <label class="check"><input type="checkbox" name="tool" value="{{.Name}}"{{if .Checked}} checked{{end}}> <span class="mono">{{.Name}}</span><span class="help">{{.AdmissionText}}</span></label>
+      {{end}}
+      {{with index .FieldErrors "tools"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </fieldset>
+
+    {{if eq .Kind "grafana"}}
+    <fieldset class="stack">
+      <legend>Datasources <span class="optional">(optional)</span></legend>
+      <p class="help">Pin the datasource each kind of query uses. Every query of a pinned kind goes to it, whatever the investigator asks for, and the investigator is told so instead of looking one up.</p>
+      {{range .Datasources}}
+      <div class="field">
+        <label for="field-{{.Key}}">{{.Label}}</label>
+        {{if .Options}}
+        <select id="field-{{.Key}}" name="field.{{.Key}}">{{$value := .Value}}<option value="">Not pinned: the investigator chooses</option>{{range .Options}}<option value="{{.Value}}"{{if eq .Value $value}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+        {{else}}
+        <input id="field-{{.Key}}" name="field.{{.Key}}" value="{{.Value}}" placeholder="Datasource UID" autocomplete="off"{{with .Error}} aria-invalid="true"{{end}}>
+        {{end}}
+        {{with .Error}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+      {{end}}
+      {{if not (index .Datasources 0).Options}}<p class="help">When the server offers Grafana's datasource list as a read-only tool, a test lists the datasources here to choose from. Otherwise enter each UID, from the datasource's page in Grafana.</p>{{end}}
+    </fieldset>
+    {{end}}
+
+    <details class="disclosure"{{if or .FieldErrors .AllowUnreviewed .ActorHeader}} open{{end}}>
+      <summary>More settings</summary>
+      <div class="stack">
+        {{if eq .Kind "sentry"}}
+        <div class="field">
+          <label for="field-url">Server address <span class="optional">(optional)</span></label>
+          <input id="field-url" name="field.url" value="{{.URL}}" placeholder="{{.SentryHost}}" autocomplete="off" aria-describedby="field-url-help"{{with index .FieldErrors "url"}} aria-invalid="true"{{end}}>
+          <p class="help" id="field-url-help">Sentry's hosted MCP server unless you run your own. Diderot adds the organization, the project, and the read-only skill to it.</p>
+          {{with index .FieldErrors "url"}}<p class="error" role="alert">{{.}}</p>{{end}}
+        </div>
+        {{end}}
+        <div class="field">
+          <label for="field-auth_scheme">Authorization scheme</label>
+          <input id="field-auth_scheme" name="field.auth_scheme" value="{{.AuthScheme}}" placeholder="Bearer" autocomplete="off" aria-describedby="field-auth_scheme-help"{{with index .FieldErrors "auth_scheme"}} aria-invalid="true"{{end}}>
+          <p class="help" id="field-auth_scheme-help">The word before the credential in the Authorization header.</p>
+          {{with index .FieldErrors "auth_scheme"}}<p class="error" role="alert">{{.}}</p>{{end}}
+        </div>
+        <div class="field">
+          <label for="field-actor_header">Identity header <span class="optional">(optional)</span></label>
+          <input id="field-actor_header" name="field.actor_header" value="{{.ActorHeader}}" placeholder="X-Actor" autocomplete="off" aria-describedby="field-actor_header-help"{{with index .FieldErrors "actor_header"}} aria-invalid="true"{{end}}>
+          <p class="help" id="field-actor_header-help">For a gateway that requires every request to name who makes it: Diderot sends <code>svc:diderot</code> in this header.</p>
+          {{with index .FieldErrors "actor_header"}}<p class="error" role="alert">{{.}}</p>{{end}}
+        </div>
+        <div class="field">
+          <label for="field-timeout">Request timeout</label>
+          <input id="field-timeout" name="field.timeout" value="{{.Timeout}}" placeholder="{{.DefaultTimeout}}" autocomplete="off"{{with index .FieldErrors "timeout"}} aria-invalid="true"{{end}}>
+          {{with index .FieldErrors "timeout"}}<p class="error" role="alert">{{.}}</p>{{end}}
+        </div>
+        <label class="check"><input type="checkbox" name="field.allow_unreviewed" value="true"{{if .AllowUnreviewed}} checked{{end}}> <span>Allow tools that are not marked read-only</span><span class="help">Only for a server whose tools you know change nothing. Without it, Ask may call only tools reviewed as read-only or marked read-only by the server.</span></label>
+      </div>
+    </details>
+
+    <div class="form-actions">
+      {{if .NeverSetUp}}
+      <button class="button button-primary" type="submit" formaction="/admin/connections/{{.Name}}/enable">Save and turn on</button>
+      <button class="button" type="submit">Save</button>
+      {{else}}
+      <button class="button button-primary" type="submit">Save</button>
+      {{end}}
+      <button class="button" type="submit" formaction="/admin/connections/{{.Name}}/test">Test</button>
+      <p class="help">Test connects with these settings and lists the server's tools without saving anything. Save keeps them and tests them{{if .NeverSetUp}}, and leaves the connection off{{end}}.</p>
+    </div>
+  </form>
+  {{with .Report}}
+  <div class="connector-test" id="test-result">
+    <p class="cluster">{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}}
+      <span>{{if $.Draft}}Test of the settings above, {{time .At}}. Nothing was saved.{{else}}Last test, {{time .At}} by {{actor .By}}.{{end}}</span></p>
+    {{if and .Passed (not $.Draft)}}
+    <details class="disclosure"><summary>Show what it checked</summary>{{template "connector-checks" .Checks}}</details>
+    {{else}}
+    {{template "connector-checks" .Checks}}
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+<section class="section" aria-labelledby="remove-heading">
+  <div class="section-header"><h2 id="remove-heading">Remove</h2></div>
+  <form class="form" method="post" action="/admin/connections/{{.Name}}/delete">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.View.Version}}">
+    <label class="check"><input type="checkbox" name="confirm" value="remove" required> <span>Remove {{.Name}} and its saved credential</span><span class="help">Ask stops using its tools from its next question. Conversations that used them keep what they found.</span></label>
+    <div class="form-actions"><button class="button button-danger" type="submit">Remove</button></div>
+  </form>
+</section>
+{{end}}

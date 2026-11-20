@@ -1,0 +1,46 @@
+{{define "content"}}
+{{template "report-header" .}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "report-waits" .}}
+
+<section class="section" aria-labelledby="about-heading">
+  <h2 class="visually-hidden" id="about-heading">About this report</h2>
+  <dl class="kv">
+    <div><dt>Next run</dt><dd>{{if not .Report.Enabled}}None while the report is off. Run now still works.{{else if .Report.NextNote}}{{.Report.NextNote}}{{else}}{{time .Report.NextRun}}{{end}}</dd></div>
+    <div><dt>Last delivered</dt><dd>{{with .Report.LastDelivered}}{{time .}}{{else}}Never{{end}}</dd></div>
+    <div><dt>Owner</dt><dd>{{.Report.Owner}}</dd></div>
+    <div><dt>If Diderot was down</dt><dd>Still sent up to {{.Report.LateWords}} late</dd></div>
+    <div><dt>Instructions</dt><dd><details class="disclosure"><summary>Show the instructions</summary><p class="report-instructions">{{.Report.Prompt}}</p></details></dd></div>
+    <div><dt>Created</dt><dd>By {{actor .Report.CreatedBy}}, {{time .Report.CreatedAt}}</dd></div>
+  </dl>
+</section>
+
+<section class="section" aria-labelledby="runs-heading">
+  <div class="section-header">
+    <h2 id="runs-heading">Runs</h2>
+    {{if .Active}}<span class="section-actions muted" data-refresh="{{.RefreshSeconds}}"><span data-refresh-note>A run is in progress.</span> <a href="/admin/reports/{{.Report.ID}}">Refresh</a></span>{{end}}
+  </div>
+  {{if .Runs}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">When</th><th scope="col">Result</th><th scope="col" class="num">Took</th><th scope="col">Output</th></tr></thead>
+      <tbody>
+      {{range .Runs}}
+        <tr>
+          <th scope="row" class="nowrap">{{logtime .At}}<span class="sub">{{if .Manual}}Run by hand{{else}}On schedule{{end}}{{if gt .Attempts 1}} · {{.Attempts}} tries{{end}}</span></th>
+          <td class="report-run-result">{{badge .Tone .Label}}{{with .Reason}}<span class="sub">{{.}}</span>{{end}}{{with .Error}}<details class="disclosure"><summary>Error as recorded</summary><pre>{{.}}</pre></details>{{end}}</td>
+          {{if .Took}}<td class="num" data-label="Took">{{duration .Took}}</td>{{else}}<td class="num stack-hide"><span class="muted">—</span></td>{{end}}
+          <td{{if not (or .SessionURL .SlackURL)}} class="stack-hide"{{end}}>{{if or .SessionURL .SlackURL}}<span class="cluster">{{with .SessionURL}}<a href="{{.}}">Conversation</a>{{end}}{{with .SlackURL}}<a href="{{.}}" target="_blank" rel="noreferrer">Slack message</a>{{end}}</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{if .MoreRuns}}<p class="muted">The latest {{len .Runs}} runs, newest first.</p>{{end}}
+  {{else}}
+  <div class="empty"><h3>No runs yet</h3><p>{{if and .Report.Enabled (not .Report.NextNote)}}The first scheduled run is {{time .Report.NextRun}}. {{end}}Run it now to see what it sends.</p></div>
+  {{end}}
+</section>
+{{end}}

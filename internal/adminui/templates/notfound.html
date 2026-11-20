@@ -1,0 +1,7 @@
+{{define "content"}}
+{{template "page-header" (header .Heading "")}}
+<div class="stack">
+  <p>{{.Detail}}</p>
+  <p><a class="button" href="{{.BackHref}}">{{.BackLabel}}</a></p>
+</div>
+{{end}}

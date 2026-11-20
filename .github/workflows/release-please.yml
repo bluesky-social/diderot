@@ -1,0 +1,440 @@
+name: release-please
+
+# Release automation via the org reusable workflow
+# (bluesky-social/.github .github/workflows/release-please.yml).
+# Push-to-main maintains a standing Release PR. A range made only of merged
+# Renovate/Dependabot PRs merges itself on weekdays 09-16 PT; anything
+# human-authored waits for a human (label `release:manual` to hold one).
+# Merging creates the tag + GitHub release, then the release_created-gated
+# jobs below run: build the release image, dispatch its deploy, announce it,
+# and start the run that attaches the binaries and publishes the Homebrew
+# formula.
+#
+# They run HERE because the reusable creates tags with GITHUB_TOKEN, which
+# does not trigger another workflow. There is no tag-triggered release
+# workflow: a hand-pushed tag would bypass release-please's manifest. The
+# binaries are the one thing that runs elsewhere: a workflow_dispatch of this
+# workflow with the tag, which GITHUB_TOKEN may start, in a concurrency group
+# of its own, so release-please never waits for a build. Recovery is
+# re-running this workflow: its failed jobs (`gh run rerun <id> --failed`)
+# when a release job broke, workflow_dispatch when the release never landed,
+# or workflow_dispatch with a tag to attach a release's binaries again
+# (`gh workflow run release-please.yml -f tag=vX.Y.Z`).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          A released tag (vX.Y.Z) whose binaries to build and attach to its
+          existing release, and nothing else. Empty runs release-please.
+        required: false
+        default: ""
+  # Hourly across the weekday release window (UTC; covers 09-16 PT in both PST
+  # and PDT) so a dependency range merged overnight is released when it opens.
+  schedule:
+    - cron: '23 16-23 * * 1-5'
+
+permissions:
+  contents: read
+
+# A run with a tag only builds that tag's binaries: it has a group of its
+# own, so neither it nor release-please waits for the other.
+concurrency:
+  group: >-
+    ${{ github.event_name == 'workflow_dispatch' && inputs.tag != ''
+    && format('release-binaries-{0}', inputs.tag) || 'release-please' }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name != 'workflow_dispatch' || inputs.tag == ''
+    uses: bluesky-social/.github/.github/workflows/release-please.yml@v1
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      component: diderot
+    # The GitHub App release-please acts as.
+    secrets:
+      RELEASE_APP_ID: ${{ secrets.PUBLIC_RELEASE_APP_ID }}
+      RELEASE_APP_KEY: ${{ secrets.PUBLIC_RELEASE_APP_KEY }}
+
+  release-pr-notes:
+    needs: release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # release-please has no catch-all changelog section. Its commit-based
+      # builder drops unknown/non-conventional types, while its GitHub builder
+      # drops direct pushes. Append the authoritative tag-to-HEAD history after
+      # release-please creates or refreshes the standing PR so every commit is
+      # visible regardless of its message format.
+      - name: Check out main history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Put every commit on the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          pr_number="$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --base "$GITHUB_REF_NAME" \
+            --head "release-please--branches--main--components--diderot" \
+            --state open --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr_number" ]]; then
+            echo "No standing release-please PR; nothing to update."
+            exit 0
+          fi
+
+          released_version="$(jq -r '.["."]' .release-please-manifest.json)"
+          previous_tag="v${released_version}"
+          # Before this repository's first release the manifest's version has
+          # no tag here, so every commit is unreleased.
+          range=HEAD
+          if git rev-parse --verify --quiet "${previous_tag}^{commit}" >/dev/null; then
+            range="${previous_tag}..HEAD"
+          fi
+
+          commits_file="${RUNNER_TEMP}/release-commits.md"
+          git log --reverse \
+            --format="- [%x60%h%x60](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/%H) %s" \
+            "${range}" >"$commits_file"
+
+          body_file="${RUNNER_TEMP}/release-body.md"
+          base_body_file="${RUNNER_TEMP}/release-body-base.md"
+          updated_body_file="${RUNNER_TEMP}/release-body-updated.md"
+          gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" \
+            --json body --jq .body >"$body_file"
+
+          awk '
+            /<!-- every-commit-list:start -->/ { skipping = 1; next }
+            /<!-- every-commit-list:end -->/ { skipping = 0; next }
+            !skipping {
+              if ($0 ~ /^[[:space:]]*$/) {
+                trailing_blanks = trailing_blanks $0 ORS
+                next
+              }
+              printf "%s", trailing_blanks
+              trailing_blanks = ""
+              print
+            }
+          ' "$body_file" >"$base_body_file"
+
+          {
+            cat "$base_body_file"
+            printf '\n<!-- every-commit-list:start -->\n'
+            printf '## Every commit\n\n'
+            cat "$commits_file"
+            printf '\n<!-- every-commit-list:end -->\n'
+          } >"$updated_body_file"
+
+          gh pr edit "$pr_number" --repo "$GITHUB_REPOSITORY" \
+            --body-file "$updated_body_file"
+
+  # Starts the run that attaches the release's binaries: this workflow,
+  # dispatched with the tag, on this run's ref. GITHUB_TOKEN may start a
+  # workflow_dispatch, the one kind of run it may start, and that run is in
+  # its own concurrency group, so this job takes seconds and the next
+  # release-please run is not held behind a build.
+  binaries-dispatch:
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the binaries of ${{ needs.release.outputs.tag_name }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release.outputs.tag_name }}
+        run: |
+          gh workflow run release-please.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f tag="$TAG"
+          echo "Dispatched the binaries of $TAG"
+
+      # Without the dispatch there is no binaries run to say they failed.
+      - name: Say the binaries were not started
+        if: failure()
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload: |
+            {
+              "text": ":warning: Diderot ${{ needs.release.outputs.tag_name }}'s binaries could not be started (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>), so the release has no downloads yet. Attach them with `gh workflow run release-please.yml -f tag=${{ needs.release.outputs.tag_name }}`."
+            }
+
+  # The release binaries: the client-only diderot (setup, doctor, ask) built
+  # from the tag's .goreleaser.yaml for linux and darwin, amd64 and arm64,
+  # attached with their checksums to the tag's existing release. It runs only
+  # in a run dispatched with a tag: the one binaries-dispatch starts, or a
+  # recovery. The workflow's own token can write its repository's releases.
+  goreleaser:
+    if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+    runs-on: ubuntu-26.04
+    # Four small builds at once, about two minutes.
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      # Binaries go only to a release that exists; GoReleaser would
+      # otherwise create one for any tag it is given.
+      - name: Check the tag has a release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$TAG' is not a release tag (vX.Y.Z)"
+            exit 1
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName
+
+      - name: Checkout the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The release was announced without waiting for its downloads, so a
+      # build that fails for a real release says so in the same channel.
+      - name: Say the binaries failed
+        if: failure() && steps.release.outcome == 'success'
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload: |
+            {
+              "text": ":warning: Diderot ${{ env.TAG }}'s binaries failed to build (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>), so the release has no downloads yet. Attach them with `gh workflow run release-please.yml -f tag=${{ env.TAG }}`."
+            }
+
+  # `brew install` of the client: a formula in the public tap, written from
+  # the release's checksums once its archives are attached
+  # (scripts/homebrew-formula.sh says why a formula and not a cask). A job of
+  # its own, so a failure here reruns without rebuilding the archives.
+  homebrew:
+    needs: goreleaser
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      # The scripts are the workflow's, not the tag's, so a rerun for an
+      # older release publishes the same way.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # A token for the tap alone, for this run only.
+      - name: Mint a token for the tap
+        id: tap-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ secrets.PUBLIC_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PUBLIC_RELEASE_APP_KEY }}
+          owner: bluesky-social
+          repositories: homebrew-tap
+          permission-contents: write
+
+      - name: Write the formula
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt --dir "$RUNNER_TEMP"
+          scripts/homebrew-formula.sh "$TAG" "$RUNNER_TEMP/checksums.txt" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG" > "$RUNNER_TEMP/diderot.rb"
+
+      - name: Publish the formula
+        env:
+          GH_TOKEN: ${{ steps.tap-token.outputs.token }}
+        run: scripts/homebrew-publish.sh bluesky-social/homebrew-tap "$RUNNER_TEMP/diderot.rb"
+
+      - name: Say the formula failed
+        if: failure()
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload: |
+            {
+              "text": ":warning: Diderot ${{ env.TAG }}'s Homebrew formula failed to publish (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>), so `brew upgrade` does not offer it yet. Rerun with `gh run rerun ${{ github.run_id }} --failed`."
+            }
+
+  # Signed build provenance for each archive, from the checksums the release
+  # carries: `gh attestation verify <archive> --repo bluesky-social/diderot`.
+  # A job of its own, so a failure here reruns without rebuilding anything.
+  attest-binaries:
+    needs: goreleaser
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download the release's checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt --dir "$RUNNER_TEMP"
+
+      - name: Attest the archives
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/checksums.txt
+
+      - name: Say the attestation failed
+        if: failure()
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload: |
+            {
+              "text": ":warning: Diderot ${{ env.TAG }}'s binaries are attached but not attested (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>). Rerun with `gh run rerun ${{ github.run_id }} --failed`."
+            }
+
+  # On a release, also push the image tagged :vX.Y.Z to GHCR and ECR
+  # (container.yml tags every main push by SHA). VERSION is baked into
+  # main.Version via the Dockerfile ldflags.
+  container-release:
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    # No `environment:`, for the ECR role's trust; see container.yml.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.release.outputs.tag_name }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/push-image
+        with:
+          aws-role-arn: ${{ secrets.AWS_ECR_ROLE_ARN }}
+          version: ${{ needs.release.outputs.tag_name }}
+          # The version tag only: container.yml already pushed this commit's
+          # SHA tag on the merge to main, and ECR tags are immutable, so
+          # pushing it again would fail the job. tag_name is already `vX.Y.Z`
+          # (include-component-in-tag: false).
+          tags: type=raw,value=${{ needs.release.outputs.tag_name }}
+          # On GHCR, latest is the newest release.
+          latest: "true"
+
+  # Once the release's :vX.Y.Z image is pushed, send a repository_dispatch
+  # naming the tag to the repository that deploys it, with an App
+  # installation token minted for this run.
+  deploy-dispatch:
+    needs: [release, container-release]
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    # Holds DEPLOY_DISPATCH_APP_ID and DEPLOY_DISPATCH_APP_KEY, and admits
+    # only main.
+    environment: deploy
+    # Authenticates with the App token below, not GITHUB_TOKEN.
+    permissions: {}
+    steps:
+      - name: Mint deploy-dispatch App token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.DEPLOY_DISPATCH_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_DISPATCH_APP_KEY }}
+          owner: bluesky-social
+          repositories: deploy
+
+      - name: Dispatch deploy of ${{ needs.release.outputs.tag_name }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ needs.release.outputs.tag_name }}
+        run: |
+          gh api repos/bluesky-social/deploy/dispatches \
+            -f event_type=deploy \
+            -f 'client_payload[app]=diderot' \
+            -f "client_payload[tag]=$TAG"
+          echo "Dispatched deploy of diderot $TAG to bluesky-social/deploy"
+
+  # Announce once the release's image is built and its deploy dispatched.
+  # It does not wait for the binaries, which attach a minute or two later in
+  # a run of their own; that run says so in the same channel if they fail.
+  # The incoming webhook is bound to one channel; CI never receives a
+  # workspace-wide bot token or chooses an arbitrary destination at runtime.
+  announce-release:
+    needs: [release, deploy-dispatch]
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Announce ${{ needs.release.outputs.tag_name }}
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload: |
+            {
+              "text": "Diderot ${{ needs.release.outputs.tag_name }} is released",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Diderot ${{ needs.release.outputs.tag_name }} is released",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag_name }}|View release notes and downloads>"
+                  }
+                }
+              ]
+            }

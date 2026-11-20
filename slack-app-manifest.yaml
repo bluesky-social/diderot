@@ -1,0 +1,118 @@
+# Diderot's Slack app. At https://api.slack.com/apps choose Create New App,
+# then From a manifest, pick your workspace, and paste this file.
+# docs/slack-app.md walks through the rest.
+#
+# You may change the app's name, descriptions and colour, and the bot's
+# display name (people mention the bot by it). Leave everything else as it
+# is: Diderot needs exactly these scopes, events and shortcuts, and checks
+# the scopes when you turn Slack on.
+display_information:
+  name: Diderot
+  description: Answers questions from your team's conversations and documents.
+  background_color: "#1f2937"
+  long_description: >-
+    Diderot reads the channels it is added to, along with the other sources
+    your team connects to it, and answers questions about them. Mention it in
+    a channel, or send it a direct message, and it replies in the thread. On
+    any message in a thread, the Summarize thread shortcut posts a summary of
+    the thread and its pinned action items.
+
+features:
+  app_home:
+    # Nothing is shown on a Home tab; the Messages tab is where people send
+    # the bot direct messages.
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+    # Slack adds a Tasks tab, where people hand an agent recurring work,
+    # unless this says false. Diderot doesn't take on that work.
+    agent_tasks_enabled: false
+  # Slack shows Diderot as an agent: people find it among their agents and
+  # talk to it in its Messages tab. Slack requires the description.
+  agent_view:
+    agent_description: Answers questions from your team's conversations and documents.
+    # Shown at the top of Diderot's Messages tab. Choosing one sends its
+    # message as a question. You may write your own (up to four).
+    suggested_prompts:
+      - title: Catch up on the week
+        message: Summarize the most important discussions and decisions from the past week, with links to the threads.
+      - title: Unanswered questions
+        message: Which questions asked in channels over the past week still have no answer? Link each one.
+      - title: What's in progress
+        message: What are people working on right now, based on the past two weeks of conversations? Group it by project.
+      - title: What can you do?
+        message: What can you answer, and which sources do you search?
+  bot_user:
+    display_name: diderot
+    always_online: true
+  # Diderot recognises the two shortcuts by their callback IDs; keep those as
+  # they are.
+  shortcuts:
+    - name: Summarize thread
+      description: Summarize this thread and list its pinned (📌) action items.
+      type: message
+      callback_id: summarize_thread
+    - name: Summarize privately
+      description: >-
+        Summarize this thread and list its pinned (📌) action items, visible
+        only to you.
+      type: message
+      callback_id: summarize_thread_private
+
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - assistant:write
+      - channels:history
+      - channels:join
+      - channels:read
+      - chat:write
+      - commands
+      - files:read
+      - files:write
+      - groups:history
+      - groups:read
+      - im:history
+      - im:write
+      - mpim:history
+      - mpim:read
+      - reactions:read
+      - reactions:write
+      - usergroups:read
+      - users:read
+      - users:read.email
+    # For the optional user token, which lets Diderot add the bot to a
+    # channel and remove it. Delete this user block if you won't use it.
+    user:
+      - channels:write
+      - groups:write
+
+settings:
+  event_subscriptions:
+    bot_events:
+      # The stop button Slack shows while Diderot is working on an answer.
+      - agent_session_stopped
+      # A mention in a channel the bot isn't in, when Slack adds it there.
+      - app_mention
+      # Makes Slack tell Diderot, with each direct message, which channel
+      # the person has open.
+      - app_context_changed
+      - member_joined_channel
+      - member_left_channel
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+      - reaction_added
+      - reaction_removed
+  interactivity:
+    is_enabled: true
+  org_deploy_enabled: false
+  # Diderot connects out to Slack, so it needs no public URL.
+  socket_mode_enabled: true
+  # Diderot doesn't reach Slack through Slack's MCP server.
+  is_mcp_enabled: false
+  # Diderot keeps the tokens you paste into it. With rotation they would
+  # expire after 12 hours.
+  token_rotation_enabled: false

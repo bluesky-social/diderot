@@ -1,0 +1,108 @@
+{{define "content"}}
+{{template "page-header" (header "Conversations" "Every question asked of Diderot, in Slack, through the API, and by reports and alerts.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{if or .Sessions .Filtered}}
+<form class="filter-bar" method="get" action="/admin/ask/sessions" role="search" aria-label="Filter conversations">
+  <div class="field ask-search">
+    <label for="ask-q">Search</label>
+    <input id="ask-q" name="q" type="search" value="{{.Query}}" placeholder="Title, conversation ID, or Slack link">
+  </div>
+  <div class="field field-small">
+    <label for="ask-range">When</label>
+    <select id="ask-range" name="range">
+      <option value="all"{{if eq .Range "all"}} selected{{end}}>Any time</option>
+      <option value="24h"{{if eq .Range "24h"}} selected{{end}}>Last 24 hours</option>
+      <option value="7d"{{if eq .Range "7d"}} selected{{end}}>Last 7 days</option>
+      <option value="30d"{{if eq .Range "30d"}} selected{{end}}>Last 30 days</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="ask-owner">Who</label>
+    <input id="ask-owner" name="owner" value="{{.Owner}}" placeholder="name@example.com">
+  </div>
+  <div class="field">
+    <label for="ask-where">Where</label>
+    <select id="ask-where" name="where">
+      <option value="">Anywhere</option>
+      <option value="slack"{{if eq .Where "slack"}} selected{{end}}>Slack, any channel</option>
+      <option value="dm"{{if eq .Where "dm"}} selected{{end}}>Slack DMs</option>
+      {{with .Channels}}<optgroup label="Slack channels">{{range .}}<option value="{{.Value}}"{{if eq .Value $.Where}} selected{{end}}>{{.Label}}</option>{{end}}</optgroup>{{end}}
+      <option value="http"{{if eq .Where "http"}} selected{{end}}>API</option>
+      <option value="scheduled"{{if eq .Where "scheduled"}} selected{{end}}>Scheduled reports</option>
+      <option value="pagerduty"{{if eq .Where "pagerduty"}} selected{{end}}>PagerDuty alerts</option>
+    </select>
+  </div>
+  <div class="field field-small">
+    <label for="ask-status">State</label>
+    <select id="ask-status" name="status">
+      <option value="">Any state</option>
+      <option value="answered"{{if eq .Status "answered"}} selected{{end}}>Answered</option>
+      <option value="running"{{if eq .Status "running"}} selected{{end}}>Running</option>
+      <option value="incomplete"{{if eq .Status "incomplete"}} selected{{end}}>Incomplete</option>
+      <option value="stopped"{{if eq .Status "stopped"}} selected{{end}}>Stopped</option>
+      <option value="cancelled"{{if eq .Status "cancelled"}} selected{{end}}>Cancelled</option>
+      <option value="failed"{{if eq .Status "failed"}} selected{{end}}>Failed</option>
+    </select>
+  </div>
+  <div class="filter-bar-actions">
+    <button class="button" type="submit">Apply</button>
+    {{if .Filtered}}<a href="/admin/ask/sessions">Clear</a>{{end}}
+  </div>
+  <details class="disclosure ask-more"{{if .MoreFiltered}} open{{end}}>
+    <summary>More filters</summary>
+    <div class="ask-more-fields">
+      <div class="field">
+        <label for="ask-tool">Used the tool</label>
+        <input id="ask-tool" name="tool" value="{{.Tool}}" list="ask-tools" placeholder="retrieve">
+        <datalist id="ask-tools">{{range .Tools}}<option value="{{.}}"></option>{{end}}</datalist>
+      </div>
+      <div class="field field-small">
+        <label for="ask-from">Asked on or after</label>
+        <input id="ask-from" name="from" type="date" value="{{.From}}">
+      </div>
+      <div class="field field-small">
+        <label for="ask-to">Asked on or before</label>
+        <input id="ask-to" name="to" type="date" value="{{.To}}">
+      </div>
+    </div>
+  </details>
+</form>
+{{end}}
+
+{{template "error" .FilterError}}
+
+{{if .Sessions}}
+<div class="records records-ask">
+  <div class="records-head" aria-hidden="true"><span>Conversation</span><span>Who</span><span>Where</span><span>When</span><span>Took</span><span>State</span></div>
+  <ol aria-label="Conversations">
+    {{range .Sessions}}
+    <li>
+      <a class="record-link" href="/admin/ask/sessions/{{.ID}}">
+        <span class="record-wide ask-row-title">
+          <strong>{{.Title}}</strong>
+          {{if .Reason}}<span class="ask-row-line{{if eq .Tone "bad"}} ask-row-reason{{end}}">{{.Reason}}</span>{{else if .Preview}}<span class="ask-row-line">{{.Preview}}</span>{{end}}
+        </span>
+        <span class="ask-row-meta">{{if .Owner}}{{actor .Owner}}{{else}}<span class="muted">—</span>{{end}}</span>
+        <span class="ask-row-meta">{{.Place.Label}}{{with .Place.Detail}}<span class="sub">{{.}}</span>{{end}}</span>
+        <span class="ask-row-meta">{{logtime .Created}}</span>
+        <span class="ask-row-meta">{{if .Took}}<span class="ask-row-took">took </span>{{duration .Took}}{{else}}<span class="muted">—</span>{{end}}</span>
+        <span class="ask-row-state">{{badge .Tone .State}}</span>
+      </a>
+    </li>
+    {{end}}
+  </ol>
+</div>
+{{template "pagination" .Pages}}
+{{else if .NoMatch}}
+<div class="empty"><h2>No conversation found</h2><p>{{.NoMatch}}</p><a class="button" href="/admin/ask/sessions">Show all conversations</a></div>
+{{else if .Filtered}}
+<div class="empty"><h2>No conversations match these filters</h2><p>Widen the time range or clear a filter to see more.</p><a class="button" href="/admin/ask/sessions">Clear filters</a></div>
+{{else}}
+<div class="empty">
+  <h2>No conversations yet</h2>
+  <p>Each question asked of Diderot is listed here, with what Diderot did to answer it and what it said.</p>
+  <p>To ask the first one, mention Diderot in a Slack channel where Ask is on, connect an MCP client such as a coding agent and use its <code>ask</code> tool (<a href="https://github.com/bluesky-social/diderot/blob/main/docs/quickstart.md#from-zero-to-a-first-answer" target="_blank" rel="noreferrer">the quickstart shows how</a>), or send the question to <code>POST /v1/ask</code>.</p>
+</div>
+{{end}}
+{{end}}

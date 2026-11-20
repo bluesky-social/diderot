@@ -1,0 +1,217 @@
+{{define "content"}}
+{{if .Summaries.Relevant}}
+{{template "page-header" (header "Jobs and maintenance" "Pause or resume session summaries, rebuild the search index, and follow every long-running job.")}}
+{{else}}
+{{template "page-header" (header "Jobs and maintenance" "Rebuild the search index, and follow every long-running job.")}}
+{{end}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="section" aria-labelledby="maintenance-heading">
+  <div class="section-header"><h2 id="maintenance-heading">Maintenance</h2></div>
+  <div class="settings">
+    {{if .Summaries.Relevant}}
+    {{with .Summaries}}
+    <div class="setting" id="summaries">
+      <div class="setting-about">
+        <h3>Session summaries {{if .EffectiveEnabled}}{{badge "good" "on"}}{{else if eq .Blocked "paused"}}{{if .Waiting}}{{badge "attention" "paused"}}{{else}}{{badge "neutral" "paused"}}{{end}}{{else}}{{badge "neutral" "off"}}{{end}}</h3>
+        <p>A model summarizes each finished agent session, which makes it searchable.</p>
+      </div>
+      <div class="setting-control">
+        {{if .EffectiveEnabled}}
+        <p>{{if .Waiting}}{{count .Waiting}} {{if eq .Waiting 1}}session is{{else}}sessions are{{end}} waiting for a summary.{{else}}Every finished session is summarized.{{end}}</p>
+        <form method="post" action="/admin/operations/session-summarization" class="form-actions">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button class="button" type="submit" name="enabled" value="false">Pause summaries</button>
+          <p class="help">Pausing stops the model calls. Sessions keep arriving, and are summarized once you resume.</p>
+        </form>
+        {{else if eq .Blocked "paused"}}
+        <p>{{if .Waiting}}{{count .Waiting}} {{if eq .Waiting 1}}session is{{else}}sessions are{{end}} waiting, and not searchable until you resume.{{else}}New sessions wait, unsearchable, until you resume.{{end}}</p>
+        <form method="post" action="/admin/operations/session-summarization" class="form-actions">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button class="button button-primary" type="submit" name="enabled" value="true">Resume summaries</button>
+        </form>
+        {{else}}
+        <p>{{.Reason}}</p>
+        {{if .Waiting}}<p class="help">{{count .Waiting}} {{if eq .Waiting 1}}session is{{else}}sessions are{{end}} stored, and not searchable until summaries run.</p>{{end}}
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+    {{with .Schedule}}
+    <div class="setting" id="summary-schedule">
+      <div class="setting-about">
+        <h3>When sessions are summarized</h3>
+        <p>Every summary is a model call. These decide how soon a session becomes searchable, and how often a long one is summarized again as it grows.</p>
+      </div>
+      <div class="setting-control">
+        <form method="post" action="/admin/operations/session-summaries/schedule" class="stack">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="version" value="{{.Version}}">
+          <div class="field">
+            <label for="summary-quiet-for">Wait until a session has been quiet for</label>
+            <input id="summary-quiet-for" name="quiet_for" value="{{.QuietFor}}" required autocomplete="off" aria-describedby="summary-quiet-for-help">
+            <p class="help" id="summary-quiet-for-help">How long nothing may be added to a session before it is summarized, such as 10 minutes. Shorter makes new work searchable sooner, and summarizes sessions that are still going. 0 seconds does not wait.</p>
+          </div>
+          <fieldset class="field">
+            <legend>Summarize a session again once it has grown by any of</legend>
+            <div class="field-row">
+              <div class="field">
+                <label for="summary-min-turns">New messages from the person</label>
+                <input id="summary-min-turns" name="min_added_user_turns" type="number" min="0" value="{{.MinAddedUserTurns}}" required>
+              </div>
+              <div class="field">
+                <label for="summary-min-records">New entries</label>
+                <input id="summary-min-records" name="min_added_records" type="number" min="0" value="{{.MinAddedRecords}}" required aria-describedby="summary-min-records-help">
+                <p class="help" id="summary-min-records-help">Messages, tool calls and their results.</p>
+              </div>
+              <div class="field">
+                <label for="summary-min-bytes">New bytes</label>
+                <input id="summary-min-bytes" name="min_added_bytes" type="number" min="0" value="{{.MinAddedBytes}}" required>
+              </div>
+            </div>
+            <p class="help">A session that already has a summary gets a new one once it has grown by any one of these. Larger amounts mean fewer model calls, and a summary that trails further behind a long session. 0 counts any change. A session's first summary does not wait for them.</p>
+          </fieldset>
+          <div class="field">
+            <label for="summary-max-pending-for">Never leave a changed session waiting longer than</label>
+            <input id="summary-max-pending-for" name="max_pending_for" value="{{.MaxPendingFor}}" required autocomplete="off" aria-describedby="summary-max-pending-for-help">
+            <p class="help" id="summary-max-pending-for-help">After this long a changed session is summarized even if it grew by less than the amounts above, or is still going. Shorter keeps long sessions current, at more model calls. 0 seconds summarizes every change at once.</p>
+          </div>
+          <div class="form-actions">
+            <button class="button" type="submit">Save</button>
+            <p class="help">A change applies within a minute, to sessions not yet summarized.{{with changedBy .UpdatedBy}} Last changed by {{.}}{{if not $.Schedule.UpdatedAt.IsZero}}, {{time $.Schedule.UpdatedAt}}{{end}}.{{end}}</p>
+          </div>
+        </form>
+      </div>
+    </div>
+    {{end}}
+    {{end}}
+    {{if .ReembedSources}}
+    <div class="setting" id="reembed">
+      <div class="setting-about">
+        <h3>Re-embed</h3>
+        <p>Splits every item of a source again and indexes it with the current embedding model. Run it after changing the embedding model or how items are split.</p>
+      </div>
+      <div class="setting-control">
+        {{with .Reembed}}
+        <p>{{badge .Tone .Status}} {{if eq .Status "waiting to start"}}Requested {{time .RequestedAt}} by {{actor .RequestedBy}}; it starts within a few seconds.{{else}}{{or .Progress "Starting."}}{{end}}</p>
+        <p class="help">This page refreshes itself while it runs. Items drop out of search until they are indexed again.</p>
+        {{else}}
+        {{if $.ReembedOffered}}
+        <form method="post" action="/admin/operations/reembed" class="stack">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <fieldset class="field">
+            <legend>Sources to re-embed</legend>
+            {{range $.ReembedSources}}
+            <label class="check"><input type="checkbox" name="source" value="{{.Name}}"{{if .On}} checked{{else}} disabled{{end}}> <span>{{.Title}}</span>{{if not .On}}<span class="help">Off. A source can be re-embedded only while it is on.</span>{{end}}</label>
+            {{end}}
+          </fieldset>
+          <label class="check"><input type="checkbox" name="confirm" value="reembed" required> <span>Items drop out of search until they are indexed again</span><span class="help">Answers may miss them for a while, up to hours for a large source.</span></label>
+          <div class="form-actions"><button class="button" type="submit">Start re-embed</button></div>
+        </form>
+        {{else}}
+        <p class="help">A source can be re-embedded only while it is on, and {{range $i, $src := $.ReembedSources}}{{if $i}}, {{end}}{{$src.Title}}{{end}} {{if eq (len $.ReembedSources) 1}}is{{else}}are{{end}} off. <a href="/admin/connectors">Connectors</a></p>
+        {{end}}
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+    {{with .Documents}}
+    <div class="setting" id="slack-documents">
+      <div class="setting-about">
+        <h3>Read Slack documents again</h3>
+        <p>Reads the PDF, Word and Excel files of every channel with <a href="/admin/connectors/slack/channels?filter=documents">document indexing on</a> again. Run it after changing the document model. One channel's documents can be read again from its own page.</p>
+      </div>
+      <div class="setting-control">
+        {{if .Running}}
+        {{with .Running}}<p>{{badge .Tone .Status}} {{or .Progress "Starting."}}</p>{{end}}
+        <p class="help">This page refreshes itself while it runs. The documents come back into search as they are read.</p>
+        {{else if not .SlackOn}}
+        <p class="help">Documents can be read again only while the <a href="/admin/connectors/slack">Slack connector</a> is on.</p>
+        {{else if not .Channels}}
+        <p class="help">No channel has document indexing on. Turn it on from a <a href="/admin/connectors/slack/channels">channel's page</a>.</p>
+        {{else}}
+        <form method="post" action="/admin/operations/slack-documents" class="stack">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <label class="check"><input type="checkbox" name="confirm" value="documents" required> <span>Read the documents of {{count .Channels}} {{if eq .Channels 1}}channel{{else}}channels{{end}} again</span><span class="help">What Diderot read from them leaves search until it is read again, and scanned PDF pages are paid for again.</span></label>
+          <div class="form-actions"><button class="button" type="submit">Read every channel's documents again</button></div>
+        </form>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+    {{with .Images}}
+    <div class="setting" id="images">
+      <div class="setting-about">
+        <h3>Describe images again</h3>
+        <p>Has {{.Model}}, the model that describes images now, describe every image an earlier model described. Run it after changing the image caption model on <a href="/admin/settings/models">Models</a>.</p>
+      </div>
+      <div class="setting-control">
+        {{if .Waiting}}<p>{{count .Waiting}} {{if eq .Waiting 1}}image is{{else}}images are{{end}} waiting to be described.</p>{{end}}
+        {{if .Earlier}}
+        <form method="post" action="/admin/operations/images" class="stack">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <label class="check"><input type="checkbox" name="confirm" value="images" required> <span>Describe {{count .Earlier}} {{if eq .Earlier 1}}image{{else}}images{{end}} again</span><span class="help">Each image stays searchable by its current description until the new one is ready, and every one is paid for again.</span></label>
+          <div class="form-actions"><button class="button" type="submit">Describe images again</button></div>
+        </form>
+        {{else if not .Waiting}}
+        <p class="help">{{.Model}} has described every image.</p>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+    {{with .SummaryRepair}}
+    <div class="setting" id="summary-repair">
+      <div class="setting-about">
+        <h3>Repair session summaries</h3>
+        <p>The summary model sometimes writes a session summary's search text inside its narrative, so the narrative ends in markup and the session is found by the wrong text. This repairs the summaries written in the last 30 days, and indexes them again.</p>
+      </div>
+      <div class="setting-control">
+        {{if .Running}}
+        {{with .Running}}<p>{{badge .Tone .Status}} {{or .Progress "Starting."}}</p>{{end}}
+        <p class="help">This page refreshes itself while it runs. Each session stays searchable by its current summary until the repaired one replaces it.</p>
+        {{else}}
+        <p>{{count .Total}} {{if eq .Total 1}}summary needs{{else}}summaries need{{end}} repair.</p>
+        <ul class="help">
+          {{if .FromText}}<li>{{count .FromText}} {{if eq .FromText 1}}is{{else}}are{{end}} put right from {{if eq .FromText 1}}its{{else}}their{{end}} own text, with no model call.</li>{{end}}
+          {{if .Resummarize}}<li>{{count .Resummarize}} {{if eq .Resummarize 1}}is{{else}}are{{end}} written again from the parts already summarized: one call each to the session summary model, reading about {{count .Tokens}} tokens in all.</li>{{end}}
+        </ul>
+        <form method="post" action="/admin/operations/session-summaries/repair" class="stack">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <label class="check"><input type="checkbox" name="confirm" value="repair" required> <span>Repair {{count .Total}} {{if eq .Total 1}}summary{{else}}summaries{{end}}</span><span class="help">Each session's search text is indexed again. Running it again repairs only what is still broken.</span></label>
+          <div class="form-actions"><button class="button" type="submit">Repair session summaries</button></div>
+        </form>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<section class="section" id="jobs" aria-labelledby="jobs-heading"{{if .Active}} data-jobs-active{{end}}>
+  <div class="section-header">
+    <h2 id="jobs-heading">Jobs</h2>
+    <p>Re-embeds and re-reads of Slack images and documents, newest first.</p>
+  </div>
+  {{if .Jobs}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th scope="col">Job</th><th scope="col">Progress</th></tr></thead>
+      <tbody>
+      {{range .Jobs}}
+        <tr>
+          <th scope="row">{{.Name}}<span class="sub">{{badge .Tone .Status}} <span class="id">#{{.ID}}</span></span></th>
+          <td>{{with .Progress}}{{.}}{{else}}<span class="muted">No progress yet.</span>{{end}}{{with .Error}}<span class="sub error">{{.}}</span>{{end}}<span class="sub">Requested {{logtime .RequestedAt}} by {{actor .RequestedBy}}{{if .Took}} · {{if .Active}}running{{else}}ran{{end}} for {{duration .Took}}{{end}}</span></td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{template "pagination" .Pages}}
+  {{else}}
+  <div class="empty"><h3>No jobs yet</h3><p>A re-embed, or a re-read of Slack images or documents, is listed here from the moment someone starts it.</p></div>
+  {{end}}
+</section>
+{{end}}

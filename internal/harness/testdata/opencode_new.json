@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "diderot": {
+      "headers": {
+        "Authorization": "Bearer tok-123"
+      },
+      "type": "remote",
+      "url": "https://diderot.example.com/mcp"
+    }
+  }
+}

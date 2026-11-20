@@ -1,0 +1,40 @@
+{{define "content"}}
+{{template "page-header" (header "Prompts" "The instructions Diderot gives its models. Changes collect in a draft and go live together.")}}
+{{template "prompt-tabs" "tools"}}
+
+<div class="section-header">
+  <h2>Tools Ask can use</h2>
+  <p>What Ask can call while it researches an answer, and how each tool is described to the model. These descriptions are part of Diderot and change when it is upgraded, not here.</p>
+</div>
+
+{{range .Tools}}
+<section class="panel prompt-tool" id="tool-{{.Name}}" aria-labelledby="tool-{{.Name}}-heading">
+  <div class="section-header">
+    <h3 id="tool-{{.Name}}-heading"><code>{{.Name}}</code></h3>
+    <span class="section-actions">{{if .Connector}}<span>Comes with the <a href="{{.ConnectorHref}}">{{.Connector}}</a> connector</span>{{if eq .ConnectorState "on"}}{{badge "good" "on"}}{{else if eq .ConnectorState "off"}}{{badge "neutral" "off"}}{{end}}{{else}}<span class="muted">Always on</span>{{end}}</span>
+  </div>
+  <p class="prompt-prose">{{.Description}}</p>
+  {{if .Params}}
+  <details class="disclosure">
+    <summary>Parameters ({{len .Params}})</summary>
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">What it is</th></tr></thead>
+        <tbody>
+        {{range .Params}}
+          <tr>
+            <th scope="row"><code>{{.Name}}</code>{{if .Required}}<span class="sub">Required</span>{{end}}</th>
+            <td class="nowrap">{{.Type}}</td>
+            <td class="prompt-prose">{{.Description}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {{end}}
+</section>
+{{else}}
+<div class="empty"><h3>No tools</h3><p>This build gives Ask no tools.</p></div>
+{{end}}
+{{end}}

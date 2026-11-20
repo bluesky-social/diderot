@@ -1,0 +1,17 @@
+# The image build needs the Go sources, what they embed, the licence files
+# and the CA bundle, and nothing else. Listing what goes in, rather than what
+# stays out, keeps a checkout's .git, local state, secrets (.env, keys,
+# dumps), build output and anything else lying in the directory out of the
+# build context and its cache.
+*
+!go.mod
+!go.sum
+!cmd/
+!internal/
+!prompts/
+!skills/
+!certs/
+!LICENSE-*
+# Tests and their fixtures are not built into the binary.
+**/*_test.go
+**/testdata/

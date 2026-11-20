@@ -1,0 +1,131 @@
+{{define "content"}}
+{{if .Report}}
+{{template "report-header" .}}
+{{else}}
+{{template "page-header" (header "New report" "Diderot answers your question on a schedule and delivers the answer in Slack." (crumb "Reports" "/admin/reports"))}}
+{{end}}
+
+{{template "error" .Error}}
+
+{{if and (not .Report) (not .SlackOn)}}
+<div class="empty">
+  <h2>Reports need Slack</h2>
+  <p>A report is posted in a Slack channel or sent as a direct message. Turn on the Slack connector first, then come back to create one.</p>
+  <a class="button button-primary" href="/admin/connectors/slack">Set up Slack</a>
+</div>
+{{else}}
+{{template "report-waits" .}}
+
+<form class="form" method="post" action="{{if .Report}}/admin/reports/{{.Report.ID}}{{else}}/admin/reports{{end}}">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+  <div class="field">
+    <label for="report-name">Name</label>
+    <input id="report-name" name="name" value="{{.Form.Name}}" maxlength="200" required{{if .Form.Errors.name}} aria-invalid="true" aria-describedby="report-name-error"{{end}}>
+    {{with .Form.Errors.name}}<p class="error" id="report-name-error">{{.}}</p>{{end}}
+  </div>
+
+  <div class="field">
+    <label for="report-prompt">Instructions</label>
+    <p class="help" id="report-prompt-help">What Diderot should look into and how to write it up. Each run covers the time since the one before it: a day, or a week for a weekly report.</p>
+    {{if not .Report}}{{with .Examples}}
+    <div class="report-examples">
+      <p class="help">Or start from an example:</p>
+      <ul>
+        {{range .}}<li><a href="/admin/reports/new?template={{.Key}}" data-example="report-example-{{.Key}}" data-name="{{.Title}}">{{.Title}}</a>{{with .Summary}}<span class="muted">: {{.}}</span>{{end}}<template id="report-example-{{.Key}}">{{.Prompt}}</template></li>{{end}}
+      </ul>
+    </div>
+    {{end}}{{end}}
+    <textarea id="report-prompt" name="prompt" rows="9" maxlength="32768" required aria-describedby="report-prompt-help{{if .Form.Errors.prompt}} report-prompt-error{{end}}"{{if .Form.Errors.prompt}} aria-invalid="true"{{end}}>{{.Form.Prompt}}</textarea>
+    {{with .Form.Errors.prompt}}<p class="error" id="report-prompt-error">{{.}}</p>{{end}}
+  </div>
+
+  <fieldset class="field report-fieldset">
+    <legend>Schedule</legend>
+    <div class="report-choices">
+      <label class="check"><input type="radio" name="cadence" value="daily"{{if eq .Form.Cadence "daily"}} checked{{end}}> <span>Every day</span></label>
+      <label class="check"><input type="radio" name="cadence" value="weekdays"{{if eq .Form.Cadence "weekdays"}} checked{{end}}> <span>Weekdays, Monday to Friday</span></label>
+      <div class="report-weekly">
+        <label class="check"><input type="radio" name="cadence" value="weekly"{{if eq .Form.Cadence "weekly"}} checked{{end}}> <span>Every week on</span></label>
+        <select name="weekday" aria-label="Day of the week, for a weekly report">
+          {{$day := .Form.Weekday}}{{range .Weekdays}}<option value="{{.Value}}"{{if eq .Value $day}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+    </div>
+    {{with .Form.Errors.schedule}}<p class="error">{{.}}</p>{{end}}
+    <div class="field-row">
+      <div class="field">
+        <label for="report-time">Time</label>
+        <input id="report-time" name="time" type="time" value="{{.Form.Time}}" required{{if .Form.Errors.time}} aria-invalid="true" aria-describedby="report-time-error"{{end}}>
+        {{with .Form.Errors.time}}<p class="error" id="report-time-error">{{.}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="report-timezone">Time zone</label>
+        <input id="report-timezone" name="timezone" value="{{.Form.TimeZone}}" list="report-timezones" autocomplete="off" spellcheck="false" required aria-describedby="report-timezone-help{{if .Form.Errors.timezone}} report-timezone-error{{end}}"{{if .Form.Errors.timezone}} aria-invalid="true"{{end}}>
+        <datalist id="report-timezones">{{range .TimeZones}}<option value="{{.Name}}">{{.Label}}</option>{{end}}</datalist>
+        <p class="help" id="report-timezone-help">A name such as America/New_York. Daylight saving time is followed.</p>
+        {{with .Form.Errors.timezone}}<p class="error" id="report-timezone-error">{{.}}</p>{{end}}
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label for="report-owner">Owner</label>
+    <input id="report-owner" name="owner" value="{{.Form.Owner}}" inputmode="email" autocomplete="off" spellcheck="false" required placeholder="name@example.com" aria-describedby="report-owner-help{{if .Form.Errors.owner}} report-owner-error{{end}}"{{if .Form.Errors.owner}} aria-invalid="true"{{end}}>
+    <p class="help" id="report-owner-help">The person the report is for: an email, or a Slack member ID. The daily standup example reports on this person's work.</p>
+    {{with .Form.Errors.owner}}<p class="error" id="report-owner-error">{{.}}</p>{{end}}
+  </div>
+
+  <fieldset class="field report-fieldset">
+    <legend>Deliver to</legend>
+    <div class="report-choices">
+      <label class="check"><input type="radio" name="delivery" value="channel"{{if eq .Form.Delivery "channel"}} checked{{end}}> <span>A Slack channel</span><span class="help">The report draws only on what that channel is allowed to see.</span></label>
+      <div class="field report-indent">
+        <label for="report-channel">Channel</label>
+        <input id="report-channel" name="channel" value="{{.Form.Channel}}" autocomplete="off" spellcheck="false" placeholder="#general" aria-describedby="report-channel-help{{if .Form.Errors.channel}} report-channel-error{{end}}"{{if .Form.Errors.channel}} aria-invalid="true"{{end}}>
+        <p class="help" id="report-channel-help">Its name or ID. Diderot must be a member of the channel to post there.</p>
+        {{with .Form.Errors.channel}}<p class="error" id="report-channel-error">{{.}}</p>{{end}}
+      </div>
+      <label class="check"><input type="radio" name="delivery" value="dm"{{if eq .Form.Delivery "dm"}} checked{{end}}> <span>The owner, as a direct message</span><span class="help">The report can draw on everything the owner can see, including their private channels.</span></label>
+    </div>
+    {{with .Form.Errors.delivery}}<p class="error">{{.}}</p>{{end}}
+  </fieldset>
+
+  <div class="field">
+    <label for="report-late">Send late for up to</label>
+    <div class="field-unit">
+      <input id="report-late" name="late_hours" type="number" min="0.02" max="720" step="any" value="{{.Form.LateHours}}" required aria-describedby="report-late-help{{if .Form.Errors.late_hours}} report-late-error{{end}}"{{if .Form.Errors.late_hours}} aria-invalid="true"{{end}}>
+      <span>hours</span>
+    </div>
+    <p class="help" id="report-late-help">If Diderot was down at the scheduled time, it still sends the report once it is back, up to this many hours late. Later than that, the run is skipped.</p>
+    {{with .Form.Errors.late_hours}}<p class="error" id="report-late-error">{{.}}</p>{{end}}
+  </div>
+
+  {{if not .Report}}
+  <label class="check"><input type="checkbox" name="enabled" value="true"{{if .Form.Enabled}} checked{{end}}> <span>Run on this schedule</span><span class="help">Leave this off to save the report without scheduling it. You can still run it now.</span></label>
+  {{end}}
+
+  <div class="form-actions">
+    <button class="button button-primary" type="submit">{{if .Report}}Save changes{{else}}Create report{{end}}</button>
+    <a href="{{if .Report}}/admin/reports/{{.Report.ID}}{{else}}/admin/reports{{end}}">Cancel</a>
+  </div>
+</form>
+
+{{if .Report}}
+<section class="section" aria-labelledby="delete-heading">
+  <div class="section-header"><h2 id="delete-heading">Delete</h2></div>
+  <details class="disclosure">
+    <summary>Delete this report</summary>
+    <div class="panel">
+      <p>Deletes the report and its run history. What it already posted in Slack, and its conversations in Ask, stay.</p>
+      <form method="post" action="/admin/reports/{{.Report.ID}}/delete">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="confirm" value="delete">
+        <button class="button button-danger" type="submit">Delete report</button>
+      </form>
+    </div>
+  </details>
+</section>
+{{end}}
+{{end}}
+{{end}}

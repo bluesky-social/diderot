@@ -1,0 +1,7 @@
+{"fidelity":"positional","record":{"index":0,"id":"line:2","role":"system","content":"You tell the time.","timestamp":"2026-11-01T12:00:00Z"}}
+{"fidelity":"positional","record":{"index":1,"id":"line:3","role":"user","content":"what time is it?","timestamp":"2026-11-01T12:00:00Z"}}
+{"fidelity":"positional","record":{"index":2,"id":"line:4:reasoning:0","role":"reasoning","content":"I should call the clock.","timestamp":"2026-11-01T12:00:01Z","model":"synthetic-model"}}
+{"fidelity":"positional","record":{"index":3,"id":"line:4:assistant:1","role":"assistant","timestamp":"2026-11-01T12:00:01Z","model":"synthetic-model","tool_calls":[{"id":"t1","name":"get_time","args":"{}"}]}}
+{"fidelity":"positional","record":{"index":4,"id":"line:5","role":"tool","content":"2026-11-01T15:00:00Z","timestamp":"2026-11-01T12:00:01Z","tool_call_id":"t1"}}
+{"fidelity":"positional","record":{"index":5,"id":"line:6","role":"assistant","content":"it is 15:00 UTC","timestamp":"2026-11-01T12:00:02.5Z","model":"synthetic-model"}}
+{"fidelity":"positional","record":{"index":6,"id":"line:7","role":"system","content":"[Unsupported STS future_kind line content omitted from the searchable view.]","timestamp":"2026-11-01T12:00:02.5Z","phase":"normalization"}}

@@ -1,0 +1,204 @@
+name: ci
+
+# Every job here runs on a GitHub-hosted runner: pull_request runs execute the
+# pull request's code, fork code included. Hosted runners pull
+# public Docker Hub images without the anonymous rate limit
+# (https://docs.github.com/en/actions/reference/limits), so the test services
+# come straight from Docker Hub and the jobs need no AWS credentials.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # Host ports 15432 and 16334 mirror compose.yaml, so the test env values
+    # below are interchangeable between local runs and CI.
+    services:
+      postgres:
+        image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+        env:
+          POSTGRES_USER: diderot
+          POSTGRES_PASSWORD: diderot
+          POSTGRES_DB: diderot
+        ports:
+          - 15432:5432
+        # The runner waits for this health check before the first step.
+        options: >-
+          --health-cmd "pg_isready -U diderot -d diderot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      qdrant:
+        image: qdrant/qdrant:v1.20.2@sha256:d277592721d2e3b73f9b797b53cf05e6a5bb2134f6d13fdbda4ca51782afbcac
+        ports:
+          - 16334:6334
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          # setup-go keys its cache on go.sum alone, a key the org security
+          # workflow's govulncheck job fills first with its own small cache,
+          # so every job sharing it compiled from cold. Cache per job instead.
+          cache: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-build-${{ runner.os }}-${{ github.job }}-
+      - name: Wait for qdrant
+        # The image has no health check, so poll the gRPC port. Bound at ~30s.
+        run: |
+          for _ in $(seq 1 30); do
+            (echo > /dev/tcp/localhost/16334) >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "qdrant never accepted connections on :16334"
+          exit 1
+      - name: Install atlas
+        uses: ariga/setup-atlas@c2de7bd12ab9f9a143ae5a6280b5b416c7c43021 # v0.6
+        with:
+          version: v1.2.0
+      # There is no "apply migrations" step: internal/testdb lazily
+      # creates a migrated base database (diderot_test_base) on first use
+      # and clones one DB per test package from it (see that package's
+      # docs). The DIDEROT_TEST_DB_URL below names the
+      # *cluster* (database "diderot" is just the connect target for
+      # the maintenance/postgres operations); the per-package databases
+      # are diderot_test_<pkg>. internal/migrations.Apply needs the
+      # atlas binary, which setup-atlas put on PATH — point
+      # DIDEROT_ATLAS_BINARY at it (Apply doesn't do a bare PATH lookup
+      # on purpose).
+      - name: Resolve atlas binary
+        run: echo "DIDEROT_ATLAS_BINARY=$(command -v atlas)" >> "$GITHUB_ENV"
+      - name: go test
+        env:
+          DIDEROT_TEST_DB_URL: postgres://diderot:diderot@localhost:15432/diderot?sslmode=disable
+          DIDEROT_QDRANT_TEST_ADDR: localhost:16334
+        # Packages run in parallel (default -p). Each integration-test
+        # package gets its own isolated database cloned from the
+        # migrated base, so cross-package TRUNCATEs do not collide.
+        run: go test -race ./... -count=1
+  # lint and build compile from cold in about five minutes or more on a
+  # hosted runner, so their timeouts leave room for a missed cache.
+  lint:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          cache: false # per-job cache below; see the test job
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-build-${{ runner.os }}-${{ github.job }}-
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+        with:
+          version: v2.15.0
+
+  build:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          cache: false # per-job cache below; see the test job
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-build-${{ runner.os }}-${{ github.job }}-
+      - run: mkdir -p bin && go build -o bin/ ./cmd/...
+
+  # The release archives, built as a release builds them but published
+  # nowhere, so a change that breaks them fails here and not on a release.
+  release-binaries:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
+      # The download is the client alone: one binary per archive, which runs,
+      # and stays small (the server's binary is over 100 MB).
+      - name: Check the archives
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c checksums.txt)
+          for archive in dist/diderot_*.tar.gz; do
+            tar -tzf "$archive" | grep -qx diderot
+          done
+          binary=$(ls dist/diderot_linux_amd64*/diderot)
+          "$binary" --version
+          "$binary" --help | grep -q "setup"
+          size=$(stat -c %s "$binary")
+          echo "linux/amd64 binary: $size bytes"
+          test "$size" -lt 30000000
+      # The formula a release publishes (with these archives in place of the
+      # release's): Homebrew's audit and style checks pass, and it installs a
+      # diderot that passes the formula's test. The runner image has Homebrew.
+      - name: Check the Homebrew formula
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_ANALYTICS: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          HOMEBREW_NO_ENV_HINTS: "1"
+        run: |
+          set -euo pipefail
+          brew=/home/linuxbrew/.linuxbrew/bin/brew
+          archive=$(ls dist/diderot_*_darwin_arm64.tar.gz)
+          version=${archive#dist/diderot_}
+          version=${version%_darwin_arm64.tar.gz}
+          "$brew" tap-new --no-git diderot/ci
+          scripts/homebrew-formula.sh "v$version" dist/checksums.txt "file://$PWD/dist" \
+            > "$("$brew" --repository diderot/ci)/Formula/diderot.rb"
+          "$brew" trust diderot/ci
+          "$brew" audit --strict --formula diderot/ci/diderot
+          "$brew" style diderot/ci/diderot
+          "$brew" install diderot/ci/diderot
+          "$brew" test diderot/ci/diderot
+          "$("$brew" --prefix)/bin/diderot" --version
+
+  security:
+    uses: bluesky-social/.github/.github/workflows/security.yml@v1
+    permissions:
+      contents: read

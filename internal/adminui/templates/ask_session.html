@@ -1,0 +1,166 @@
+{{define "content"}}
+{{template "page-header" (((header .Title "" (crumb "Conversations" "/admin/ask/sessions")).WithBadge .Tone .State).WithMeta .)}}
+
+{{if .Reason}}
+<div class="notice {{if eq .State "failed"}}notice-bad{{else}}notice-attention{{end}}" role="alert">
+  <p><strong>{{if eq .State "failed"}}The last question got no answer.{{else}}The last answer is incomplete.{{end}}</strong> {{.Reason}}</p>
+  {{with .ReasonAnchor}}<a href="#{{.}}">Show where it stopped</a>{{end}}
+</div>
+{{end}}
+
+<dl class="facts">
+  <div><dt>Model</dt><dd>{{if .Model}}<span class="mono">{{.Model}}</span>{{else}}<span class="muted">Not recorded</span>{{end}}</dd></div>
+  <div><dt>Questions</dt><dd>{{count .Questions}}</dd></div>
+  <div><dt>Tool calls</dt><dd>{{count .ToolCalls}}</dd></div>
+  <div><dt>Tokens</dt><dd>{{count .InputTokens}} in · {{count .OutputTokens}} out</dd></div>
+  {{if or .Helpful .NotHelpful}}<div><dt>Ratings in Slack</dt><dd>{{.Helpful}} helpful · {{.NotHelpful}} not helpful</dd></div>{{end}}
+  {{if .Cost}}<div><dt>Cost</dt><dd>{{.Cost}}{{with .CostNote}} <span class="muted">({{.}})</span>{{end}}</dd></div>
+  {{- else if .CostNote}}<div><dt>Cost</dt><dd><span class="muted">Unknown ({{.CostNote}})</span></dd></div>{{end}}
+</dl>
+
+<details class="disclosure">
+  <summary>Details</summary>
+  <dl class="kv kv-compact">
+    <div><dt>Conversation ID</dt><dd><span class="id">{{.ID}}</span> {{template "copy" .ID}}</dd></div>
+    {{if .ChannelID}}<div><dt>Slack channel</dt><dd>{{if eq .Place.Kind "dm"}}Direct message{{else}}{{.Place.Label}}{{end}} <span class="id">{{.ChannelID}}</span> {{template "copy" .ChannelID}}</dd></div>{{end}}
+    {{if .ThreadTS}}<div><dt>Slack thread</dt><dd><span class="id">{{.ThreadTS}}</span>{{if .Place.Href}} · <a href="{{.Place.Href}}" target="_blank" rel="noreferrer">Open in Slack</a>{{end}}</dd></div>{{end}}
+    {{with .Incident}}<div><dt>PagerDuty incident</dt><dd><span class="id">{{.}}</span> {{template "copy" .}}</dd></div>{{end}}
+    {{with .Release}}<div><dt>Prompts</dt><dd>{{if .Legacy}}<a href="/admin/prompts/legacy/{{.ID}}">Earlier Ask prompt {{.ID}}</a>{{else}}<a href="/admin/prompts/versions/{{.ID}}">Version {{.ID}}</a>{{end}}{{if .By}}, by {{actor .By}}{{end}}{{if .Created}}, {{time .Created}}{{end}}{{with .Note}}<span class="sub">{{.}}</span>{{end}}</dd></div>{{end}}
+    <div><dt>Started</dt><dd>{{time .Created}} <span class="id">{{.Created.UTC.Format "2006-01-02 15:04:05 UTC"}}</span></dd></div>
+    <div><dt>Last activity</dt><dd>{{time .LastTurn}} <span class="id">{{.LastTurn.UTC.Format "2006-01-02 15:04:05 UTC"}}</span></dd></div>
+    <div><dt>Stored messages</dt><dd>{{.Messages}}</dd></div>
+    <div><dt>Prompt cache</dt><dd>{{count .CacheRead}} tokens read{{if .CacheWrite}}, {{count .CacheWrite}} written{{end}}</dd></div>
+    {{with .CostExact}}<div><dt>Metered cost</dt><dd>{{.}}{{with $.CostNote}} <span class="muted">({{.}})</span>{{end}}</dd></div>
+    {{- else}}{{with .CostNote}}<div><dt>Metered cost</dt><dd><span class="muted">Unknown ({{.}})</span></dd></div>{{end}}{{end}}
+    {{with .TitleModel}}<div><dt>Title written by</dt><dd><span class="mono">{{.}}</span></dd></div>{{end}}
+  </dl>
+</details>
+
+<section class="section" aria-labelledby="conversation-heading">
+  <div class="section-header"><h2 id="conversation-heading">Conversation</h2></div>
+  {{if .Window}}{{template "pagination" .Pages}}{{end}}
+  {{if .Exchanges}}
+  <ol class="ask-conversation">
+    {{range .Exchanges}}
+    <li class="ask-exchange"{{with .Anchor}} id="{{.}}"{{end}}>
+      {{if .Continued}}
+      <p class="muted">Continued from earlier messages.{{with $.Window}}{{with .EarlierURL}} <a href="{{.}}">Show them</a>{{end}}{{end}}</p>
+      {{else}}
+      <div class="ask-question">
+        <p class="ask-question-who"><strong>{{or .Asker "Question"}}</strong> {{time .Asked}}</p>
+        <div class="prose ask-question-text">{{.Question}}</div>
+        {{if or .Context .Thread .References .Other}}
+        <div class="ask-question-extra">
+          {{with .Thread}}<details class="disclosure"><summary>Earlier messages in the thread</summary><pre class="ask-text">{{.}}</pre></details>{{end}}
+          {{with .References}}<details class="disclosure"><summary>Linked items read with the question</summary><pre class="ask-text">{{.}}</pre></details>{{end}}
+          {{with .Other}}<details class="disclosure"><summary>Other input</summary><pre class="ask-text">{{.}}</pre></details>{{end}}
+          {{with .Context}}<details class="disclosure"><summary>Context sent with the question</summary><pre>{{.}}</pre></details>{{end}}
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+
+      {{if .Steps}}
+      <div class="ask-work">
+        <h3 class="ask-work-heading">What Diderot did <span class="muted">{{len .Steps}} {{if eq (len .Steps) 1}}step{{else}}steps{{end}}{{if .Took}}, {{duration .Took}}{{end}}</span></h3>
+        <div class="records records-steps">
+          <ol aria-label="What Diderot did">
+            {{range .Steps}}<li>{{template "ask-step" .}}</li>{{end}}
+          </ol>
+        </div>
+      </div>
+      {{end}}
+
+      {{range .Answers}}
+      {{if .Stopped}}
+      <div class="notice {{if .Chosen}}notice-attention{{else}}notice-bad{{end}}"{{with .Anchor}} id="{{.}}"{{end}}><p><strong>{{if .Chosen}}{{.Chosen}}.{{else}}No answer.{{end}}</strong> {{.Stopped}}</p></div>
+      {{with .Body}}<details class="disclosure"><summary>What the model wrote</summary><div class="prose">{{.}}</div></details>{{end}}
+      {{template "ask-ratings" .}}
+      {{else}}
+      <article class="ask-answer" id="{{.Anchor}}" aria-label="Answer">
+        {{with .Notice}}<div class="notice notice-attention"><p>{{.}}</p></div>{{end}}
+        <div class="prose ask-answer-text">{{.Body}}</div>
+        <p class="ask-answer-meta">Answered {{time .At}}{{if .OutputTokens}} · {{count .InputTokens}} tokens in, {{count .OutputTokens}} out{{end}}{{with .ResponseID}} · response <span class="id">{{.}}</span>{{end}} · <a href="#{{.Anchor}}">Link</a></p>
+        {{template "ask-ratings" .}}
+      </article>
+      {{end}}
+      {{end}}
+      {{if .Running}}<div class="notice notice-attention" role="status"><p>Diderot is still working on this question.</p><a href="">Reload</a></div>{{end}}
+      {{if .Continues}}<p class="muted">The answer is in the next messages.{{with $.Window}} <a href="{{.LaterURL}}">Show them</a>{{end}}</p>{{end}}
+    </li>
+    {{end}}
+  </ol>
+  {{else}}
+  <div class="empty"><h3>No messages</h3><p>This conversation has no stored messages. A question that fails before Diderot starts on it leaves none.</p></div>
+  {{end}}
+  {{if .Window}}{{template "pagination" .Pages}}{{end}}
+</section>
+
+{{with .Images}}
+<section class="section" aria-labelledby="images-heading">
+  <div class="section-header"><h2 id="images-heading">Attached images</h2><p>Images sent with the questions, and whether Diderot could read a description of each.</p></div>
+  <ul class="ask-images">
+    {{range .}}
+    <li class="panel">
+      {{if .ProxyURL}}<a class="ask-image" href="{{.ProxyURL}}" target="_blank" rel="noopener noreferrer"><img src="{{.ProxyURL}}" alt="{{or .Filename .ID}}" loading="lazy"></a>{{else}}<p class="ask-image muted">No copy of this image is stored.</p>{{end}}
+      <p class="cluster"><strong>{{or .Filename .ID}}</strong>{{if .Described}}{{badge "good" "described"}}{{else}}{{badge "attention" "not read"}}{{end}}</p>
+      {{with .FailureReason}}<p class="help">Not read: <code>{{.}}</code></p>{{end}}
+      {{with .Caption}}<details class="disclosure"><summary>Description Diderot read</summary><p>{{.}}</p></details>{{end}}
+      {{with .CurrentCaption}}<details class="disclosure"><summary>Description stored now</summary><p>{{.}}</p></details>{{end}}
+      {{with .Permalink}}<p><a href="{{.}}" target="_blank" rel="noreferrer">Open in Slack</a></p>{{end}}
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{end}}
+
+{{define "ask-ratings"}}
+{{if or .Ratings .Reactions}}
+<div class="ask-ratings">
+  {{with .Ratings}}<ul aria-label="Ratings in Slack">{{range .}}<li>{{if .Helpful}}{{badge "good" "helpful"}}{{else}}{{badge "bad" "not helpful"}}{{end}} <span>{{.Who}}</span> {{time .At}}</li>{{end}}</ul>{{end}}
+  {{with .Reactions}}<p class="ask-reactions">Other reactions: {{range $i, $r := .}}{{if $i}}, {{end}}<code>:{{$r.Emoji}}:</code>{{if gt $r.Count 1}} ×{{$r.Count}}{{end}}{{end}}</p>{{end}}
+</div>
+{{end}}
+{{end}}
+
+{{define "ask-step"}}
+{{if eq .Kind "note"}}
+<div class="ask-note" id="{{.Anchor}}">{{.Text}}</div>
+{{else}}
+<details class="record" id="{{.Anchor}}">
+  <summary>
+    <span class="ask-step-name">{{if eq .Kind "tool"}}<span class="mono">{{.Tool}}</span>{{else if eq .Kind "reasoning"}}Reasoning{{else}}Unrecognized{{end}}</span>
+    <span class="record-wide ask-step-asked">{{.Asked}}</span>
+    <span class="ask-step-found">{{if .Failed}}{{badge "bad" "failed"}}{{with .Error}} <span class="ask-step-error">{{.}}</span>{{end}}{{else if .Found}}{{.Found}}{{else if eq .Kind "tool"}}<span class="muted">No result stored</span>{{end}}</span>
+    <span>{{if .Took}}{{duration .Took}}{{end}}</span>
+  </summary>
+  <div class="record-body">
+    {{if eq .Kind "tool"}}
+    {{with .Error}}<div class="notice notice-bad"><p>{{.}}</p></div>{{end}}
+    <h4>Input</h4>
+    <pre>{{.Input}}</pre>
+    {{if .Returned}}<h4>Result <span class="muted">{{bytes .OutputSize}}</span></h4>{{if .Output}}<pre class="ask-output">{{.Output}}</pre>{{else}}<p class="muted">The tool returned nothing.</p>{{end}}
+    {{else}}<p class="muted">No result is stored for this call.</p>{{end}}
+    {{with .CallID}}<p class="help">Call <span class="id">{{.}}</span> · <a href="#{{$.Anchor}}">Link</a></p>{{end}}
+    {{else if eq .Kind "reasoning"}}
+    <div class="prose">{{.Text}}</div>
+    {{else}}
+    {{with .Raw}}<pre>{{.}}</pre>{{else}}<p class="muted">Nothing readable is stored.</p>{{end}}
+    {{end}}
+  </div>
+</details>
+{{end}}
+{{end}}
+
+{{define "header-meta"}}
+  <span>{{if .Owner}}Asked by <strong>{{actor .Owner}}</strong>{{else}}Asked{{end}}
+  {{- with .Place}}{{if eq .Kind "channel"}} in {{if .Href}}<a href="{{.Href}}" target="_blank" rel="noreferrer">{{.Label}}</a>{{else}}{{.Label}}{{end}}{{with .Detail}} <span class="id">{{.}}</span>{{end}}
+  {{- else if eq .Kind "dm"}} in a {{if .Href}}<a href="{{.Href}}" target="_blank" rel="noreferrer">Slack DM</a>{{else}}Slack DM{{end}}
+  {{- else if eq .Kind "slack"}} in Slack
+  {{- else if eq .Kind "api"}} through the API
+  {{- else if eq .Kind "report"}} by the scheduled report {{if .Href}}<a href="{{.Href}}">{{.Detail}}</a>{{else}}{{.Detail}}{{end}}
+  {{- else if eq .Kind "pagerduty"}} for a PagerDuty alert{{end}}{{end}}</span>
+  <span>{{time .Created}}</span>
+  {{if .Took}}<span>took {{duration .Took}}</span>{{end}}
+{{end}}

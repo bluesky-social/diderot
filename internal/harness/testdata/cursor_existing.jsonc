@@ -1,0 +1,13 @@
+{
+  // my servers
+  "mcpServers": {
+    "github": { "url": "https://api.example.com/mcp" }, // keep me
+    "diderot": {
+      "auth": {
+        "CLIENT_ID": "public-client"
+      },
+      "url": "https://gateway.example.com/mcp"
+    }
+  },
+  "other": true
+}

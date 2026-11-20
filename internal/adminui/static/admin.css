@@ -1,0 +1,746 @@
+/*
+ * Diderot admin design system.
+ *
+ * Every shared visual pattern lives in this file, and /admin/dev/styleguide
+ * (ui-dev server) shows each one in every state. A page stylesheet holds only
+ * layout unique to that page and never restyles a component from here.
+ *
+ *    1. Tokens             10. Stat tiles         19. Disclosure
+ *    2. Base elements      11. Badge              20. Pagination
+ *    3. Shell              12. Buttons            21. Steps
+ *    4. Page header        13. Forms              22. Prose
+ *    5. Tabs               14. Filter bar         23. Bar chart
+ *    6. Sections, panels   15. Notices            24. Sign-in
+ *    7. Table              16. Banner             25. Utilities
+ *    8. Record list        17. Empty state
+ *    9. Key/value, facts   18. Code and identifiers
+ */
+
+/* 1. Tokens ------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark light;
+
+  /* Surfaces and text. */
+  --bg: #131519;
+  --raised: #1a1d23;
+  --sunk: #0e1013;
+  --ink: #d8d4ca;
+  --dim: #aaa69d;
+  --faint: #918d84;
+  --line: #2a2d34;
+  --line-strong: #3a3e47;
+
+  /* Accents: amber marks what a person does or must do, teal what links. */
+  --human: #e2a447;
+  --human-ink: #efc37e;
+  --on-human: #17130d;
+  --machine: #58b7c4;
+  --machine-ink: #8ecfd8;
+  --system: #9a8fd0;
+  --good: #67b88a;
+  --bad: #d96c5f;
+  --bad-ink: #ee9d92;
+  --on-bad: #17130d;
+
+  /* Type. Sans for interface text, serif for page titles and long reading,
+     mono for identifiers, code and tabular numbers. Nothing below --text-sm. */
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: Charter, "Iowan Old Style", "Bitstream Charter", Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --text-sm: .8125rem;
+  --text-base: .9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.875rem;
+
+  /* Spacing steps. */
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --page-width: 1200px;
+  --gutter: 1.5rem;
+  --control-height: 2.25rem;
+  --focus: var(--human);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f1e9;
+    --raised: #fbf9f4;
+    --sunk: #ebe7dc;
+    --ink: #2a2823;
+    --dim: #5e5a52;
+    --faint: #69655d;
+    --line: #d8d3c6;
+    --line-strong: #bfb9a9;
+    --human: #b0741a;
+    --human-ink: #74480a;
+    --on-human: #17130d;
+    --machine: #2e7f8c;
+    --machine-ink: #1c5c68;
+    --system: #6f61ad;
+    --good: #286441;
+    --bad: #96392f;
+    --bad-ink: #84291f;
+    --on-bad: #fff;
+  }
+}
+
+@media (max-width: 640px) {
+  :root { --gutter: 1rem; }
+}
+
+/* 2. Base elements ------------------------------------------------------ */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--text-base)/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+ul, ol { padding-left: 1.25rem; }
+li + li { margin-top: var(--space-1); }
+h1 { font: 500 var(--text-xl)/1.15 var(--serif); letter-spacing: -.01em; }
+h2 { font: 600 var(--text-md)/1.3 var(--sans); }
+h3 { font: 600 var(--text-base)/1.4 var(--sans); }
+a { color: var(--machine-ink); text-underline-offset: .18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+strong { font-weight: 600; }
+small { font-size: var(--text-sm); }
+hr { height: 1px; margin: var(--space-5) 0; border: 0; background: var(--line); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--human) 35%, transparent); }
+
+/* 3. Shell --------------------------------------------------------------
+   <header class="app-header"> brand, primary navigation, account.
+   <main class="page"> one container for every page.
+   <footer class="app-footer"> version and the metrics link. */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+.app-header-inner {
+  display: flex;
+  gap: var(--space-5);
+  align-items: stretch;
+  width: min(var(--page-width), 100% - 2 * var(--gutter));
+  min-height: 3.25rem;
+  margin: 0 auto;
+}
+.brand {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--ink);
+  text-decoration: none;
+}
+/* The mark, an asterisk in the name's colour, sits raised before it like
+   the star at the head of an Encyclopédie article. */
+.brand-mark {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: -.45rem;
+}
+.brand-name { font: 600 var(--text-md)/1 var(--serif); letter-spacing: .005em; }
+.brand-org {
+  max-width: 12rem;
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--line-strong);
+  overflow: hidden;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-nav { display: flex; flex: 1; gap: var(--space-1); min-width: 0; }
+.app-nav a {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--dim);
+  font-size: var(--text-base);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav a:hover { color: var(--ink); }
+.app-nav a[aria-current] { border-bottom-color: var(--human); color: var(--ink); font-weight: 600; }
+.app-nav a:focus-visible { outline-offset: -3px; }
+.account {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+.account form { display: flex; }
+/* A long address is cut short so the header keeps to one line; the title has it whole. */
+.account-name { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A header with no navigation keeps the account on the right. */
+.app-header-inner > .brand + .account { margin-left: auto; }
+
+.page {
+  flex: 1;
+  width: min(var(--page-width), 100% - 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-5) 0 var(--space-7);
+}
+.page > * + * { margin-top: var(--space-5); }
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  width: min(var(--page-width), 100% - 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-4) 0 var(--space-5);
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: var(--text-sm);
+}
+.app-footer a { color: var(--dim); }
+
+@media (max-width: 900px) {
+  .app-header-inner { flex-wrap: wrap; gap: 0 var(--space-4); justify-content: space-between; }
+  .app-header-inner > .brand, .app-header-inner > .account { min-height: 3rem; }
+  .app-nav {
+    order: 3;
+    flex: 0 0 calc(100% + 2 * var(--gutter));
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 calc(var(--gutter) - var(--space-2));
+    border-top: 1px solid var(--line);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-nav a { min-height: 2.5rem; }
+  .brand-org { max-width: 8rem; }
+}
+@media (max-width: 480px) {
+  .account-name { display: none; }
+}
+
+/* 4. Page header ---------------------------------------------------------
+   The "page-header" partial: breadcrumb (nested pages only), the h1 with an
+   optional badge beside it, at most one sentence, an optional line of facts
+   about the thing the page shows (.page-meta, its spans set apart by dots),
+   and an optional group of page-level actions on the right. */
+
+.page-header { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); align-items: flex-end; justify-content: space-between; }
+.page-header-text { flex: 1 1 24rem; min-width: 0; }
+.page-header h1 { min-width: 0; overflow-wrap: anywhere; }
+.page-title { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.page-header .lead { max-width: 44rem; margin-top: var(--space-2); color: var(--dim); }
+.page-meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); align-items: baseline; margin-top: var(--space-2); color: var(--dim); }
+.page-meta > span { min-width: 0; overflow-wrap: anywhere; }
+.page-meta strong { color: var(--ink); font-weight: 500; }
+.page-meta > span + span::before { margin-right: var(--space-3); color: var(--faint); content: "·"; }
+.page-header-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.page-header-actions form { display: flex; }
+/* The trail wraps like a sentence, so a long current page does not leave
+   its parents alone on a line. */
+.breadcrumb { margin-bottom: var(--space-2); color: var(--faint); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.breadcrumb ol { display: block; padding: 0; list-style: none; }
+.breadcrumb li { display: inline; margin: 0; }
+.breadcrumb li + li::before { margin: 0 var(--space-1); color: var(--faint); content: "/"; }
+.breadcrumb a { color: var(--dim); }
+@media (max-width: 640px) {
+  /* A wrapped line would begin with the separator. */
+  .page-meta > span + span::before { content: none; }
+}
+
+/* 5. Tabs -----------------------------------------------------------------
+   Sub-navigation of a section (Ask, Operations, Settings) or of one page's views.
+   Links only; the current one carries aria-current="page". */
+
+.tabs { border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs ul { display: flex; gap: var(--space-4); padding: 0; list-style: none; }
+.tabs li { margin: 0; }
+.tabs a {
+  display: block;
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tabs a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
+.tabs a[aria-current] { border-bottom-color: var(--human); color: var(--ink); font-weight: 600; }
+.tabs a:focus-visible { outline-offset: -2px; }
+.tabs .tab-count { margin-left: var(--space-1); color: var(--faint); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* 6. Sections and panels -------------------------------------------------
+   .section groups content under an h2; .section-header puts actions beside
+   it. .panel is the one raised surface: use it for a form or a block that
+   must read as a unit, not around every section. */
+
+.section > * + * { margin-top: var(--space-3); }
+.section + .section { margin-top: var(--space-6); }
+.section-header { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: baseline; justify-content: space-between; }
+.section-header p { flex: 0 0 100%; color: var(--dim); }
+.section-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; font-size: var(--text-sm); }
+
+.panel { padding: var(--space-4) var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.panel > * + * { margin-top: var(--space-3); }
+.panel-attention { border-color: color-mix(in srgb, var(--human) 55%, var(--line)); }
+@media (max-width: 640px) {
+  .panel { padding: var(--space-4); }
+}
+
+/* What needs the operator, inside a .panel-attention: <ul class="attention-list">
+   of items, each a <span> saying what is wrong and a link to where it is
+   fixed. */
+.attention-list { padding: 0; list-style: none; }
+.attention-list li { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); justify-content: space-between; margin: 0; padding: var(--space-2) 0; border-top: 1px solid var(--line); }
+.attention-list li:first-child { padding-top: 0; border-top: 0; }
+.attention-list li:last-child { padding-bottom: 0; }
+.attention-list span { flex: 1 1 24rem; }
+
+/* 7. Table ----------------------------------------------------------------
+   <div class="table-wrap"><table class="table">. The wrapper scrolls a wide
+   table inside the page. Header cells are th scope="col"; a row's name is
+   th scope="row". Numbers take .num. */
+
+.table-wrap { position: relative; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
+.table caption { padding: var(--space-3) var(--space-4); color: var(--dim); text-align: left; }
+.table th, .table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.table thead th { background: var(--bg); color: var(--dim); font-size: var(--text-sm); font-weight: 500; white-space: nowrap; }
+.table tbody th { font-weight: 600; }
+.table tbody tr:last-child > * { border-bottom: 0; }
+.table tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.table .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.table .actions { text-align: right; white-space: nowrap; }
+.table-compact th, .table-compact td { padding: var(--space-2) var(--space-3); }
+/* A second line under a cell's main value. */
+.sub { display: block; color: var(--faint); font-size: var(--text-sm); font-weight: 400; }
+
+/* A row that opens something: give the link in the row's th .row-link and
+   the whole row is the link, with an arrow at its end. Such a row holds no
+   other control. Every table that lists things to open uses it. */
+.table tbody tr:has(.row-link) { position: relative; cursor: pointer; }
+.row-link::after { position: absolute; inset: 0; content: ""; }
+.row-link:focus-visible { outline: none; }
+.table tbody tr:has(.row-link:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; }
+.table tbody tr:has(.row-link) > :last-child { padding-right: calc(var(--space-4) + 1.25rem); }
+.table tbody tr:has(.row-link) > :last-child::after { position: absolute; top: 50%; right: var(--space-4); width: .45rem; height: .45rem; margin-top: -.3rem; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); content: ""; transform: rotate(-45deg); }
+
+/* table.table-stack: on a narrow screen the head goes and each row becomes
+   a block instead of a table that scrolls sideways. The row's th leads. A
+   td with data-label="Column name" shows under that name and shares a line
+   with the next one; a td without a label, or with .stack-wide, or with a
+   second line (.sub), takes a line of its own. .stack-hide drops a cell
+   that says nothing on its own (an arrow, a dash). */
+@media (max-width: 640px) {
+  .table.table-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .table.table-stack, .table.table-stack tbody { display: block; }
+  .table.table-stack tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+  .table.table-stack tbody tr:last-child { border-bottom: 0; }
+  .table.table-stack tbody tr > * { display: block; grid-column: 1 / -1; min-width: 0; padding: 0; border: 0; text-align: left; white-space: normal; }
+  .table.table-stack tbody td[data-label] { grid-column: auto; }
+  .table.table-stack tbody td[data-label]:has(.sub), .table.table-stack tbody td.stack-wide { grid-column: 1 / -1; }
+  .table.table-stack td[data-label]::before { display: block; color: var(--dim); font-size: var(--text-sm); content: attr(data-label); }
+  .table.table-stack tbody .stack-hide { display: none; }
+  .table.table-stack tbody tr:has(.row-link) { padding-right: calc(var(--space-4) + 1.25rem); }
+  .table.table-stack tbody tr:has(.row-link) > :last-child { padding-right: 0; }
+}
+
+/* 8. Record list ----------------------------------------------------------
+   Rows of a log. <div class="records records-NAME"> holds a .records-head
+   row of column names and an <ol>. An item is <details class="record">,
+   whose <summary> lays its cells on the same grid and opens to show more,
+   or <a class="record-link"> when the row leads to a page of its own.
+   Each list names its columns in a .records-NAME rule below. On a narrow
+   screen the head goes and cells marked .record-wide take a line each. */
+
+.records { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.records > ol { padding: 0; list-style: none; }
+.records-head, .record > summary, .record-link {
+  display: grid;
+  grid-template-columns: var(--record-columns);
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+}
+.records-head { border-bottom: 1px solid var(--line); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--bg); color: var(--dim); font-size: var(--text-sm); font-weight: 500; }
+.records > ol > li + li { margin: 0; border-top: 1px solid var(--line); }
+.record > summary { position: relative; padding-right: var(--space-6); cursor: pointer; list-style: none; }
+.record > summary::-webkit-details-marker { display: none; }
+.record > summary::after {
+  position: absolute;
+  top: 1.1rem;
+  right: var(--space-4);
+  width: .45rem;
+  height: .45rem;
+  border-right: 1.5px solid var(--faint);
+  border-bottom: 1.5px solid var(--faint);
+  content: "";
+  transform: rotate(45deg);
+}
+.record[open] > summary::after { top: 1.3rem; transform: rotate(-135deg); }
+.record > summary:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.record > summary:focus-visible { outline-offset: -2px; }
+.record > summary > * { min-width: 0; overflow-wrap: anywhere; }
+.record-body { padding: var(--space-2) var(--space-4) var(--space-4); }
+.record-body > * + * { margin-top: var(--space-3); }
+.records-head { padding-right: var(--space-6); }
+.record-link { padding-right: var(--space-6); color: inherit; text-decoration: none; }
+.records > ol > li:last-child > .record-link { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.record-link:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.record-link:focus-visible { outline-offset: -2px; }
+.record-link > * { min-width: 0; overflow-wrap: anywhere; }
+/* Column sets. */
+.records-audit { --record-columns: 9.5rem minmax(9rem, 1.1fr) minmax(12rem, 1.6fr) minmax(8rem, 1.2fr) 5rem; }
+.records-failures { --record-columns: minmax(12rem, 2fr) minmax(10rem, 1.5fr) 6.5rem 11rem; }
+.records-ask { --record-columns: minmax(0, 3fr) minmax(7rem, 1.3fr) minmax(6rem, 1fr) 9.5rem 4rem 6.5rem; }
+.records-feedback { --record-columns: minmax(0, 3fr) minmax(7rem, 1.3fr) minmax(6rem, 1fr) 9.5rem 7.5rem; }
+.records-steps { --record-columns: 12rem minmax(0, 1fr) minmax(7rem, 14rem) 3.5rem; }
+@media (max-width: 760px) {
+  .records-head { display: none; }
+  .records .record > summary, .records .record-link { grid-template-columns: 1fr auto; }
+  .records .record > summary > .record-wide, .records .record-link > .record-wide { grid-column: 1 / -1; }
+}
+
+/* 9. Key/value list and facts ------------------------------------------------
+   <dl class="kv"><div><dt>Name</dt><dd>Value</dd></div>…</dl>. Names sit in
+   a fixed column beside their values and stack on a narrow screen.
+   <dl class="facts"> has the same markup and is one wrapping row of a few
+   short values, quieter than stat tiles: the facts of one record. */
+
+.kv { display: grid; }
+.kv > div { display: grid; grid-template-columns: minmax(9rem, 16rem) minmax(0, 1fr); gap: var(--space-1) var(--space-5); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.kv > div:first-child { padding-top: 0; }
+.kv > div:last-child { padding-bottom: 0; border-bottom: 0; }
+.kv dt { color: var(--dim); }
+.kv dd { min-width: 0; overflow-wrap: anywhere; }
+.kv-compact > div { padding: var(--space-1) 0; border-bottom: 0; font-size: var(--text-sm); }
+@media (max-width: 640px) {
+  .kv > div { grid-template-columns: 1fr; }
+}
+.facts { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.facts dt { color: var(--dim); font-size: var(--text-sm); }
+.facts dd { font-variant-numeric: tabular-nums; }
+
+/* 10. Stat tiles -----------------------------------------------------------
+   A row of headline numbers: <div class="stats"><div class="stat">. */
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3); }
+.stat { padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.stat-label { color: var(--dim); font-size: var(--text-sm); }
+.stat-value { display: block; margin-top: var(--space-1); font: 600 1.5rem/1.2 var(--sans); font-variant-numeric: tabular-nums; }
+.stat-note { display: block; margin-top: var(--space-1); color: var(--faint); font-size: var(--text-sm); }
+a.stat { color: inherit; text-decoration: none; }
+a.stat:hover { border-color: var(--line-strong); }
+/* Two to a row on a phone, where the minimum above would leave one. */
+@media (max-width: 480px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat { padding: var(--space-3); }
+  .stat-value { font-size: 1.25rem; overflow-wrap: anywhere; }
+}
+
+/* 11. Badge ----------------------------------------------------------------
+   One lowercase word of status in one of four tones. The word carries the
+   meaning; the colour only repeats it. */
+
+.badge {
+  display: inline-block;
+  padding: .0625rem .5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--dim);
+  font: 500 var(--text-sm)/1.5 var(--sans);
+  text-transform: lowercase;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.badge-good { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
+.badge-attention { border-color: color-mix(in srgb, var(--human) 50%, var(--line)); background: color-mix(in srgb, var(--human) 14%, transparent); color: var(--human-ink); }
+.badge-bad { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad-ink); }
+
+/* 12. Buttons --------------------------------------------------------------
+   .button is the secondary button; add .button-primary for the one main
+   action of a form or page and .button-danger for a destructive one.
+   .button-small fits table rows and section headers. Works on <button> and
+   on <a>. .button-link is a form button that reads as a link. */
+
+.button {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink);
+  font: 500 var(--text-base)/1.2 var(--sans);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.button:hover { border-color: var(--faint); background: color-mix(in srgb, var(--ink) 6%, var(--raised)); }
+.button-primary { border-color: var(--human); background: var(--human); color: var(--on-human); font-weight: 600; }
+.button-primary:hover { border-color: var(--human); background: color-mix(in srgb, var(--human) 88%, var(--ink)); }
+.button-danger { border-color: color-mix(in srgb, var(--bad) 60%, var(--line)); color: var(--bad-ink); }
+.button-danger:hover { border-color: var(--bad); background: var(--bad); color: var(--on-bad); }
+.button-small { min-height: 1.75rem; padding: 0 var(--space-3); font-size: var(--text-sm); }
+.button:disabled, .button[aria-disabled="true"] { border-color: var(--line); background: transparent; color: var(--faint); cursor: not-allowed; }
+.button-link { padding: 0; border: 0; background: none; color: var(--machine-ink); font: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; cursor: pointer; }
+.button-link:hover { text-decoration-thickness: 2px; }
+.account .button-link, .account a { color: var(--dim); }
+.account .button-link:hover, .account a:hover { color: var(--ink); }
+.button-row { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+/* The "copy" partial's button copies an identifier; it needs JavaScript,
+   so it shows only with it. */
+.copy { display: none; margin-left: var(--space-2); }
+.js .copy { display: inline-flex; }
+
+/* 13. Forms ----------------------------------------------------------------
+   .field is one labelled control: label, control, then .help and .error.
+   .form stacks fields at a readable width with .form-actions at the end.
+   .settings lists settings as rows: what it is on the left, the control on
+   the right. .check is a checkbox or radio with its label. */
+
+input, select, textarea, button { font: inherit; }
+input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"], [type="range"]), select, textarea {
+  display: block;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: .375rem .625rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--sunk);
+  color: var(--ink);
+  font: var(--text-base)/1.4 var(--sans);
+}
+textarea { min-height: 6rem; resize: vertical; }
+textarea.code, input.code { font-family: var(--mono); font-size: var(--text-sm); }
+select { padding-right: 2rem; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%); background-position: calc(100% - 1rem) 50%, calc(100% - .7rem) 50%; background-repeat: no-repeat; background-size: .3rem .3rem; }
+input::placeholder, textarea::placeholder { color: var(--faint); opacity: 1; }
+input:hover, select:hover, textarea:hover { border-color: var(--faint); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); outline-offset: 0; }
+input:disabled, select:disabled, textarea:disabled { background: transparent; color: var(--faint); cursor: not-allowed; }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--bad); }
+input[type="checkbox"], input[type="radio"] { width: 1rem; height: 1rem; margin: 0; accent-color: var(--human); }
+fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+legend { padding: 0; font-weight: 600; }
+
+.field { display: grid; gap: var(--space-1); min-width: 0; }
+.field > label, .field > .label { font-weight: 500; }
+.field .optional { color: var(--faint); font-weight: 400; }
+.help { color: var(--dim); font-size: var(--text-sm); }
+.error { color: var(--bad-ink); font-size: var(--text-sm); }
+.field-small { max-width: 10rem; }
+/* A number with its unit after it: <div class="field-unit"><input> <span>hours</span></div>. */
+.field-unit { display: flex; gap: var(--space-2); align-items: center; }
+.field-unit input { max-width: 8rem; }
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-4); align-items: start; }
+
+.form { display: grid; gap: var(--space-4); max-width: 40rem; }
+.form-actions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.form-actions .help { flex: 1 1 14rem; }
+
+.check { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--space-2); align-items: start; }
+.check input { margin-top: .22rem; }
+.check .help { grid-column: 2; }
+
+.settings { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.setting { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-3) var(--space-6); padding: var(--space-4) var(--space-5); }
+.setting + .setting { border-top: 1px solid var(--line); }
+.setting-about > * + * { margin-top: var(--space-1); }
+.setting-about p { color: var(--dim); font-size: var(--text-sm); }
+.setting-control { display: grid; gap: var(--space-3); align-content: start; }
+.settings-footer { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); }
+.settings-footer .help { flex: 1 1 14rem; }
+@media (max-width: 760px) {
+  .setting { grid-template-columns: 1fr; padding: var(--space-4); }
+  .settings-footer { padding: var(--space-4); }
+}
+
+/* 14. Filter bar -----------------------------------------------------------
+   A GET form of .field controls on one wrapping line, then Apply and a
+   Clear link. */
+
+.filter-bar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.filter-bar .field { flex: 1 1 9rem; font-size: var(--text-sm); }
+.filter-bar .field > label { color: var(--dim); }
+.filter-bar .field-small { flex: 0 1 9rem; }
+.filter-bar-actions { display: flex; gap: var(--space-3); align-items: center; min-height: var(--control-height); }
+
+/* 15. Notices --------------------------------------------------------------
+   The result of what the operator just did (role="status"), or something
+   about this page they should know (role="alert" when it is an error). */
+
+.notice { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border: 1px solid var(--line-strong); border-left-width: 3px; border-radius: var(--radius); background: var(--raised); }
+.notice > :first-child { flex: 1 1 16rem; min-width: 0; }
+.notice > :not(.button-row) > * + * { margin-top: var(--space-1); }
+.notice-good { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); border-left-color: var(--good); }
+.notice-attention { border-color: color-mix(in srgb, var(--human) 45%, var(--line)); border-left-color: var(--human); }
+.notice-bad { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); border-left-color: var(--bad); }
+
+/* 16. Banner ---------------------------------------------------------------
+   The one line the shell shows above every page while the install needs
+   something. At most one at a time. */
+
+.app-banner { border-bottom: 1px solid color-mix(in srgb, var(--human) 40%, var(--line)); background: color-mix(in srgb, var(--human) 10%, var(--bg)); font-size: var(--text-sm); }
+.app-banner p { width: min(var(--page-width), 100% - 2 * var(--gutter)); margin: 0 auto; padding: var(--space-2) 0; }
+.app-banner a { color: inherit; font-weight: 600; }
+.app-banner-bad { border-bottom-color: color-mix(in srgb, var(--bad) 60%, var(--line)); background: color-mix(in srgb, var(--bad) 14%, var(--bg)); }
+
+/* 17. Empty state ----------------------------------------------------------
+   What would appear here, and how to make that happen. */
+
+.empty { padding: var(--space-6) var(--space-5); border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); text-align: center; }
+.empty > * + * { margin-top: var(--space-2); }
+.empty p { max-width: 34rem; margin-left: auto; margin-right: auto; color: var(--dim); }
+.empty .button { margin-top: var(--space-3); }
+
+/* 18. Code and identifiers ---------------------------------------------------
+   code and pre for code; .id for an identifier shown as secondary detail. */
+
+code, kbd, samp, pre { font-family: var(--mono); font-size: .875em; }
+code { padding: .08em .3em; border-radius: 4px; background: color-mix(in srgb, var(--ink) 8%, transparent); overflow-wrap: anywhere; }
+pre { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--sunk); font-size: var(--text-sm); line-height: 1.55; overflow-x: auto; tab-size: 2; }
+pre code { padding: 0; background: none; font-size: inherit; overflow-wrap: normal; }
+.id { color: var(--faint); font: var(--text-sm)/1.4 var(--mono); overflow-wrap: anywhere; user-select: all; }
+
+/* 19. Disclosure -------------------------------------------------------------
+   <details class="disclosure"> for content most visits do not need. */
+
+.disclosure > summary { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--machine-ink); cursor: pointer; list-style: none; }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::before { width: .4rem; height: .4rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; content: ""; transform: rotate(-45deg); }
+.disclosure[open] > summary::before { transform: rotate(45deg) translate(-.1rem, -.1rem); }
+.disclosure > summary:hover { text-decoration: underline; }
+.disclosure > :not(summary) { margin-top: var(--space-3); }
+
+/* 20. Pagination -------------------------------------------------------------
+   <nav class="pagination" aria-label="Pages">: what is shown, then the
+   newer and older links. */
+
+.pagination { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; color: var(--dim); font-size: var(--text-sm); }
+.pagination-links { display: flex; gap: var(--space-2); }
+
+/* 21. Steps ------------------------------------------------------------------
+   An ordered procedure: <ol class="steps"> of .step items in the states
+   done, current (the one to do now) and to do. */
+
+.steps { padding: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); list-style: none; counter-reset: step; }
+.step { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: var(--space-2) var(--space-4); padding: var(--space-4) var(--space-5); counter-increment: step; }
+.step + .step { margin: 0; border-top: 1px solid var(--line); }
+.step::before {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--dim);
+  font: 600 var(--text-sm)/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+  content: counter(step);
+}
+.step-done::before { border-color: color-mix(in srgb, var(--good) 50%, var(--line)); background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); content: "\2713"; }
+.step-current { box-shadow: inset 3px 0 0 var(--human); }
+.step-current:first-child { border-top-left-radius: var(--radius-lg); }
+.step-current:last-child { border-bottom-left-radius: var(--radius-lg); }
+.step-current::before { border-color: var(--human); background: var(--human); color: var(--on-human); }
+.step-main { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); align-items: flex-start; justify-content: space-between; min-width: 0; }
+.step-text { flex: 1 1 20rem; min-width: 0; }
+.step-text > * + * { margin-top: var(--space-1); }
+.step-title { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
+.step-title h3 a { color: inherit; }
+.step-text p { color: var(--dim); }
+.step-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.step-detail { grid-column: 2; }
+.step-detail > * + * { margin-top: var(--space-3); }
+@media (max-width: 640px) {
+  .step { padding: var(--space-4); gap: var(--space-2) var(--space-3); }
+}
+
+/* 22. Prose ------------------------------------------------------------------
+   <div class="prose"> holds rendered Markdown meant for reading: an answer,
+   a report. Set in the serif. */
+
+.prose { font: var(--text-md)/1.65 var(--serif); overflow-wrap: anywhere; }
+.prose > * + * { margin-top: .75em; }
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 { font: 600 var(--text-md)/1.35 var(--sans); }
+.prose ul, .prose ol { padding-left: 1.5rem; }
+.prose ul { list-style: disc; }
+.prose li + li { margin-top: .3em; }
+.prose blockquote { margin: 0; padding-left: var(--space-3); border-left: 3px solid var(--line-strong); color: var(--dim); }
+.prose pre { font-size: var(--text-sm); }
+
+/* 23. Bar chart --------------------------------------------------------------
+   The "chart" partial: counts over time as bars, a value axis with a
+   midline, and the two ends of the time span under it. A chart whose bars
+   have a bad part (BadLabel) draws it on top in the bad tone, with a key
+   beside the caption; a Note under the chart says how far to trust it. */
+
+.chart { padding: var(--space-4) var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); }
+.chart figcaption { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); justify-content: space-between; color: var(--dim); font-size: var(--text-sm); }
+.chart-key { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+.chart-key > span::before { display: inline-block; width: .65rem; height: .65rem; margin-right: var(--space-2); border-radius: 2px; background: var(--machine); content: ""; }
+.chart-key > .chart-key-bad::before { background: var(--bad); }
+.chart-body { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 10rem; gap: var(--space-3); margin-top: var(--space-3); }
+.chart-axis { display: flex; flex-direction: column; justify-content: space-between; margin: -.6em 0; color: var(--faint); font-size: var(--text-sm); font-variant-numeric: tabular-nums; text-align: right; }
+.chart-plot { display: block; width: 100%; height: 100%; overflow: visible; }
+.chart-bar { fill: var(--machine); }
+.chart-bar:hover { fill: var(--machine-ink); }
+.chart-bar .chart-bar-bad { fill: var(--bad); }
+.chart-bar:hover .chart-bar-bad { fill: var(--bad-ink); }
+.chart-grid { stroke: var(--line); stroke-dasharray: 3 3; }
+.chart-baseline { stroke: var(--line-strong); }
+.chart-time { display: flex; justify-content: space-between; margin-top: var(--space-2); padding-left: var(--space-6); color: var(--faint); font-size: var(--text-sm); }
+.chart-note { margin-top: var(--space-3); color: var(--dim); font-size: var(--text-sm); }
+@media (max-width: 640px) {
+  .chart { padding: var(--space-3) var(--space-4); }
+}
+
+/* 24. Sign-in ----------------------------------------------------------------
+   The pages served before a session exists (templates/signin.html). */
+
+.signin { width: min(26rem, 100% - 2 * var(--gutter)); margin: 0 auto; padding: 12vh 0 var(--space-7); }
+.signin > * + * { margin-top: var(--space-5); }
+.signin .brand { justify-content: flex-start; }
+.signin-methods > * + * { margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--line); }
+.signin-methods .form > h2 + p { margin-top: calc(-1 * var(--space-2)); color: var(--dim); font-size: var(--text-sm); }
+
+/* 25. Utilities --------------------------------------------------------------
+   Kept to a handful. Reach for a component first. */
+
+.muted { color: var(--dim); }
+.mono { font-family: var(--mono); font-size: .875em; }
+.nowrap { white-space: nowrap; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack > * + * { margin-top: var(--space-3); }
+.cluster { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .button, input, select, textarea, .tabs a, .app-nav a { transition: border-color .12s, background-color .12s, color .12s; }
+}

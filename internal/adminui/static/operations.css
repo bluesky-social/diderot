@@ -1,0 +1,11 @@
+/* Status: the name column keeps one width, however short the details. */
+.status-table thead th:first-child { width: 14rem; }
+@media (max-width: 640px) {
+  .status-table thead th:first-child { width: 40%; }
+}
+
+/* Failures by cause: on a phone the count column goes, since each cause's
+   second line already counts its items, and the cause keeps the width. */
+@media (max-width: 640px) {
+  .causes-table .num { display: none; }
+}

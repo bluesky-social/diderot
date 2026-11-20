@@ -1,0 +1,74 @@
+{{define "content"}}
+{{template "page-header" (header "Failures" "Items Diderot failed to index, caption, read, or summarize, grouped by cause, with when each last failed. An item's own date is the one its source gives it, such as when a message was posted or a page last edited.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+{{if .Groups}}
+<section class="section" aria-labelledby="causes-heading">
+  <div class="section-header">
+    <h2 id="causes-heading">By cause</h2>
+    <p>Retry a cause once whatever caused it is fixed. A problem with the item itself fails the same way every time, so it has no retry.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="table causes-table">
+      <thead><tr><th scope="col">Cause</th><th scope="col" class="num">Items</th><th scope="col" class="actions"><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+      {{range .Groups}}
+        <tr>
+          <th scope="row"><a href="{{.FilterURL}}">{{.Cause.Message}}</a><span class="sub">{{.KindName}} · {{if .GaveUp}}{{count .GaveUp}} no longer retried{{end}}{{if and .GaveUp .Retrying}}, {{end}}{{if .Retrying}}{{count .Retrying}} still being retried{{end}} · {{if .LastFailedAt}}last failed {{time .LastFailedAt}}{{else}}newest item dated {{time .NewestAt}}{{end}}</span></th>
+          <td class="num">{{count .Items}}</td>
+          <td class="actions">{{if .CanRetry}}
+            <form method="post" action="/admin/operations/failures/retry">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <input type="hidden" name="kind" value="{{.Kind}}">
+              <input type="hidden" name="cause" value="{{.Cause.Key}}">
+              <button class="button button-small" type="submit">Retry {{count .GaveUp}}<span class="visually-hidden"> {{.KindName}} items: {{.Cause.Message}}</span></button>
+            </form>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{if .Truncated}}<p class="muted">Only the {{count 5000}} items that failed most recently are read, so a cause can have more than it shows.</p>{{end}}
+</section>
+
+<section class="section" id="items" aria-labelledby="items-heading">
+  <div class="section-header">
+    <h2 id="items-heading">{{with .Group}}{{.KindName}}: {{.Cause.Message}}{{else}}Every failing item{{end}}</h2>
+    {{if .Group}}<span class="section-actions"><a href="/admin/operations/failures#items">Every cause</a></span>{{end}}
+  </div>
+  <div class="records records-failures">
+    <div class="records-head" aria-hidden="true"><span>Item</span><span>Cause</span><span>State</span><span>Last failed</span></div>
+    <ol aria-label="Failing items">
+      {{range .Items}}
+      <li>
+        <details class="record">
+          <summary>
+            <span class="record-wide">{{.Label}}<span class="sub">{{.KindName}} · {{.Where}}</span></span>
+            <span class="record-wide">{{.Cause.Message}}</span>
+            <span>{{if .GaveUp}}{{badge "bad" "stopped"}}{{else}}{{badge "attention" "retrying"}}{{end}}</span>
+            <span>{{if .FailedAt}}{{logtime .FailedAt}}{{else}}<span class="muted">not recorded</span>{{end}}<span class="sub">item dated {{time .ItemAt}}</span></span>
+          </summary>
+          <div class="record-body">
+            <dl class="kv kv-compact">
+              <div><dt>Last failed</dt><dd>{{if .FailedAt}}{{logtime .FailedAt}}{{else}}Not recorded: it last failed before Diderot kept the time of a failure.{{end}}</dd></div>
+              <div><dt>Attempts</dt><dd>{{if .GaveUp}}{{.Attempts}}, and no more are made.{{else}}{{.Attempts}} so far, of up to 5.{{end}}</dd></div>
+              <div><dt>Item dated</dt><dd>{{logtime .ItemAt}}</dd></div>
+              {{if .URL}}<div><dt>Item</dt><dd><a href="{{.URL}}" target="_blank" rel="noreferrer">Open in {{.Source}}</a></dd></div>{{end}}
+              <div><dt>Record</dt><dd><span class="id">{{.Record}}</span></dd></div>
+            </dl>
+            <pre aria-label="The error as recorded">{{.Raw}}</pre>
+          </div>
+        </details>
+      </li>
+      {{end}}
+    </ol>
+  </div>
+  {{template "pagination" .Pages}}
+</section>
+{{else}}
+<div class="empty"><h2>Nothing is failing</h2><p>When indexing, captioning, reading, or summarizing an item fails, the item is listed here with the reason, and retried up to five times.</p><a class="button" href="/admin/operations">Back to status</a></div>
+{{end}}
+{{end}}

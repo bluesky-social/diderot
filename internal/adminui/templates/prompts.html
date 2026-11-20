@@ -1,0 +1,57 @@
+{{define "content"}}
+{{template "page-header" (header "Prompts" "The instructions Diderot gives its models. Changes collect in a draft and go live together.")}}
+{{template "prompt-tabs" "prompts"}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "setup-progress" .Setup}}
+
+{{with .Live}}
+<div class="prompt-live">
+  <p>{{badge "good" "live"}} <a href="/admin/prompts/versions/{{.ReleaseID}}">Version {{.ReleaseID}}</a>{{if .Example}}, the example prompts Diderot ships, installed {{time .Since}}.{{else}}, made live {{time .Since}} by {{actor .By}}.{{end}}</p>
+  {{with .Note}}<p class="muted">“{{.}}”</p>{{end}}
+</div>
+{{end}}
+
+{{with .Draft}}
+<div class="notice{{if .OutOfDate}} notice-attention{{end}}">
+  <p><strong>The draft changes {{if eq .Count 1}}one prompt{{else}}{{.Count}} prompts{{end}}</strong>: {{.Names}}. Last saved {{time .UpdatedAt}} by {{actor .UpdatedBy}}.{{if .OutOfDate}} {{if eq .OutOfDate 1}}One change was{{else}}{{.OutOfDate}} changes were{{end}} written against live text that has changed since.{{end}}</p>
+  <a class="button button-small" href="/admin/prompts/draft">Review the draft</a>
+</div>
+{{end}}
+
+{{if .ShippedDiffer}}
+<p class="muted">{{if eq .ShippedDiffer 1}}One prompt differs{{else}}{{.ShippedDiffer}} prompts differ{{end}} from the text this version of Diderot ships. <a href="/admin/prompts/shipped">Compare with the shipped text</a></p>
+{{end}}
+
+{{if .KeepExample}}
+<div class="notice">
+  <p>Read the prompts Ask follows, starting with <a href="/admin/prompts/ask.base">Role and research</a>, and edit what does not fit your organization, or use the example as-is.</p>
+  <form method="post" action="/admin/settings/actions/accept-example-prompts">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.OrgVersion}}">
+    <button class="button button-small" type="submit">Use the example as-is</button>
+  </form>
+</div>
+{{end}}
+
+{{range .Groups}}
+<section class="section" id="{{.ID}}" aria-labelledby="group-{{.ID}}">
+  <div class="section-header"><h2 id="group-{{.ID}}">{{.Title}}</h2><p>{{.Summary}}</p></div>
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Prompt</th><th scope="col" class="prompt-state">Text</th>{{if not $.Live.Example}}<th scope="col" class="prompt-changed">Last changed</th>{{end}}</tr></thead>
+      <tbody>
+      {{range .Prompts}}
+        <tr>
+          <th scope="row"><a class="row-link" href="/admin/prompts/{{.Key}}">{{.Name}}</a> <span class="id">{{.Key}}</span>{{with .Description}}<span class="prompt-about">{{.}}</span>{{end}}</th>
+          <td data-label="Text">{{template "prompt-state" .}}</td>
+          {{if not $.Live.Example}}<td data-label="Last changed">{{if .Unset}}<span class="muted">—</span>{{else if .Example}}{{badge "neutral" "example"}}<span class="sub">Installed {{time .ChangedAt}}</span>{{else}}{{time .ChangedAt}}<span class="sub">{{actor .ChangedBy}}</span>{{end}}</td>{{end}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+{{end}}

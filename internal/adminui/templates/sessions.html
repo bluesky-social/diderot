@@ -1,0 +1,59 @@
+{{define "content"}}
+{{template "page-header" (header "My sessions" "Your coding-agent sessions that Diderot has stored, and who can find them when they search.")}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{with .NotIndexed}}<div class="notice notice-attention" role="status"><p>{{.}}</p></div>{{end}}
+
+{{if .Sessions}}
+<form class="section" method="post" action="/sessions/privacy" aria-labelledby="sessions-heading">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  {{if .Before}}<input type="hidden" name="before" value="{{.Before}}">{{end}}
+  <div class="section-header">
+    <h2 id="sessions-heading">Sessions</h2>
+    <div class="section-actions" role="group" aria-label="Who can find the selected sessions">
+      <span class="muted">Who can find the selected sessions:</span>
+      <span class="button-row">
+        <button class="button button-small" type="submit" name="owner_only" value="true">Only me</button>
+        <button class="button button-small" type="submit" name="owner_only" value="false">Everyone</button>
+      </span>
+    </div>
+    <p>Everyone means anyone who can search Diderot. A session you have not chosen for follows this server's default.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="table table-stack sessions-table">
+      <thead>
+        <tr>
+          <th scope="col" class="sessions-select"><span class="visually-hidden">Select</span></th>
+          <th scope="col">Session</th>
+          <th scope="col">Agent</th>
+          <th scope="col">Updated</th>
+          <th scope="col" class="num">Turns</th>
+          <th scope="col">Search</th>
+          <th scope="col">Who can find it</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Sessions}}
+        <tr>
+          <td class="sessions-select"><input type="checkbox" name="session" value="{{.SelectionKey}}" aria-label="Select {{or .Title .SessionID}}"></td>
+          <th scope="row">{{if .ViewerURL}}<a href="{{.ViewerURL}}" target="_blank" rel="noreferrer">{{or .Title "Untitled session"}}</a>{{else}}{{or .Title "Untitled session"}}{{end}}<span class="sub id">{{.SessionID}}</span></th>
+          <td data-label="Agent">{{.Client}}{{if and .OriginApp (ne .OriginApp .Client)}}<span class="sub">{{.OriginApp}}</span>{{end}}</td>
+          <td data-label="Updated">{{time .Updated}}</td>
+          <td class="num" data-label="Turns">{{.Turns}}</td>
+          <td data-label="Search">{{badge .Tone .Status}}</td>
+          <td data-label="Who can find it">{{if .OwnerOnly}}Only you{{else}}Everyone{{end}}<span class="sub">{{if .PrivacyExplicit}}by your choice{{else}}by default{{end}}</span></td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{template "pagination" .Pages}}
+</form>
+{{else}}
+<div class="empty">
+  <h2>No sessions yet</h2>
+  <p>Sessions from your coding agents appear here once Diderot has stored them. They are matched to you by your email address, <strong>{{actor .Principal.Email}}</strong>.</p>
+</div>
+{{end}}
+{{end}}

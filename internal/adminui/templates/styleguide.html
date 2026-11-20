@@ -1,0 +1,348 @@
+{{define "content"}}
+{{template "page-header" (header "Style guide" "Every shared component of the admin pages, in every state. Build pages from these; the rules are in static/admin.css." (crumb "Overview" "/admin/"))}}
+
+{{template "tabs" (tabs "Example tabs" (tab "Components" "#components" true) (tab "Second tab" "#tabs" false) (tab "Third tab" "#tabs" false))}}
+
+<section class="section" id="page-rules" aria-labelledby="rules-heading">
+  <div class="section-header"><h2 id="rules-heading">A page, top to bottom</h2></div>
+  <ol class="stack">
+    <li>Section tabs, drawn for Ask, Operations and Settings (<code>nav.go</code> <code>sectionTabs</code>).</li>
+    <li><code>{{"{{"}}template "page-header" (header "Title" "One sentence." (crumb "Parent" "/admin/parent")){{"}}"}}</code>: breadcrumb only when nested, the <code>h1</code>, at most one sentence.</li>
+    <li><code>{{"{{"}}template "error" .Error{{"}}"}}</code> and <code>{{"{{"}}template "notice" .Notice{{"}}"}}</code>.</li>
+    <li>Content: <code>.section</code> blocks, each with an <code>h2</code> in a <code>.section-header</code>.</li>
+  </ol>
+  <p class="muted">The layout's <code>main.page</code> spaces its children; a page adds no margins of its own. A page outside the admin shell (My sessions) has no navigation, and its header keeps the account on the right.</p>
+</section>
+
+<section class="section" id="page-header" aria-labelledby="page-header-heading">
+  <div class="section-header"><h2 id="page-header-heading">Page header</h2><p>The page of one thing (a channel, a report, a conversation) adds to the header with <code>.WithBadge</code>, its state beside the title; <code>.WithMeta</code>, a line of facts the page writes in its <code>header-meta</code> template; and <code>.WithActions</code>, the page-level actions it writes in <code>header-actions</code>. A long trail wraps like a sentence.</p></div>
+  <div class="panel">
+    {{template "page-header" (((header "Weekly digest for the platform and reliability engineering organization" "" (crumb "Reports" "#page-header")).WithBadge "good" "on").WithMeta .).WithActions .}}
+  </div>
+</section>
+
+<section class="section" id="type" aria-labelledby="type-heading">
+  <div class="section-header"><h2 id="type-heading">Type</h2><p>Sans for the interface, serif for page titles and long reading, mono for identifiers, code and tabular numbers. Nothing smaller than <code>--text-sm</code>.</p></div>
+  <div class="panel">
+    <h1>Page title, serif, --text-xl</h1>
+    <h2>Section heading, h2, --text-md</h2>
+    <h3>Item heading, h3, --text-base</h3>
+    <p>Body text at <code>--text-base</code>. A <a href="#type">link</a>, <strong>strong text</strong>, and <code>inline code</code>.</p>
+    <p class="muted">Secondary text takes <code>.muted</code>.</p>
+    <p><small>Small text at <code>--text-sm</code>, the floor.</small></p>
+  </div>
+</section>
+
+<section class="section" id="section" aria-labelledby="section-heading">
+  <div class="section-header">
+    <h2 id="section-heading">Section header</h2>
+    <span class="section-actions"><a href="#section">A link</a><a class="button button-small" href="#section">Small action</a></span>
+    <p>An <code>h2</code>, optional <code>.section-actions</code> on the right, and an optional sentence, which takes the full width below.</p>
+  </div>
+  <div class="panel"><p><code>.panel</code> is the one raised surface: for a form or a block that must read as a unit.</p></div>
+  <div class="panel panel-attention"><p><code>.panel.panel-attention</code> marks the block that needs the operator.</p></div>
+  <div class="panel panel-attention">
+    <h3>Needs attention</h3>
+    <ul class="attention-list">
+      <li><span><code>ul.attention-list</code>: what is wrong, in a sentence.</span> <a href="#section">Where it is fixed</a></li>
+      <li><span>Slack: 2 of 312 channels report an error.</span> <a href="#section">Slack</a></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="badges" aria-labelledby="badges-heading">
+  <div class="section-header"><h2 id="badges-heading">Badge</h2><p><code>{{"{{"}}badge "good" "on"{{"}}"}}</code>. One lowercase word, four tones, and the same word for the same state on every page.</p></div>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Tone</th><th scope="col">Use it for</th><th scope="col">Words</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>good</code></th><td>Working, finished well</td><td><span class="cluster">{{badge "good" "on"}} {{badge "good" "ok"}} {{badge "good" "passed"}} {{badge "good" "done"}} {{badge "good" "delivered"}}</span></td></tr>
+        <tr><th scope="row"><code>attention</code></th><td>Needs the operator, or in progress</td><td><span class="cluster">{{badge "attention" "needs attention"}} {{badge "attention" "running"}} {{badge "attention" "queued"}} {{badge "attention" "next"}}</span></td></tr>
+        <tr><th scope="row"><code>bad</code></th><td>Did not work</td><td><span class="cluster">{{badge "bad" "failed"}} {{badge "bad" "error"}} {{badge "bad" "stalled"}}</span></td></tr>
+        <tr><th scope="row"><code>neutral</code></th><td>Nothing happening</td><td><span class="cluster">{{badge "neutral" "off"}} {{badge "neutral" "canceled"}} {{badge "neutral" "to do"}}</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="vocabulary">Every state and its word</h3>
+  <p class="muted">A new state takes a word from this table if one fits. <em>failed</em> is something that ran and did not work; <em>error</em> is something that is wrong now.</p>
+  <div class="table-wrap">
+    <table class="table table-compact table-stack">
+      <thead><tr><th scope="col">What has the state</th><th scope="col">Words</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">A connector, a report, a per-channel setting, session summaries</th><td><span class="cluster">{{badge "good" "on"}} {{badge "neutral" "off"}} {{badge "attention" "needs attention"}} {{badge "neutral" "paused"}} {{badge "attention" "paused"}}</span><span class="sub">needs attention: on, and something is wrong. paused takes the attention tone while work waits on it.</span></td></tr>
+        <tr><th scope="row">Background work, on Status</th><td><span class="cluster">{{badge "good" "up to date"}} {{badge "good" "working"}} {{badge "attention" "needs attention"}}</span></td></tr>
+        <tr><th scope="row">A job: a re-embed, an image rebuild</th><td><span class="cluster">{{badge "attention" "waiting to start"}} {{badge "attention" "running"}} {{badge "good" "done"}} {{badge "bad" "failed"}} {{badge "neutral" "canceled"}} {{badge "bad" "stalled"}}</span></td></tr>
+        <tr><th scope="row">A report run</th><td><span class="cluster">{{badge "attention" "queued"}} {{badge "attention" "running"}} {{badge "attention" "sending"}} {{badge "attention" "retrying"}} {{badge "good" "delivered"}} {{badge "bad" "failed"}} {{badge "neutral" "skipped"}}</span></td></tr>
+        <tr><th scope="row">A conversation</th><td><span class="cluster">{{badge "attention" "running"}} {{badge "good" "answered"}} {{badge "attention" "incomplete"}} {{badge "bad" "failed"}}</span><span class="sub">A tool call inside one: failed.</span></td></tr>
+        <tr><th scope="row">An item that failed to index, on Failures</th><td><span class="cluster">{{badge "attention" "retrying"}} {{badge "bad" "stopped"}}</span></td></tr>
+        <tr><th scope="row">A Slack channel</th><td><span class="cluster">{{badge "good" "ok"}} {{badge "bad" "error"}} {{badge "neutral" "not in channel"}} {{badge "neutral" "blocked"}} {{badge "neutral" "archived"}}</span><span class="sub">Outside askers in it: {{badge "good" "allowed"}} {{badge "neutral" "not allowed"}}</span></td></tr>
+        <tr><th scope="row">A test, a check</th><td><span class="cluster">{{badge "good" "passed"}} {{badge "bad" "failed"}}</span></td></tr>
+        <tr><th scope="row">A change in the audit log, a Notion page's last read</th><td><span class="cluster">{{badge "good" "ok"}} {{badge "bad" "failed"}} {{badge "attention" "started"}}</span><span class="sub">started: recorded as begun, and not as finished.</span></td></tr>
+        <tr><th scope="row">A setup step</th><td><span class="cluster">{{badge "good" "done"}} {{badge "attention" "next"}} {{badge "neutral" "to do"}} {{badge "attention" "needs attention"}} {{badge "good" "reviewed"}}</span></td></tr>
+        <tr><th scope="row">A version of the prompts</th><td><span class="cluster">{{badge "good" "live"}} {{badge "neutral" "example"}}</span></td></tr>
+        <tr><th scope="row">An agent session, on My sessions</th><td><span class="cluster">{{badge "good" "indexed"}} {{badge "attention" "queued"}} {{badge "neutral" "not indexed"}} {{badge "neutral" "deleted"}}</span></td></tr>
+        <tr><th scope="row">An image sent with a question</th><td><span class="cluster">{{badge "good" "described"}} {{badge "attention" "not read"}}</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="buttons" aria-labelledby="buttons-heading">
+  <div class="section-header"><h2 id="buttons-heading">Buttons</h2><p><code>.button</code> on a <code>button</code> or a link. One primary per form or page. Show the action that applies now; leave out one that cannot.</p></div>
+  <div class="button-row">
+    <button class="button button-primary" type="button">Save changes</button>
+    <button class="button" type="button">Secondary</button>
+    <button class="button button-danger" type="button">Delete report</button>
+    <button class="button" type="button" disabled>Disabled</button>
+    <a class="button" href="#buttons">Link as button</a>
+  </div>
+  <div class="button-row">
+    <button class="button button-small button-primary" type="button">Small primary</button>
+    <button class="button button-small" type="button">Small</button>
+    <button class="button button-small button-danger" type="button">Small danger</button>
+    <button class="button-link" type="button">.button-link, a form button that reads as a link</button>
+  </div>
+  <div class="cluster"><span class="muted">State with its one action:</span> <span>Ask</span> {{badge "good" "on"}} <button class="button button-small" type="button">Turn off</button></div>
+</section>
+
+<section class="section" id="forms" aria-labelledby="forms-heading">
+  <div class="section-header"><h2 id="forms-heading">Forms</h2><p><code>.form</code> stacks <code>.field</code>s at a readable width and ends in <code>.form-actions</code>. A field is label, control, <code>.help</code>, <code>.error</code>.</p></div>
+  <form class="form" action="#forms">
+    <div class="field"><label for="sg-text">Text</label><input id="sg-text" value="Example Corp" aria-describedby="sg-text-help"><p class="help" id="sg-text-help">Help text says what the value is for.</p></div>
+    <div class="field"><label for="sg-empty">With a placeholder <span class="optional">(optional)</span></label><input id="sg-empty" placeholder="name@example.com"></div>
+    <div class="field"><label for="sg-invalid">Refused value</label><input id="sg-invalid" value="90 minutes" aria-invalid="true" aria-describedby="sg-invalid-error"><p class="error" id="sg-invalid-error">Enter a length of time such as 90m or 2h.</p></div>
+    <div class="field-row">
+      <div class="field"><label for="sg-select">Select</label><select id="sg-select"><option>Model default</option><option>high</option></select></div>
+      <div class="field field-small"><label for="sg-number">Number</label><input id="sg-number" type="number" value="8"></div>
+    </div>
+    <div class="field"><label for="sg-unit">A number with its unit, in <code>.field-unit</code></label><div class="field-unit"><input id="sg-unit" type="number" value="6"> <span>hours</span></div></div>
+    <div class="field"><label for="sg-textarea">Long text</label><textarea id="sg-textarea">What changed in the platform channels this week?</textarea></div>
+    <div class="field"><label for="sg-code">Code or a template</label><textarea id="sg-code" class="code">You answer questions for {{"{{"}}ORG_NAME{{"}}"}}.</textarea></div>
+    <div class="field"><label for="sg-disabled">Disabled</label><input id="sg-disabled" value="Set in the deployment" disabled></div>
+    <label class="check"><input type="checkbox" checked> <span>Checkbox in <code>.check</code></span><span class="help">Help for a checkbox goes under its label.</span></label>
+    <fieldset class="stack">
+      <legend>Radio group in a fieldset</legend>
+      <label class="check"><input type="radio" name="sg-radio" checked> <span>Every day</span></label>
+      <label class="check"><input type="radio" name="sg-radio"> <span>Every week</span></label>
+    </fieldset>
+    <div class="form-actions"><button class="button button-primary" type="button">Save changes</button><a href="#forms">Cancel</a><p class="help">Last changed by op@example.test, {{time .Hours}}.</p></div>
+  </form>
+
+  <h3>Settings rows</h3>
+  <p class="muted"><code>.settings</code> lists settings as <code>.setting</code> rows, what each is on the left and its control on the right, with one save in <code>.settings-footer</code>.</p>
+  <div class="settings">
+    <div class="setting">
+      <div class="setting-about"><h3>Ask</h3><p>Answers questions in Slack, over the API, and over MCP.</p></div>
+      <div class="setting-control"><div class="field"><label for="sg-setting">Model</label><select id="sg-setting"><option>gpt-6.1-sol (openai)</option></select></div></div>
+    </div>
+    <div class="setting">
+      <div class="setting-about"><h3>Titles</h3><p>Writes short titles for conversations.</p></div>
+      <div class="setting-control"><div class="field"><label for="sg-setting-2">Model</label><select id="sg-setting-2"><option>gpt-6-luna (openai)</option></select><p class="error">The saved model is no longer available.</p></div></div>
+    </div>
+    <div class="settings-footer"><button class="button button-primary" type="button">Save models</button><p class="help">What saving does, when it is not obvious.</p></div>
+  </div>
+</section>
+
+<section class="section" id="filter-bar" aria-labelledby="filter-heading">
+  <div class="section-header"><h2 id="filter-heading">Filter bar</h2><p>A GET <code>form.filter-bar</code> of fields, then Apply and, while a filter is set, a Clear link.</p></div>
+  <form class="filter-bar" method="get" action="#filter-bar">
+    <div class="field field-small"><label for="sg-f-when">When</label><select id="sg-f-when"><option>Last 7 days</option></select></div>
+    <div class="field"><label for="sg-f-who">Who</label><input id="sg-f-who" placeholder="name@example.com"></div>
+    <div class="field field-small"><label for="sg-f-result">Result</label><select id="sg-f-result"><option>Any result</option></select></div>
+    <div class="filter-bar-actions"><button class="button" type="submit">Apply</button><a href="#filter-bar">Clear</a></div>
+  </form>
+</section>
+
+<section class="section" id="notices" aria-labelledby="notices-heading">
+  <div class="section-header"><h2 id="notices-heading">Notices and the banner</h2><p>A notice is about this page. The banner is the shell's one line about the whole install, and the layout draws it.</p></div>
+  <div class="notice notice-good" role="status"><p>Organization saved. <span class="muted">(<code>{{"{{"}}template "notice" .Notice{{"}}"}}</code>)</span></p></div>
+  <div class="notice notice-bad" role="alert"><p>The name is too long. <span class="muted">(<code>{{"{{"}}template "error" .Error{{"}}"}}</code>)</span></p></div>
+  <div class="notice notice-attention"><p>Summaries are paused. New agent sessions are not searchable until you resume them.</p><div class="button-row"><a class="button button-small" href="#notices">Resume summaries</a></div></div>
+  <div class="notice"><p>A neutral notice, with a link on the right.</p><a href="#notices">Show all</a></div>
+  <div class="app-banner" role="status"><p>Diderot is still being set up: only administrators can use Ask. <a href="#notices">Continue setup</a></p></div>
+  <div class="app-banner app-banner-bad" role="alert"><p>The bootstrap admin is on: anyone who can reach this page can sign in as admin / admin. <a href="#notices">Turn it off</a></p></div>
+</section>
+
+<section class="section" id="table" aria-labelledby="table-heading">
+  <div class="section-header"><h2 id="table-heading">Table</h2><p><code>.table-wrap &gt; table.table</code>. A wide table scrolls inside its wrapper. Numbers take <code>.num</code>, a second line <code>.sub</code>, row actions <code>.actions</code>.</p></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th scope="col">Channel</th><th scope="col">Ask</th><th scope="col" class="num">Messages</th><th scope="col">Last message</th><th scope="col" class="actions"><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><a href="#table">#platform</a><span class="sub id">CPLATFORM</span></th><td>{{badge "good" "on"}}</td><td class="num">{{count 12340}}</td><td>{{time .Minutes}}</td><td class="actions"><button class="button button-small" type="button">Turn off</button></td></tr>
+        <tr><th scope="row"><a href="#table">#support-escalations</a><span class="sub id">CSUPPORT</span></th><td>{{badge "neutral" "off"}}</td><td class="num">{{count 950}}</td><td>{{time .Days}}</td><td class="actions"><button class="button button-small" type="button">Turn on</button></td></tr>
+        <tr><th scope="row"><a href="#table">#archive-2024</a><span class="sub id">CARCHIVE</span></th><td>{{badge "bad" "error"}}<span class="sub">The bot is not a member.</span></td><td class="num">{{count 4100000}}</td><td>{{time .Old}}</td><td class="actions"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">A table of things to open gives each row's link <code>.row-link</code>, and the whole row opens it, with an arrow at its end. With <code>.table-stack</code> each row becomes a block on a narrow screen: a cell with <code>data-label</code> shows under its column's name, and <code>.stack-hide</code> drops a cell that says nothing alone.</p>
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Source</th><th scope="col">State</th><th scope="col">Newest item</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><a class="row-link" href="#table">Slack</a><span class="sub">Messages in the channels the bot is in.</span></th><td data-label="State">{{badge "good" "on"}}</td><td data-label="Newest item">{{time .Minutes}}</td></tr>
+        <tr><th scope="row"><a class="row-link" href="#table">Notion</a><span class="sub">Pages and databases shared with the integration.</span></th><td data-label="State">{{badge "neutral" "off"}}<span class="sub">Not set up yet</span></td><td data-label="Newest item"><span class="muted">—</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted"><code>.table-compact</code> tightens the rows for dense data:</p>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Job</th><th scope="col">Model</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Ask</th><td><code>gpt-6.1-sol</code></td><td>{{badge "good" "passed"}}</td></tr>
+        <tr><th scope="row">Titles</th><td><code>gpt-6-luna</code></td><td>{{badge "bad" "failed"}} <span class="sub">HTTP 401</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="records" aria-labelledby="records-heading">
+  <div class="section-header"><h2 id="records-heading">Record list</h2><p><code>.records</code> is for a log. A row is a <code>details.record</code> that opens to show more, or an <code>a.record-link</code> when it has a page of its own. Each list sets its columns in a <code>.records-NAME</code> rule, and a time in one takes <code>logtime</code>.</p></div>
+  <div class="records records-audit">
+    <div class="records-head" aria-hidden="true"><span>When</span><span>Who</span><span>Action</span><span>Target</span><span>Result</span></div>
+    <ol aria-label="Example changes">
+      <li><details class="record" open>
+        <summary><span>{{time .Minutes}}</span><span>op@example.test</span><span class="record-wide">Turned Ask on or off in a Slack channel</span><span class="record-wide">#platform</span><span>{{badge "good" "ok"}}</span></summary>
+        <div class="record-body">
+          <dl class="kv kv-compact"><div><dt>Action key</dt><dd><span class="id">sources.slack.config.ask</span></dd></div><div><dt>Took</dt><dd>{{duration (index .Durations 0)}}</dd></div></dl>
+          <pre>{
+  "enabled": true
+}</pre>
+        </div>
+      </details></li>
+      <li><details class="record">
+        <summary><span>{{time .Hours}}</span><span>admin (bootstrap)</span><span class="record-wide">Ran a report now</span><span class="record-wide">Weekly platform digest</span><span>{{badge "bad" "failed"}}</span></summary>
+        <div class="record-body"><div class="notice notice-bad"><p>The report could not be queued.</p></div></div>
+      </details></li>
+    </ol>
+  </div>
+  <p class="muted">Rows that are links:</p>
+  <div class="records records-failures">
+    <div class="records-head" aria-hidden="true"><span>Conversation</span><span>Who</span><span>State</span><span>When</span></div>
+    <ol aria-label="Example conversations">
+      <li><a class="record-link" href="#records"><span class="record-wide"><strong>What changed in the platform rollout?</strong></span><span class="record-wide">op@example.test</span><span>{{badge "good" "answered"}}</span><span>{{logtime .Hours}}</span></a></li>
+      <li><a class="record-link" href="#records"><span class="record-wide"><strong>Compare Q3 and Q4 support volume</strong></span><span class="record-wide">ana@example.test</span><span>{{badge "bad" "failed"}}</span><span>{{logtime .Old}}</span></a></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="kv" aria-labelledby="kv-heading">
+  <div class="section-header"><h2 id="kv-heading">Key/value list</h2><p><code>dl.kv</code> of <code>div &gt; dt + dd</code>. A deployment-set value names its variable in a <code>.sub</code>.</p></div>
+  <dl class="kv">
+    <div><dt>Administrator groups<span class="sub"><code>DIDEROT_ADMIN_GROUPS</code></span></dt><dd><code>diderot-admins</code></dd></div>
+    <div><dt>Browser sign-in</dt><dd>Your identity provider</dd></div>
+    <div><dt>Authorization policy file</dt><dd><span class="muted">none</span></dd></div>
+  </dl>
+  <p class="muted"><code>.kv.kv-compact</code> for secondary detail:</p>
+  <dl class="kv kv-compact">
+    <div><dt>Request</dt><dd><span class="id">req-7f3a9c</span> {{template "copy" "req-7f3a9c"}}</dd></div>
+    <div><dt>Took</dt><dd>{{duration (index .Durations 2)}}</dd></div>
+  </dl>
+  <p class="muted"><code>dl.facts</code> is one row of a few short facts about a record, quieter than stat tiles:</p>
+  <dl class="facts">
+    <div><dt>Model</dt><dd><span class="mono">gpt-6.1-sol</span></dd></div>
+    <div><dt>Questions</dt><dd>2</dd></div>
+    <div><dt>Tool calls</dt><dd>5</dd></div>
+    <div><dt>Tokens</dt><dd>73.2K in · 1.4K out</dd></div>
+  </dl>
+</section>
+
+<section class="section" id="stats" aria-labelledby="stats-heading">
+  <div class="section-header"><h2 id="stats-heading">Stat tiles</h2><p><code>.stats &gt; .stat</code> for a few headline numbers. A tile that leads somewhere is an <code>a.stat</code>. On a phone they sit two to a row.</p></div>
+  <div class="stats">
+    <div class="stat"><span class="stat-label">Questions answered</span><span class="stat-value">{{count 1284}}</span><span class="stat-note">Last 7 days</span></div>
+    <div class="stat"><span class="stat-label">Median time to answer</span><span class="stat-value">{{duration (index .Durations 1)}}</span></div>
+    <a class="stat" href="#stats"><span class="stat-label">Failed</span><span class="stat-value">3</span><span class="stat-note">View failures</span></a>
+    <div class="stat"><span class="stat-label">Index size</span><span class="stat-value">{{bytes (index .Sizes 2)}}</span></div>
+  </div>
+</section>
+
+<section class="section" id="values" aria-labelledby="values-heading">
+  <div class="section-header"><h2 id="values-heading">Times, durations, numbers, people</h2><p>Template funcs from <code>format.go</code>. Hover a time for the exact value.</p></div>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Func</th><th scope="col">Output</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>time</code></th><td><span class="cluster">{{time .Now}} · {{time .Minutes}} · {{time .Hours}} · {{time .Days}} · {{time .Old}} · {{time .Upcoming}} · never: {{time .Never}}</span></td></tr>
+        <tr><th scope="row"><code>logtime</code></th><td><span class="cluster">{{logtime .Hours}} · {{logtime .Old}}</span><span class="sub">For a list that reads as a log, where rows share a day: a date carries its time of day.</span></td></tr>
+        <tr><th scope="row"><code>duration</code></th><td>{{range $i, $d := .Durations}}{{if $i}} · {{end}}{{duration $d}}{{end}}</td></tr>
+        <tr><th scope="row"><code>count</code></th><td>{{range $i, $n := .Counts}}{{if $i}} · {{end}}{{count $n}}{{end}}</td></tr>
+        <tr><th scope="row"><code>bytes</code></th><td>{{range $i, $n := .Sizes}}{{if $i}} · {{end}}{{bytes $n}}{{end}}</td></tr>
+        <tr><th scope="row"><code>actor</code></th><td>{{actor "op@example.test"}} · {{actor "admin@bootstrap.invalid"}} · {{actor "diderot:migration"}}</td></tr>
+        <tr><th scope="row"><code>.id</code></th><td>A name first, then its ID as secondary detail: #platform <span class="id">CPLATFORM</span> {{template "copy" "CPLATFORM"}}<span class="sub"><code>{{"{{"}}template "copy" .ID{{"}}"}}</code> puts a Copy button after an identifier an operator will paste elsewhere. It shows only with JavaScript.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="code" aria-labelledby="code-heading">
+  <div class="section-header"><h2 id="code-heading">Code</h2></div>
+  <p>Inline <code>diderot reset-admin</code>, and a block:</p>
+  <pre><code>docker compose run --rm init cat /keys/api-token</code></pre>
+</section>
+
+<section class="section" id="disclosure" aria-labelledby="disclosure-heading">
+  <div class="section-header"><h2 id="disclosure-heading">Disclosure</h2><p><code>details.disclosure</code> for content most visits do not need.</p></div>
+  <details class="disclosure"><summary>Show the full error</summary><pre>connection reset by peer</pre></details>
+  <details class="disclosure" open><summary>Open by default</summary><p>Its content follows the summary.</p></details>
+</section>
+
+<section class="section" id="prose" aria-labelledby="prose-heading">
+  <div class="section-header"><h2 id="prose-heading">Prose</h2><p><code>div.prose</code> holds rendered Markdown meant for reading, an answer or a report, in the serif.</p></div>
+  <div class="prose">
+    <p>The rollout split browser and machine traffic onto two listeners.</p>
+    <ul><li>Browser administration stays behind the sign-in proxy on <code>9091</code>.</li><li>MCP clients, metrics and probes moved to the internal listener.</li></ul>
+    <blockquote><p>Nothing broke for machine clients that used the documented address.</p></blockquote>
+  </div>
+</section>
+
+<section class="section" id="chart" aria-labelledby="chart-heading">
+  <div class="section-header"><h2 id="chart-heading">Bar chart</h2><p><code>{{"{{"}}template "chart" .Chart{{"}}"}}</code> with a <code>barChart</code>: counts over time, a value axis with a midline, and the two ends of the span.</p></div>
+  {{template "chart" .Chart}}
+  <p class="muted">A count with a bad part (failed questions, answers rated not helpful) sets <code>Bad</code> on each bar and <code>BadLabel</code> and <code>RestLabel</code> on the chart, which draws the part on top in the bad tone with a key. <code>Note</code> says how far to trust a chart of few events.</p>
+  {{template "chart" .SplitChart}}
+</section>
+
+<section class="section" id="steps" aria-labelledby="steps-heading">
+  <div class="section-header"><h2 id="steps-heading">Steps</h2><p><code>ol.steps</code> for a procedure with an order: done, the one to do now (<code>.step-current</code>), and to do.</p></div>
+  <ol class="steps">
+    <li class="step step-done"><div class="step-main"><div class="step-text"><div class="step-title"><h3><a href="#steps">Organization</a></h3>{{badge "good" "done"}}</div><p>Named Example Corp.</p></div></div></li>
+    <li class="step step-current"><div class="step-main"><div class="step-text"><div class="step-title"><h3><a href="#steps">Models</a></h3>{{badge "attention" "next"}}</div><p>Add a model provider, then choose the embedding model and each job's model; saving tests them.</p><p>Not tested yet.</p></div><div class="step-actions"><a class="button button-primary" href="#steps">Set up models</a></div></div></li>
+    <li class="step"><div class="step-main"><div class="step-text"><div class="step-title"><h3><a href="#steps">Sources</a></h3>{{badge "neutral" "to do"}}</div><p>Connect at least one source.</p></div><div class="step-actions"><a class="button" href="#steps">Connect a source</a></div></div><div class="step-detail"><p class="muted"><code>.step-detail</code> holds longer instructions under a step.</p></div></li>
+  </ol>
+</section>
+
+<section class="section" id="empty" aria-labelledby="empty-heading">
+  <div class="section-header"><h2 id="empty-heading">Empty state</h2><p>Says what would appear here and how to make that happen.</p></div>
+  <div class="empty"><h3>No reports yet</h3><p>A report runs a question on a schedule and delivers the answer to Slack.</p><a class="button button-primary" href="#empty">Create a report</a></div>
+</section>
+
+<section class="section" id="pagination" aria-labelledby="pagination-heading">
+  <div class="section-header"><h2 id="pagination-heading">Pagination</h2><p><code>{{"{{"}}template "pagination" .Pages{{"}}"}}</code> with a <code>pagination</code> value: what is shown, then the link back toward the start of the list and the link onward. They read Newer and Older for a list that is newest first; a list in another order names its own.</p></div>
+  {{template "pagination" .Pages}}
+  {{template "pagination" .NamedPages}}
+</section>
+
+<section class="section" id="counted-tabs" aria-labelledby="counted-tabs-heading">
+  <div class="section-header"><h2 id="counted-tabs-heading">Tabs with counts</h2><p>Tabs that are views of one list carry how many items each holds.</p></div>
+  {{template "tabs" .CountedTabs}}
+</section>
+
+<section class="section" id="utilities" aria-labelledby="utilities-heading">
+  <div class="section-header"><h2 id="utilities-heading">Utilities</h2><p>A handful, for what no component covers.</p></div>
+  <dl class="kv kv-compact">
+    <div><dt><code>.muted</code></dt><dd><span class="muted">Secondary text</span></dd></div>
+    <div><dt><code>.mono</code></dt><dd><span class="mono">tabular 1234</span></dd></div>
+    <div><dt><code>.stack</code></dt><dd>Spaces its children vertically.</dd></div>
+    <div><dt><code>.cluster</code></dt><dd><span class="cluster"><span>Items</span><span>in a</span><span>wrapping row</span></span></dd></div>
+    <div><dt><code>.nowrap</code>, <code>.truncate</code></dt><dd>Keep a value on one line; cut it with an ellipsis.</dd></div>
+    <div><dt><code>.visually-hidden</code></dt><dd>Text for screen readers only.</dd></div>
+  </dl>
+</section>
+{{end}}
+
+{{define "header-meta"}}<span>Every Monday at 9:00 AM, New York time</span><span>Posted in #platform</span><span>{{time .Hours}}</span>{{end}}
+
+{{define "header-actions"}}<button class="button" type="button">Turn off</button><button class="button button-primary" type="button">Run now</button>{{end}}

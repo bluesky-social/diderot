@@ -1,0 +1,67 @@
+{{define "content"}}
+{{template "page-header" (header (printf "Version %d" .ReleaseID) "" (crumb "Prompts" "/admin/prompts") (crumb "Version history" "/admin/prompts/versions"))}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<dl class="kv">
+  <div><dt>Status</dt><dd>{{if .Live}}{{badge "good" "live"}} New conversations use this version.{{else}}Not live. <a href="/admin/prompts/versions/{{.LiveReleaseID}}">Version {{.LiveReleaseID}}</a> is.{{end}}</dd></div>
+  <div><dt>Saved</dt><dd>{{time .CreatedAt}} by {{actor .CreatedBy}}{{if .Example}}: the example prompts Diderot ships{{end}}</dd></div>
+  {{with .Note}}<div><dt>Note</dt><dd>{{.}}</dd></div>{{end}}
+  <div><dt>Went live</dt><dd>{{range $i, $a := .WentLive}}{{if $i}}<br>{{end}}{{time $a.At}} by {{actor $a.By}}{{else}}<span class="muted">Never</span>{{end}}</dd></div>
+  {{with .Source}}<div><dt>Git revision</dt><dd><span class="id">{{.}}</span></dd></div>{{end}}
+</dl>
+
+{{if not .Live}}
+{{if .WouldChange}}
+<form class="panel" method="post" action="/admin/prompts/versions/{{.ReleaseID}}/activate">
+  <p>Making version {{.ReleaseID}} live replaces version {{.LiveReleaseID}} and changes {{if eq .WouldChangeCount 1}}one prompt{{else}}{{.WouldChangeCount}} prompts{{end}}: {{.WouldChange}}. New conversations use it at once; conversations already under way keep the version they started with.</p>
+  {{with .DraftOutdated}}<div class="notice notice-attention"><p>{{if eq . 1}}One drafted change{{else}}{{.}} drafted changes{{end}} will be marked out of date, because {{if eq . 1}}its prompt has{{else}}their prompts have{{end}} other text in this version. The <a href="/admin/prompts/draft">draft</a> cannot go live until {{if eq . 1}}it is{{else}}they are{{end}} saved again or discarded.</p></div>{{end}}
+  <div class="button-row">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="expected_release_id" value="{{.LiveReleaseID}}">
+    <button class="button" type="submit">Make version {{.ReleaseID}} live</button>
+  </div>
+</form>
+{{else}}
+<p class="muted">Its text is the same as the live version’s, so making it live would change nothing.</p>
+{{end}}
+{{end}}
+
+<section class="section" id="changes" aria-labelledby="changes-heading">
+  <div class="section-header">
+    <h2 id="changes-heading">What changed</h2>
+    {{if .Installed}}
+    <p>This was the first version, so it put in every prompt.</p>
+    {{else if .ComparedLive}}
+    <p>It has never been live, so it is compared with the live version {{.ComparedWith}}.</p>
+    {{else}}
+    <p>Compared with <a href="/admin/prompts/versions/{{.ComparedWith}}">version {{.ComparedWith}}</a>, which it replaced when it first went live.</p>
+    {{end}}
+  </div>
+  {{if .Installed}}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Prompt</th></tr></thead>
+      <tbody>
+      {{range .Installed}}<tr><th scope="row"><a href="/admin/prompts/{{.Key}}?version={{$.ReleaseID}}#version">{{.Name}}</a> <span class="id">{{.Key}}</span></th></tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else if .Changes}}
+  <ul class="prompt-changes">
+    {{range .Changes}}
+    <li>
+      <details class="disclosure"{{if .Open}} open{{end}}>
+        <summary><strong>{{.Name}}</strong> <span class="muted">{{if .New}}new prompt, {{else if .Removed}}removed, {{end}}{{.Diff.Summary}}</span></summary>
+        {{template "prompt-diff" .Diff}}
+        {{if .Removed}}<p class="id">{{.Key}}</p>{{else}}<p><a href="/admin/prompts/{{.Key}}">Open {{.Name}}</a> <span class="id">{{.Key}}</span></p>{{end}}
+      </details>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <div class="empty"><h3>No text changed</h3><p>Every prompt’s text is the same in both versions.</p></div>
+  {{end}}
+</section>
+{{end}}

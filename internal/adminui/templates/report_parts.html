@@ -1,0 +1,34 @@
+{{/* Parts of a report's pages. report-header takes the page data: .Report, .CSRFToken and .ReportTab. */}}
+
+{{define "report-header"}}
+{{$header := ((header .Report.Name "" (crumb "Reports" "/admin/reports")).WithMeta .Report).WithActions .}}
+{{if .Report.Enabled}}{{$header = $header.WithBadge "good" "on"}}{{else}}{{$header = $header.WithBadge "neutral" "off"}}{{end}}
+{{template "page-header" $header}}
+{{template "tabs" (tabs "Report" (tab "Runs" (printf "/admin/reports/%s" .Report.ID) (eq .ReportTab "runs")) (tab "Settings" (printf "/admin/reports/%s/edit" .Report.ID) (eq .ReportTab "edit")))}}
+{{end}}
+
+{{define "header-meta"}}<span>{{.Schedule}}</span><span>{{if .Target.DM}}Sent to {{template "report-target-name" .Target}} as a direct message{{else}}Posted in {{template "report-target-name" .Target}}{{end}}</span>{{end}}
+
+{{define "header-actions"}}
+<form method="post" action="/admin/reports/{{.Report.ID}}/enabled">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="enabled" value="{{if .Report.Enabled}}false{{else}}true{{end}}">
+  <button class="button" type="submit">{{if .Report.Enabled}}Turn off{{else}}Turn on{{end}}</button>
+</form>
+<form method="post" action="/admin/reports/{{.Report.ID}}/run">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <button class="button button-primary" type="submit">Run now</button>
+</form>
+{{end}}
+
+{{/* Where a report goes: a channel's #name or a person's name, or the Slack ID when the directory has no name. Takes a reportTarget. */}}
+{{define "report-target-name"}}{{if .Name}}{{.Name}}{{else}}<span class="id">{{.ID}}</span>{{end}}{{end}}
+
+{{/* Why reports are not being delivered, if they are not. Takes page data with .SlackOn and .InSetup. */}}
+{{define "report-waits"}}
+{{if not .SlackOn}}
+<div class="notice notice-attention" role="status"><p>The Slack connector is off, so no report can be delivered. Runs wait until it is back on.</p><a href="/admin/connectors/slack">Open the Slack connector</a></div>
+{{else if .InSetup}}
+<div class="notice notice-attention" role="status"><p>Reports start running once Diderot goes live. Until then, runs wait.</p><a href="/admin/settings">Open the setup checklist</a></div>
+{{end}}
+{{end}}

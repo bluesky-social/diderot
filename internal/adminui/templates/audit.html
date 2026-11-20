@@ -1,0 +1,86 @@
+{{define "content"}}
+{{template "page-header" (header "Audit log" "Every change an administrator makes: who made it, when, and whether it worked.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+<form class="filter-bar" method="get" action="/admin/operations/audit" aria-label="Filter the audit log">
+  <div class="field field-small">
+    <label for="audit-range">When</label>
+    <select id="audit-range" name="range">
+      <option value="all"{{if eq .Range "all"}} selected{{end}}>Any time</option>
+      <option value="24h"{{if eq .Range "24h"}} selected{{end}}>Last 24 hours</option>
+      <option value="7d"{{if eq .Range "7d"}} selected{{end}}>Last 7 days</option>
+      <option value="30d"{{if eq .Range "30d"}} selected{{end}}>Last 30 days</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="audit-actor">Who</label>
+    <input id="audit-actor" name="actor" value="{{.Actor}}" placeholder="name@example.com">
+  </div>
+  <div class="field">
+    <label for="audit-action">Action</label>
+    <select id="audit-action" name="action">
+      <option value="">Any action</option>
+      {{range .Actions}}<option value="{{.Key}}"{{if eq .Key $.Action}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </div>
+  <div class="field">
+    <label for="audit-target">Target</label>
+    <input id="audit-target" name="target" value="{{.Target}}" placeholder="Exact ID">
+  </div>
+  <div class="field field-small">
+    <label for="audit-status">Result</label>
+    <select id="audit-status" name="status">
+      <option value="">Any result</option>
+      <option value="succeeded"{{if eq .Status "succeeded"}} selected{{end}}>ok</option>
+      <option value="failed"{{if eq .Status "failed"}} selected{{end}}>failed</option>
+      <option value="started"{{if eq .Status "started"}} selected{{end}}>started</option>
+    </select>
+  </div>
+  {{if .RequestID}}<input type="hidden" name="request_id" value="{{.RequestID}}">{{end}}
+  <div class="filter-bar-actions">
+    <button class="button" type="submit">Apply</button>
+    {{if .Filtered}}<a href="/admin/operations/audit">Clear</a>{{end}}
+  </div>
+</form>
+
+{{template "error" .FilterError}}
+{{if .RequestID}}<div class="notice"><p>Showing only changes from request <span class="id">{{.RequestID}}</span>.</p><a href="/admin/operations/audit">Show all</a></div>{{end}}
+
+{{if .Records}}
+<div class="records records-audit">
+  <div class="records-head" aria-hidden="true"><span>When</span><span>Who</span><span>Action</span><span>Target</span><span>Result</span></div>
+  <ol aria-label="Changes">
+    {{range .Records}}
+    <li>
+      <details class="record">
+        <summary>
+          <span>{{logtime .CreatedAt}}</span>
+          <span>{{actor .Actor}}</span>
+          <span class="record-wide">{{.ActionLabel}}</span>
+          <span class="record-wide">{{if .TargetName}}{{.TargetName}}{{else if .Target}}<span class="id">{{.Target}}</span>{{else}}<span class="muted">—</span>{{end}}</span>
+          <span>{{badge .Tone .Result}}</span>
+        </summary>
+        <div class="record-body">
+          {{if .Error}}<div class="notice notice-bad"><p>{{.Error}}</p></div>{{end}}
+          <dl class="kv kv-compact">
+            <div><dt>Action key</dt><dd><span class="id">{{.Action}}</span></dd></div>
+            {{if .Target}}<div><dt>Target</dt><dd><span class="id">{{.Target}}</span></dd></div>{{end}}
+            <div><dt>Started</dt><dd>{{.CreatedAt.UTC.Format "2006-01-02 15:04:05 UTC"}}</dd></div>
+            <div><dt>Took</dt><dd>{{if .Duration}}{{.Duration}}{{else}}Not finished{{end}}</dd></div>
+            {{if .RequestID}}<div><dt>Request</dt><dd><a class="id" href="/admin/operations/audit?request_id={{.RequestID}}">{{.RequestID}}</a></dd></div>{{end}}
+            <div><dt>Entry</dt><dd><span class="id">{{.ID}}</span></dd></div>
+          </dl>
+          {{if .Details}}<pre aria-label="What was submitted">{{.Details}}</pre>{{end}}
+        </div>
+      </details>
+    </li>
+    {{end}}
+  </ol>
+</div>
+{{template "pagination" .Pages}}
+{{else if .Filtered}}
+<div class="empty"><h2>No changes match these filters</h2><p>Widen the time range or clear a filter to see more.</p><a class="button" href="/admin/operations/audit">Clear filters</a></div>
+{{else}}
+<div class="empty"><h2>No changes yet</h2><p>Each change an administrator makes, such as saving a setting or starting a job, is listed here once it happens.</p></div>
+{{end}}
+{{end}}

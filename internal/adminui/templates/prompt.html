@@ -1,0 +1,143 @@
+{{define "content"}}
+{{template "page-header" ((header .Prompt.Name .Prompt.Description (crumb "Prompts" "/admin/prompts") (crumb .GroupTitle (printf "/admin/prompts#%s" .GroupID))).WithMeta .Prompt)}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "setup-progress" .Setup}}
+
+{{if .Conflict}}
+<div class="notice notice-bad" role="alert">
+  <p><strong>The draft or the live text of this prompt changed while you were editing, so nothing was saved.</strong> Copy your text from below, open the prompt again, and make your change on the current text.</p>
+  <a class="button button-small" href="/admin/prompts/{{.Prompt.Key}}">Open the current text</a>
+</div>
+<div class="field">
+  <label for="prompt-unsaved">Your unsaved text</label>
+  <textarea id="prompt-unsaved" class="code prompt-editor" rows="{{.EditorRows}}" readonly>{{.Body}}</textarea>
+</div>
+{{else}}
+
+{{with .Viewing}}
+<section class="section panel prompt-version" id="version" aria-labelledby="version-heading">
+  <div class="section-header">
+    <h2 id="version-heading">Version {{.ReleaseID}} {{if .Live}}{{badge "good" "live"}}{{end}}</h2>
+    <span class="section-actions"><a href="/admin/prompts/{{$.Prompt.Key}}">Close</a></span>
+    <p>Changed {{time .ActivatedAt}} by {{actor .ActivatedBy}}.{{with .Note}} “{{.}}”{{end}}</p>
+  </div>
+  {{if .First}}
+  <p>The first version of this prompt:</p>
+  <pre class="prompt-text">{{.Body}}</pre>
+  {{else}}
+  <p class="muted">{{.Diff.Summary}}, compared with the version before it.</p>
+  {{template "prompt-diff" .Diff}}
+  <details class="disclosure"><summary>Show the whole text</summary><pre class="prompt-text">{{.Body}}</pre></details>
+  {{end}}
+  {{if .Drafted}}
+  <p class="muted">This is the draft’s text.</p>
+  {{else if and .Live (not $.Draft)}}
+  <p class="muted">This is the live text.</p>
+  {{else}}
+  <form class="stack" method="post" action="/admin/prompts/{{$.Prompt.Key}}/restore">
+    <p>Put version {{.ReleaseID}}’s text in the draft{{if $.Draft}}, in place of the draft’s change{{end}}. Nothing changes for anyone until the draft is made live.</p>
+    <div class="button-row">
+      <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+      <input type="hidden" name="draft_sha256" value="{{$.DraftSHA256}}">
+      <input type="hidden" name="live_sha256" value="{{$.LiveSHA256}}">
+      <input type="hidden" name="restore_release_id" value="{{.ReleaseID}}">
+      <button class="button" type="submit">Put this text in the draft</button>
+    </div>
+  </form>
+  {{end}}
+</section>
+{{end}}
+
+{{with .Draft}}
+<section class="section panel{{if .OutOfDate}} panel-attention{{end}}" id="draft" aria-labelledby="draft-heading">
+  <div class="section-header">
+    <h2 id="draft-heading">In the draft {{badge "attention" "draft"}}</h2>
+    <p>Saved {{time .UpdatedAt}} by {{actor .UpdatedBy}}. Not live: it goes live with the rest of the <a href="/admin/prompts/draft">draft</a>.</p>
+  </div>
+  {{if .OutOfDate}}<div class="notice notice-attention"><p>The live text changed after this change was written. Check the difference below, which is against the live text now, then save the text again to keep it, or discard it.</p></div>{{end}}
+  {{if .Remove}}
+  <p>The draft removes this {{if $.Prompt.Note}}note, so nothing is added in its place{{else}}prompt{{end}}.</p>
+  {{else if $.Prompt.Unset}}
+  <p class="muted">New: the live prompts do not have it yet.</p>
+  {{else}}
+  <p class="muted">{{.Diff.Summary}}, compared with the live text.</p>
+  {{end}}
+  {{template "prompt-diff" .Diff}}
+  <form method="post" action="/admin/prompts/{{$.Prompt.Key}}/discard">
+    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+    <input type="hidden" name="draft_sha256" value="{{$.DraftSHA256}}">
+    <input type="hidden" name="live_sha256" value="{{$.LiveSHA256}}">
+    <button class="button button-small" type="submit">Discard this change</button>
+  </form>
+</section>
+{{end}}
+
+<section class="section" id="edit" aria-labelledby="edit-heading">
+  <div class="section-header">
+    <h2 id="edit-heading">Text</h2>
+    <p>{{if .Draft}}The draft’s text.{{else if .Prompt.Unset}}{{if .Prompt.Note}}Not written yet: nothing is added in its place.{{else}}Not in the live prompts.{{end}}{{else if .Prompt.Example}}The example text Diderot ships, unchanged since it was installed {{time .Prompt.ChangedAt}}.{{else if .Prompt.ReleaseID}}The live text: {{actor .Prompt.ChangedBy}} made <a href="/admin/prompts/{{.Prompt.Key}}?version={{.Prompt.ReleaseID}}#version">version {{.Prompt.ReleaseID}}</a> live {{time .Prompt.ChangedAt}}.{{end}}{{if eq .Prompt.Shipped "differs"}} The live text differs from the text this version of Diderot ships: <a href="/admin/prompts/shipped#shipped-{{.Prompt.Key}}">compare them</a>.{{end}}</p>
+  </div>
+  <form class="prompt-form" method="post" action="/admin/prompts/{{.Prompt.Key}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="draft_sha256" value="{{.DraftSHA256}}">
+    <input type="hidden" name="live_sha256" value="{{.LiveSHA256}}">
+    <div class="field">
+      <label class="visually-hidden" for="prompt-body">Prompt text</label>
+      <textarea id="prompt-body" class="code prompt-editor" name="body" rows="{{.EditorRows}}" spellcheck="false"{{if not .Prompt.Note}} required{{end}} aria-describedby="prompt-body-help"{{if .Error}} aria-invalid="true"{{end}}>{{.Body}}</textarea>
+      <p class="help" id="prompt-body-help">Saving puts this text in the draft. Nothing changes for anyone until the draft is made live, and conversations already under way keep the version they started with.{{if .Prompt.Note}} Save it empty to have no note.{{end}} You can use the <a href="#variables">variables</a> below.</p>
+    </div>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">Save to draft</button>
+    </div>
+  </form>
+</section>
+{{end}}
+
+<section class="section" id="variables" aria-labelledby="variables-heading">
+  <div class="section-header">
+    <h2 id="variables-heading">Variables</h2>
+    <p>Write one of these in the text and Diderot puts in its value every time the prompt is used. Any other <code>{{"{{NAME}}"}}</code> is refused.</p>
+  </div>
+  <dl class="kv">
+    {{range .Variables}}
+    <div>
+      <dt><code>{{.Name}}</code>{{if .Used}}<span class="sub">Used in this prompt</span>{{end}}</dt>
+      <dd>
+        <p>{{.Meaning}}</p>
+        {{if .Multiline}}<details class="disclosure"><summary>Its value now, {{.Lines}} lines</summary><pre>{{.Value}}</pre></details>
+        {{else}}<p class="muted">Now: {{if .Value}}{{.Value}}{{else}}empty{{end}}</p>{{end}}
+      </dd>
+    </div>
+    {{end}}
+  </dl>
+</section>
+
+<section class="section" id="history" aria-labelledby="history-heading">
+  <div class="section-header">
+    <h2 id="history-heading">Version history</h2>
+    <p>Each time this prompt’s text changed. Open a version to see what it changed, or to put its text in the draft.</p>
+  </div>
+  {{if .History}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Version</th><th scope="col" class="prompt-changed">Changed</th></tr></thead>
+      <tbody>
+      {{range .History}}
+        <tr>
+          <th scope="row"><a href="/admin/prompts/{{$.Prompt.Key}}?version={{.ReleaseID}}#version">Version {{.ReleaseID}}</a>{{if .Live}} {{badge "good" "live"}}{{end}}{{if .Example}} {{badge "neutral" "example"}}{{end}}{{with .Note}}<span class="prompt-about">“{{.}}”</span>{{end}}</th>
+          <td data-label="Changed">{{logtime .ActivatedAt}}<span class="sub">{{actor .ActivatedBy}}</span></td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{if .Pages.More}}{{template "pagination" .Pages}}{{end}}
+  {{else}}
+  <div class="empty"><h3>No versions recorded</h3><p>Each time this prompt’s text changes, the version appears here.</p></div>
+  {{end}}
+</section>
+{{end}}
+
+{{define "header-meta"}}<span>Key <span class="id">{{.Key}}</span></span>{{end}}

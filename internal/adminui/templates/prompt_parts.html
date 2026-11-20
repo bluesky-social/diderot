@@ -1,0 +1,31 @@
+{{/*
+  The Prompts section's own partials.
+
+  prompt-tabs   {{template "prompt-tabs" "prompts"}}: the section's views, the
+                named one current ("prompts", "draft", "shipped", "versions"
+                or "tools").
+  prompt-diff   {{template "prompt-diff" .Diff}}: a promptDiff, line by line.
+  prompt-state  {{template "prompt-state" .}}: a promptRow's text compared
+                with the shipped text, and whether the draft changes it.
+*/}}
+
+{{define "prompt-tabs"}}{{template "tabs" (tabs "Prompts" (tab "Prompts" "/admin/prompts" (eq . "prompts")) (tab "Draft" "/admin/prompts/draft" (eq . "draft")) (tab "Shipped text" "/admin/prompts/shipped" (eq . "shipped")) (tab "Version history" "/admin/prompts/versions" (eq . "versions")) (tab "Tools Ask can use" "/admin/prompts/tools" (eq . "tools")))}}{{end}}
+
+{{define "prompt-diff"}}<div class="diff">
+{{- range .Lines -}}
+{{- if eq .Op "add" -}}<ins class="diff-line diff-add"><span class="diff-mark" aria-hidden="true">+</span>{{.Text}}</ins>
+{{- else if eq .Op "del" -}}<del class="diff-line diff-del"><span class="diff-mark" aria-hidden="true">−</span>{{.Text}}</del>
+{{- else if eq .Op "skip" -}}<div class="diff-skip">{{.Skipped}} unchanged lines</div>
+{{- else -}}<div class="diff-line"><span class="diff-mark" aria-hidden="true"> </span>{{.Text}}</div>
+{{- end -}}
+{{- end -}}
+</div>{{end}}
+
+{{define "prompt-state"}}<span class="prompt-badges">
+{{- if .Unset}}<span class="muted">None</span>
+{{- else if eq .Shipped "same"}}{{badge "neutral" "shipped"}}
+{{- else if eq .Shipped "differs"}}{{badge "neutral" "edited"}}
+{{- else if .Note}}{{badge "neutral" "written"}}
+{{- end -}}
+{{- if .InDraft}} {{badge "attention" "draft"}}{{end -}}
+</span>{{end}}

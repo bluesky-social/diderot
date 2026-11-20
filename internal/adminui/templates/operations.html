@@ -1,0 +1,47 @@
+{{define "content"}}
+{{template "page-header" (header "Status" "What Diderot is doing in the background, and whether each source is keeping up.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+<section class="section" aria-labelledby="work-heading">
+  <div class="section-header"><h2 id="work-heading">Background work</h2></div>
+  <div class="table-wrap">
+    <table class="table status-table">
+      <thead><tr><th scope="col">Work</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+      {{range .Work}}
+        <tr id="work-{{.ID}}">
+          <th scope="row">{{.Name}}<span class="sub">{{badge .Tone .State}}</span></th>
+          <td>{{.Detail}}{{if .When}} <span class="muted">{{.WhenLabel}} {{time .When}}.</span>{{end}}{{if or .Note .Href}}<span class="sub">{{.Note}}{{if .Href}} <a href="{{.Href}}">{{.LinkText}}</a>{{end}}</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="sources-heading">
+  <div class="section-header">
+    <h2 id="sources-heading">Sources</h2>
+    <span class="section-actions"><a href="/admin/connectors">Connectors</a></span>
+  </div>
+  {{if .Sources}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Source</th><th scope="col">State</th><th scope="col">Newest item</th></tr></thead>
+      <tbody>
+      {{range .Sources}}
+        <tr>
+          <th scope="row"><a class="row-link" href="{{.Href}}">{{.Title}}</a></th>
+          {{template "source-state" .Cells}}
+          {{template "source-newest" .Cells}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{with .Off}}<p class="muted">{{if eq . 1}}One more source is{{else}}{{.}} more sources are{{end}} off.</p>{{end}}
+  {{else}}
+  <div class="empty"><h3>No source is on</h3><p>Diderot indexes nothing until a source is on. Each source keeps its own sync state here once it is.</p><a class="button button-primary" href="/admin/connectors">Set up a source</a></div>
+  {{end}}
+</section>
+{{end}}

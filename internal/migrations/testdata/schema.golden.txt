@@ -1,0 +1,2299 @@
+-- extensions
+plpgsql
+-- types
+-- relations
+admin_audit_log kind=r persistence=p options={} rls=f replica_identity=d
+admin_audit_log_action_recent_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_actor_recent_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+admin_audit_log_pkey kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_recent_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_request_id_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_status_recent_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_audit_log_target_recent_idx kind=i persistence=p options={} rls=f replica_identity=n
+admin_jobs kind=r persistence=p options={} rls=f replica_identity=d
+admin_jobs_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+admin_jobs_one_active_kind kind=i persistence=p options={} rls=f replica_identity=n
+admin_jobs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+admin_jobs_recent kind=i persistence=p options={} rls=f replica_identity=n
+ask_answer_messages kind=r persistence=p options={} rls=f replica_identity=d
+ask_answer_messages_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_answer_messages_session kind=i persistence=p options={} rls=f replica_identity=n
+ask_artifact_deliveries kind=r persistence=p options={} rls=f replica_identity=d
+ask_artifact_deliveries_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_artifacts kind=r persistence=p options={} rls=f replica_identity=d
+ask_artifacts_idempotency_key_key kind=i persistence=p options={} rls=f replica_identity=n
+ask_artifacts_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_artifacts_session_call kind=i persistence=p options={} rls=f replica_identity=n
+ask_citations kind=r persistence=p options={} rls=f replica_identity=d
+ask_citations_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_feedback kind=r persistence=p options={} rls=f replica_identity=d
+ask_feedback_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_feedback_verdict kind=i persistence=p options={} rls=f replica_identity=n
+ask_inference_calls kind=r persistence=p options={} rls=f replica_identity=d
+ask_inference_calls_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_input_images kind=r persistence=p options={} rls=f replica_identity=d
+ask_input_images_event kind=i persistence=p options={} rls=f replica_identity=n
+ask_input_images_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_messages kind=r persistence=p options={} rls=f replica_identity=d
+ask_messages_created_at kind=i persistence=p options={} rls=f replica_identity=n
+ask_messages_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+ask_messages_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_observability_steering kind=r persistence=p options={} rls=f replica_identity=d
+ask_observability_steering_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_result_artifacts kind=r persistence=p options={} rls=f replica_identity=d
+ask_result_artifacts_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_result_artifacts_session_id_assistant_turn_artifact_id_key kind=i persistence=p options={} rls=f replica_identity=n
+ask_runs kind=r persistence=p options={} rls=f replica_identity=d
+ask_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_runs_session_started_idx kind=i persistence=p options={} rls=f replica_identity=n
+ask_sessions kind=r persistence=p options={} rls=f replica_identity=d
+ask_sessions_created_desc kind=i persistence=p options={} rls=f replica_identity=n
+ask_sessions_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_sessions_surface_created_desc kind=i persistence=p options={} rls=f replica_identity=n
+ask_sessions_title_queue kind=i persistence=p options={} rls=f replica_identity=n
+ask_slack_sessions kind=r persistence=p options={} rls=f replica_identity=d
+ask_slack_sessions_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_tool_calls kind=r persistence=p options={} rls=f replica_identity=d
+ask_tool_calls_pkey kind=i persistence=p options={} rls=f replica_identity=n
+ask_turn_claims kind=r persistence=p options={} rls=f replica_identity=d
+ask_turn_claims_pkey kind=i persistence=p options={} rls=f replica_identity=n
+connector_settings kind=r persistence=p options={} rls=f replica_identity=d
+connector_settings_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_golden_set_splits kind=r persistence=p options={} rls=f replica_identity=d
+eval_golden_set_splits_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_judgments kind=r persistence=p options={} rls=f replica_identity=d
+eval_judgments_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_label_runs kind=r persistence=p options={} rls=f replica_identity=d
+eval_label_runs_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+eval_label_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_pool_candidates kind=r persistence=p options={} rls=f replica_identity=d
+eval_pool_candidates_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_question_triage kind=r persistence=p options={} rls=f replica_identity=d
+eval_question_triage_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+eval_question_triage_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_question_triage_run_id_question_id_key kind=i persistence=p options={} rls=f replica_identity=n
+eval_question_triage_runs kind=r persistence=p options={} rls=f replica_identity=d
+eval_question_triage_runs_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+eval_question_triage_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_questions kind=r persistence=p options={} rls=f replica_identity=d
+eval_questions_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+eval_questions_pkey kind=i persistence=p options={} rls=f replica_identity=n
+eval_runs kind=r persistence=p options={} rls=f replica_identity=d
+eval_runs_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+eval_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+event_chunks kind=r persistence=p options={} rls=f replica_identity=d
+event_chunks_document_chunk_idx kind=i persistence=p options={} rls=f replica_identity=n
+event_chunks_embedded_at kind=i persistence=p options={} rls=f replica_identity=n
+event_chunks_event_id_kind_chunk_idx kind=i persistence=p options={} rls=f replica_identity=n
+event_chunks_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+event_chunks_pkey kind=i persistence=p options={} rls=f replica_identity=n
+event_document_extract_parts kind=r persistence=p options={} rls=f replica_identity=d
+event_document_extract_parts_event_document_id_source_sha25_key kind=i persistence=p options={} rls=f replica_identity=n
+event_document_extract_parts_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+event_document_extract_parts_pkey kind=i persistence=p options={} rls=f replica_identity=n
+event_documents kind=r persistence=p options={} rls=f replica_identity=d
+event_documents_by_source_file_id kind=i persistence=p options={} rls=f replica_identity=n
+event_documents_event_id_source_file_id_key kind=i persistence=p options={} rls=f replica_identity=n
+event_documents_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+event_documents_incomplete kind=i persistence=p options={} rls=f replica_identity=n
+event_documents_pending kind=i persistence=p options={} rls=f replica_identity=n
+event_documents_pkey kind=i persistence=p options={} rls=f replica_identity=n
+event_images kind=r persistence=p options={} rls=f replica_identity=d
+event_images_by_source_image_id kind=i persistence=p options={} rls=f replica_identity=n
+event_images_escalation_candidates kind=i persistence=p options={} rls=f replica_identity=n
+event_images_event_id_source_image_id_key kind=i persistence=p options={} rls=f replica_identity=n
+event_images_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+event_images_pkey kind=i persistence=p options={} rls=f replica_identity=n
+event_images_uncaptioned kind=i persistence=p options={} rls=f replica_identity=n
+events kind=r persistence=p options={} rls=f replica_identity=d
+events_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+events_ingested_at kind=i persistence=p options={} rls=f replica_identity=n
+events_pkey kind=i persistence=p options={} rls=f replica_identity=n
+events_source_external_id_key kind=i persistence=p options={} rls=f replica_identity=n
+idx_ask_messages_session kind=i persistence=p options={} rls=f replica_identity=n
+idx_ask_slack_sessions_by_session kind=i persistence=p options={} rls=f replica_identity=n
+idx_chunks_unembedded kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_judgments_run kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_question_triage_audit kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_question_triage_latest kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_question_triage_runs_open kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_questions_origin kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_questions_pending_curation kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_questions_set kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_questions_split kind=i persistence=p options={} rls=f replica_identity=n
+idx_eval_runs_set kind=i persistence=p options={} rls=f replica_identity=n
+idx_event_chunks_event_id kind=i persistence=p options={} rls=f replica_identity=n
+idx_event_chunks_scope_sync_pending kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_actor kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_actor_canonical kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_actor_canonical_occurred_at kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_agent_session_external_id_prefix kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_scope kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_session_id kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_source_occurred_at kind=i persistence=p options={} rls=f replica_identity=n
+idx_events_thread kind=i persistence=p options={} rls=f replica_identity=n
+idx_qdrant_delete_queue_ready kind=i persistence=p options={} rls=f replica_identity=n
+idx_retrieve_log_called_at kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_channel_config_external kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_channel_info_name kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_message_details_channel kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_message_details_channel_event_id kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_message_details_channel_occurred_at kind=i persistence=p options={} rls=f replica_identity=n
+idx_slack_message_details_channel_thread kind=i persistence=p options={} rls=f replica_identity=n
+legacy_ask_prompts kind=r persistence=p options={} rls=f replica_identity=d
+legacy_ask_prompts_pkey kind=i persistence=p options={} rls=f replica_identity=n
+legacy_ask_session_prompts kind=r persistence=p options={} rls=f replica_identity=d
+legacy_ask_session_prompts_pkey kind=i persistence=p options={} rls=f replica_identity=n
+legacy_ask_session_prompts_prompt kind=i persistence=p options={} rls=f replica_identity=n
+legacy_session_event_chunk_archive kind=r persistence=p options={} rls=f replica_identity=d
+legacy_session_event_chunk_archive_event kind=i persistence=p options={} rls=f replica_identity=n
+legacy_session_event_chunk_archive_pkey kind=i persistence=p options={} rls=f replica_identity=n
+legacy_session_event_supersessions kind=r persistence=p options={} rls=f replica_identity=d
+legacy_session_event_supersessions_identity kind=i persistence=p options={} rls=f replica_identity=n
+legacy_session_event_supersessions_pkey kind=i persistence=p options={} rls=f replica_identity=n
+linear_sync kind=r persistence=p options={} rls=f replica_identity=d
+linear_sync_pkey kind=i persistence=p options={} rls=f replica_identity=n
+mcp_tasks kind=r persistence=p options={} rls=f replica_identity=d
+mcp_tasks_expires_at_idx kind=i persistence=p options={} rls=f replica_identity=n
+mcp_tasks_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_discovered_resources kind=r persistence=p options={} rls=f replica_identity=d
+notion_discovered_resources_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_page_roots kind=r persistence=p options={} rls=f replica_identity=d
+notion_page_roots_by_root kind=i persistence=p options={} rls=f replica_identity=n
+notion_page_roots_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_page_state kind=r persistence=p options={} rls=f replica_identity=d
+notion_page_state_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_roots kind=r persistence=p options={} rls=f replica_identity=d
+notion_roots_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_sync kind=r persistence=p options={} rls=f replica_identity=d
+notion_sync_pkey kind=i persistence=p options={} rls=f replica_identity=n
+notion_sync_runs kind=r persistence=p options={} rls=f replica_identity=d
+notion_sync_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+pagerduty_investigations kind=r persistence=p options={} rls=f replica_identity=d
+pagerduty_investigations_incident_id_occurred_at_key kind=i persistence=p options={} rls=f replica_identity=n
+pagerduty_investigations_pkey kind=i persistence=p options={} rls=f replica_identity=n
+pagerduty_investigations_queue kind=i persistence=p options={} rls=f replica_identity=n
+prompt_active_release kind=r persistence=p options={} rls=f replica_identity=d
+prompt_active_release_pkey kind=i persistence=p options={} rls=f replica_identity=n
+prompt_release_activations kind=r persistence=p options={} rls=f replica_identity=d
+prompt_release_activations_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+prompt_release_activations_pkey kind=i persistence=p options={} rls=f replica_identity=n
+prompt_release_entries kind=r persistence=p options={} rls=f replica_identity=d
+prompt_release_entries_pkey kind=i persistence=p options={} rls=f replica_identity=n
+prompt_releases kind=r persistence=p options={} rls=f replica_identity=d
+prompt_releases_bundle_sha256 kind=i persistence=p options={} rls=f replica_identity=n
+prompt_releases_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+prompt_releases_pkey kind=i persistence=p options={} rls=f replica_identity=n
+prompt_releases_source_revision_key kind=i persistence=p options={} rls=f replica_identity=n
+qdrant_delete_queue kind=r persistence=p options={} rls=f replica_identity=d
+qdrant_delete_queue_pkey kind=i persistence=p options={} rls=f replica_identity=n
+retrieve_log kind=r persistence=p options={} rls=f replica_identity=d
+retrieve_log_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+retrieve_log_pkey kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_report_runs kind=r persistence=p options={} rls=f replica_identity=d
+scheduled_report_runs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_report_runs_queue kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_report_runs_report kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_report_runs_report_id_scheduled_for_key kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_reports kind=r persistence=p options={} rls=f replica_identity=d
+scheduled_reports_due kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_reports_name_key kind=i persistence=p options={} rls=f replica_identity=n
+scheduled_reports_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_bindings kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_bindings_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_candidates_identity kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates_owner_canonical_recent kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates_owner_only_scope kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates_pending kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_candidates_session_id kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_chunk_summaries kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_chunk_summaries_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_control kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_control_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_cursor kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_cursor_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_map_checkpoints kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_map_checkpoints_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_published kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_published_identity kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_published_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_summaries kind=r persistence=p options={} rls=f replica_identity=d
+session_ingest_summaries_identity kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_summaries_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_ingest_summary_title_queue kind=i persistence=p options={} rls=f replica_identity=n
+session_owner_privacy kind=r persistence=p options={} rls=f replica_identity=d
+session_owner_privacy_audit kind=r persistence=p options={} rls=f replica_identity=d
+session_owner_privacy_audit_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+session_owner_privacy_audit_owner_recent kind=i persistence=p options={} rls=f replica_identity=n
+session_owner_privacy_audit_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_owner_privacy_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_privacy_audit kind=r persistence=p options={} rls=f replica_identity=d
+session_privacy_audit_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+session_privacy_audit_owner_recent kind=i persistence=p options={} rls=f replica_identity=n
+session_privacy_audit_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_blob_chunks kind=r persistence=p options={} rls=f replica_identity=d
+session_push_blob_chunks_chunk kind=i persistence=p options={} rls=f replica_identity=n
+session_push_blob_chunks_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_blobs kind=r persistence=p options={} rls=f replica_identity=d
+session_push_blobs_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+session_push_blobs_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_chunks kind=r persistence=p options={} rls=f replica_identity=d
+session_push_chunks_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_materializations kind=r persistence=p options={} rls=f replica_identity=d
+session_push_materializations_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_owner_usage kind=r persistence=p options={} rls=f replica_identity=d
+session_push_owner_usage_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_revisions kind=r persistence=p options={} rls=f replica_identity=d
+session_push_revisions_pkey kind=i persistence=p options={} rls=f replica_identity=n
+session_push_revisions_prunable kind=i persistence=p options={} rls=f replica_identity=n
+slack_bots kind=r persistence=p options={} rls=f replica_identity=d
+slack_bots_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_channel_config kind=r persistence=p options={} rls=f replica_identity=d
+slack_channel_config_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_channel_info kind=r persistence=p options={} rls=f replica_identity=d
+slack_channel_info_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_channel_sync kind=r persistence=p options={} rls=f replica_identity=d
+slack_channel_sync_by_age kind=i persistence=p options={} rls=f replica_identity=n
+slack_channel_sync_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_ingest_blacklist kind=r persistence=p options={} rls=f replica_identity=d
+slack_ingest_blacklist_by_channel_id kind=i persistence=p options={} rls=f replica_identity=n
+slack_ingest_blacklist_id_seq kind=S persistence=p options={} rls=f replica_identity=n
+slack_ingest_blacklist_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_message_details kind=r persistence=p options={} rls=f replica_identity=d
+slack_message_details_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_tail_cursors kind=r persistence=p options={} rls=f replica_identity=d
+slack_tail_cursors_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_thread_sync kind=r persistence=p options={} rls=f replica_identity=d
+slack_thread_sync_pending kind=i persistence=p options={} rls=f replica_identity=n
+slack_thread_sync_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_usergroups kind=r persistence=p options={} rls=f replica_identity=d
+slack_usergroups_pkey kind=i persistence=p options={} rls=f replica_identity=n
+slack_users kind=r persistence=p options={} rls=f replica_identity=d
+slack_users_pkey kind=i persistence=p options={} rls=f replica_identity=n
+source_state kind=r persistence=p options={} rls=f replica_identity=d
+source_state_pkey kind=i persistence=p options={} rls=f replica_identity=n
+zendesk_files kind=r persistence=p options={} rls=f replica_identity=d
+zendesk_files_event kind=i persistence=p options={} rls=f replica_identity=n
+zendesk_files_pkey kind=i persistence=p options={} rls=f replica_identity=n
+zendesk_retry kind=r persistence=p options={} rls=f replica_identity=d
+zendesk_retry_pkey kind=i persistence=p options={} rls=f replica_identity=n
+zendesk_sync kind=r persistence=p options={} rls=f replica_identity=d
+zendesk_sync_pkey kind=i persistence=p options={} rls=f replica_identity=n
+-- columns
+admin_audit_log.id bigint not null identity always
+admin_audit_log.created_at timestamp with time zone not null default now()
+admin_audit_log.finished_at timestamp with time zone
+admin_audit_log.actor_email text not null
+admin_audit_log.action text not null
+admin_audit_log.target text not null
+admin_audit_log.request_id text
+admin_audit_log.status text not null default 'started'::text
+admin_audit_log.details jsonb not null default '{}'::jsonb
+admin_audit_log.error text
+admin_jobs.id bigint not null identity always
+admin_jobs.kind text not null
+admin_jobs.status text not null
+admin_jobs.requested_by text not null
+admin_jobs.request jsonb not null default '{}'::jsonb
+admin_jobs.progress jsonb not null default '{}'::jsonb
+admin_jobs.requested_at timestamp with time zone not null default now()
+admin_jobs.started_at timestamp with time zone
+admin_jobs.heartbeat_at timestamp with time zone not null default now()
+admin_jobs.stale_after_seconds integer not null
+admin_jobs.finished_at timestamp with time zone
+admin_jobs.error text
+ask_answer_messages.channel_id text not null
+ask_answer_messages.message_ts text not null
+ask_answer_messages.session_id uuid not null
+ask_answer_messages.turn integer not null
+ask_answer_messages.chunk_index integer not null default 0
+ask_answer_messages.created_at timestamp with time zone not null default now()
+ask_artifact_deliveries.session_id uuid not null
+ask_artifact_deliveries.assistant_turn integer not null
+ask_artifact_deliveries.artifact_id uuid not null
+ask_artifact_deliveries.surface text not null
+ask_artifact_deliveries.target text not null
+ask_artifact_deliveries.external_id text
+ask_artifact_deliveries.status text not null
+ask_artifact_deliveries.failure_reason text
+ask_artifact_deliveries.created_at timestamp with time zone not null default now()
+ask_artifact_deliveries.updated_at timestamp with time zone not null default now()
+ask_artifacts.id uuid not null
+ask_artifacts.session_id uuid not null
+ask_artifacts.tool_call_id text not null
+ask_artifacts.content_sha256 text not null
+ask_artifacts.storage_key text not null
+ask_artifacts.media_type text not null
+ask_artifacts.byte_size bigint not null
+ask_artifacts.width integer not null
+ask_artifacts.height integer not null
+ask_artifacts.source_tool text not null
+ask_artifacts.status text not null
+ask_artifacts.idempotency_key text not null
+ask_artifacts.created_at timestamp with time zone not null default now()
+ask_citations.session_id uuid not null
+ask_citations.turn integer not null
+ask_citations.event_id bigint not null
+ask_citations.url text not null
+ask_citations.created_at timestamp with time zone not null default now()
+ask_feedback.session_id uuid not null
+ask_feedback.turn integer not null
+ask_feedback.channel_id text not null
+ask_feedback.message_ts text not null
+ask_feedback.reactor text not null
+ask_feedback.emoji text not null
+ask_feedback.verdict text not null
+ask_feedback.added_at timestamp with time zone not null default now()
+ask_feedback.removed_at timestamp with time zone
+ask_inference_calls.run_id uuid not null
+ask_inference_calls.sequence integer not null
+ask_inference_calls.workload text not null
+ask_inference_calls.model_id text not null
+ask_inference_calls.requested_effort text
+ask_inference_calls.requested_service_tier text
+ask_inference_calls.actual_service_tier text
+ask_inference_calls.response_id text
+ask_inference_calls.started_at timestamp with time zone not null
+ask_inference_calls.completed_at timestamp with time zone not null
+ask_inference_calls.duration_ms bigint not null
+ask_inference_calls.input_tokens bigint
+ask_inference_calls.output_tokens bigint
+ask_inference_calls.cache_read_tokens bigint
+ask_inference_calls.reasoning_tokens bigint
+ask_inference_calls.outcome text not null
+ask_inference_calls.error text
+ask_input_images.session_id uuid not null
+ask_input_images.source text not null
+ask_input_images.source_event_id bigint not null
+ask_input_images.source_message_id text not null
+ask_input_images.source_turn_id text not null
+ask_input_images.source_image_id text not null
+ask_input_images.filename text
+ask_input_images.media_type text
+ask_input_images.permalink text
+ask_input_images.caption_snapshot text
+ask_input_images.delivery_status text not null
+ask_input_images.failure_reason text
+ask_input_images.created_at timestamp with time zone not null default now()
+ask_messages.id bigint not null identity always
+ask_messages.session_id uuid not null
+ask_messages.turn integer not null
+ask_messages.role text not null
+ask_messages.created_at timestamp with time zone not null default now()
+ask_messages.input_tokens integer
+ask_messages.output_tokens integer
+ask_messages.cache_read_tokens integer
+ask_messages.cache_write_tokens integer
+ask_messages.incomplete_reason text
+ask_messages.message_schema_version smallint not null
+ask_messages.message jsonb not null
+ask_observability_steering.session_id uuid not null
+ask_observability_steering.user_turn integer not null
+ask_observability_steering.intent text not null
+ask_observability_steering.router_version text not null
+ask_observability_steering.router_hash text not null
+ask_observability_steering.bundle_version text not null
+ask_observability_steering.bundle_hash text not null
+ask_observability_steering.card_ids text[] not null
+ask_observability_steering.created_at timestamp with time zone not null default now()
+ask_result_artifacts.session_id uuid not null
+ask_result_artifacts.assistant_turn integer not null
+ask_result_artifacts.position integer not null
+ask_result_artifacts.artifact_id uuid not null
+ask_result_artifacts.title text not null
+ask_result_artifacts.alt_text text not null
+ask_result_artifacts.created_at timestamp with time zone not null default now()
+ask_runs.id uuid not null
+ask_runs.session_id uuid not null
+ask_runs.user_turn integer
+ask_runs.surface text not null
+ask_runs.model_id text not null
+ask_runs.reasoning_effort text
+ask_runs.service_tier text
+ask_runs.started_at timestamp with time zone not null
+ask_runs.completed_at timestamp with time zone not null
+ask_runs.duration_ms bigint not null
+ask_runs.outcome text not null
+ask_runs.error text
+ask_sessions.id uuid not null default gen_random_uuid()
+ask_sessions.created_at timestamp with time zone not null default now()
+ask_sessions.last_turn_at timestamp with time zone not null default now()
+ask_sessions.finished_at timestamp with time zone
+ask_sessions.failure_reason text
+ask_sessions.owner_email text
+ask_sessions.title text
+ask_sessions.title_model text
+ask_sessions.title_generated_at timestamp with time zone
+ask_sessions.title_attempted_at timestamp with time zone
+ask_sessions.title_last_error text
+ask_sessions.surface text
+ask_sessions.initial_model_id text
+ask_sessions.prompt_release_id bigint
+ask_sessions.initial_scopes text[]
+ask_slack_sessions.channel_id text not null
+ask_slack_sessions.thread_ts text not null
+ask_slack_sessions.session_id uuid not null
+ask_slack_sessions.context_through timestamp with time zone
+ask_tool_calls.run_id uuid not null
+ask_tool_calls.sequence integer not null
+ask_tool_calls.workload text not null
+ask_tool_calls.call_id text
+ask_tool_calls.tool_name text not null
+ask_tool_calls.started_at timestamp with time zone not null
+ask_tool_calls.completed_at timestamp with time zone not null
+ask_tool_calls.duration_ms bigint not null
+ask_tool_calls.outcome text not null
+ask_tool_calls.error text
+ask_turn_claims.channel_id text not null
+ask_turn_claims.message_ts text not null
+ask_turn_claims.claimed_at timestamp with time zone not null default now()
+connector_settings.connector text not null
+connector_settings.enabled boolean not null default false
+connector_settings.settings jsonb not null
+connector_settings.secrets jsonb not null
+connector_settings.version bigint not null
+connector_settings.last_test jsonb
+connector_settings.updated_by text not null
+connector_settings.updated_at timestamp with time zone not null
+eval_golden_set_splits.golden_set text not null
+eval_golden_set_splits.seed text not null
+eval_golden_set_splits.confirmation_percent integer not null
+eval_golden_set_splits.assigned_at timestamp with time zone not null default now()
+eval_golden_set_splits.assigned_by text not null
+eval_judgments.question_id bigint not null
+eval_judgments.event_id bigint not null
+eval_judgments.grade smallint not null
+eval_judgments.label_run_id bigint not null
+eval_judgments.judged_content_hash text not null
+eval_judgments.judged_at timestamp with time zone not null default now()
+eval_judgments.judged_eval_content_hash text
+eval_label_runs.id bigint not null identity always
+eval_label_runs.golden_set text not null
+eval_label_runs.label_source text not null
+eval_label_runs.judge_model text
+eval_label_runs.rubric_version text
+eval_label_runs.created_at timestamp with time zone not null default now()
+eval_label_runs.agreement_exact numeric
+eval_label_runs.agreement_within_1 numeric
+eval_label_runs.anchor_label_count integer
+eval_label_runs.notes text
+eval_label_runs.created_by text
+eval_pool_candidates.question_id bigint not null
+eval_pool_candidates.event_id bigint not null
+eval_pool_candidates.origin text not null
+eval_pool_candidates.rank smallint
+eval_pool_candidates.created_at timestamp with time zone not null default now()
+eval_question_triage.id bigint not null identity always
+eval_question_triage.run_id bigint not null
+eval_question_triage.question_id bigint not null
+eval_question_triage.recommendation text not null
+eval_question_triage.confidence text not null
+eval_question_triage.reason text not null
+eval_question_triage.audit_required boolean not null default false
+eval_question_triage.raw_response text not null
+eval_question_triage.created_at timestamp with time zone not null default now()
+eval_question_triage_runs.id bigint not null identity always
+eval_question_triage_runs.golden_set text not null
+eval_question_triage_runs.model text not null
+eval_question_triage_runs.rubric_version text not null
+eval_question_triage_runs.audit_percent integer not null
+eval_question_triage_runs.created_at timestamp with time zone not null default now()
+eval_question_triage_runs.finished_at timestamp with time zone
+eval_question_triage_runs.questions_triaged integer not null default 0
+eval_question_triage_runs.questions_failed integer not null default 0
+eval_question_triage_runs.applied_at timestamp with time zone
+eval_question_triage_runs.applied_by text
+eval_question_triage_runs.audited_high_confidence integer
+eval_question_triage_runs.audit_agreement numeric
+eval_question_triage_runs.superseded_at timestamp with time zone
+eval_question_triage_runs.superseded_by text
+eval_question_triage_runs.superseded_reason text
+eval_question_triage_runs.rubric_prompt text not null
+eval_questions.id bigint not null identity always
+eval_questions.golden_set text not null
+eval_questions.question text not null
+eval_questions.source_kind text not null
+eval_questions.origin_session uuid
+eval_questions.origin_user_turn integer
+eval_questions.origin_answer_turn integer
+eval_questions.status text not null default 'active'::text
+eval_questions.excluded_reason text
+eval_questions.created_at timestamp with time zone not null default now()
+eval_questions.notes text
+eval_questions.curated_at timestamp with time zone
+eval_questions.curated_by text
+eval_questions.eval_split text
+eval_questions.curation_method text
+eval_questions.applied_triage_id bigint
+eval_runs.id bigint not null identity always
+eval_runs.golden_set text not null
+eval_runs.ran_at timestamp with time zone not null default now()
+eval_runs.git_sha text
+eval_runs.retriever_tag text not null
+eval_runs.params jsonb not null
+eval_runs.results jsonb not null
+eval_runs.label_run_ids jsonb not null
+eval_runs.effective_set_hash text not null
+eval_runs.pool_coverage numeric not null
+eval_runs.decision_grade boolean not null
+eval_runs.override_reason text
+event_chunks.id bigint not null identity always
+event_chunks.event_id bigint not null
+event_chunks.chunk_idx integer not null
+event_chunks.content text not null
+event_chunks.embedded_at timestamp with time zone
+event_chunks.embedder_id text
+event_chunks.failure_count integer not null default 0
+event_chunks.last_failure text
+event_chunks.context_prefix text
+event_chunks.kind text not null default 'text'::text
+event_chunks.event_document_id bigint
+event_chunks.occurred_at timestamp with time zone not null
+event_chunks.scope_sync_needed boolean not null default false
+event_chunks.scope_sync_attempts integer not null default 0
+event_chunks.scope_sync_next_attempt_at timestamp with time zone not null default now()
+event_chunks.scope_sync_last_error text
+event_document_extract_parts.id bigint not null identity always
+event_document_extract_parts.event_document_id bigint not null
+event_document_extract_parts.source_sha256 bytea not null
+event_document_extract_parts.extract_model text not null
+event_document_extract_parts.page_number integer not null
+event_document_extract_parts.markdown text not null
+event_document_extract_parts.cost_usd numeric(12,6) not null
+event_document_extract_parts.truncated boolean not null default false
+event_document_extract_parts.created_at timestamp with time zone not null default now()
+event_documents.id bigint not null identity always
+event_documents.event_id bigint not null
+event_documents.source_file_id text not null
+event_documents.occurred_at timestamp with time zone not null
+event_documents.filename text not null
+event_documents.media_type text not null
+event_documents.doc_format text
+event_documents.storage_key text
+event_documents.bytes bigint
+event_documents.sha256 bytea
+event_documents.extract_model text
+event_documents.extracted_at timestamp with time zone
+event_documents.page_count integer
+event_documents.pages_extracted integer
+event_documents.extract_cost_usd numeric(12,6)
+event_documents.rejected_reason text
+event_documents.incomplete_reason text
+event_documents.claimed_at timestamp with time zone
+event_documents.failure_count integer not null default 0
+event_documents.last_failure text
+event_images.id bigint not null identity always
+event_images.event_id bigint not null
+event_images.source_image_id text not null
+event_images.storage_key text
+event_images.media_type text not null
+event_images.bytes bigint
+event_images.sha256 bytea
+event_images.caption_model text
+event_images.captioned_at timestamp with time zone
+event_images.unread_flagged boolean not null default false
+event_images.truncated_at timestamp with time zone
+event_images.chunk_id bigint
+event_images.failure_count integer not null default 0
+event_images.last_failure text
+event_images.claimed_at timestamp with time zone
+event_images.occurred_at timestamp with time zone not null
+events.id bigint not null identity always
+events.source text not null
+events.external_id text not null
+events.occurred_at timestamp with time zone not null
+events.updated_at timestamp with time zone
+events.deleted boolean not null default false
+events.actor text
+events.actor_id text
+events.thread_id text
+events.title text
+events.body text not null
+events.url text
+events.raw jsonb not null
+events.session_id text
+events.embedding_text text
+events.actor_canonical text not null default ''::text
+events.image_count integer not null default 0
+events.scope text not null default 'unstamped'::text
+events.content_hash text not null generated as md5(body)
+events.ingested_at timestamp with time zone not null default now()
+events.eval_content_hash text not null generated as md5(((((octet_length(COALESCE(title, ''::text)))::text || ':'::text) || COALESCE(title, ''::text)) || body))
+events.record_start integer
+events.record_end integer
+legacy_ask_prompts.id bigint not null
+legacy_ask_prompts.body text not null
+legacy_ask_prompts.created_by text
+legacy_ask_prompts.note text
+legacy_ask_prompts.created_at timestamp with time zone not null
+legacy_ask_prompts.recovery_source text not null
+legacy_ask_prompts.recovered_at timestamp with time zone not null default now()
+legacy_ask_session_prompts.session_id uuid not null
+legacy_ask_session_prompts.legacy_prompt_id bigint not null
+legacy_ask_session_prompts.recovery_source text not null
+legacy_ask_session_prompts.recovered_at timestamp with time zone not null default now()
+legacy_session_event_chunk_archive.chunk_id bigint not null
+legacy_session_event_chunk_archive.event_id bigint not null
+legacy_session_event_chunk_archive.chunk_snapshot jsonb not null
+legacy_session_event_chunk_archive.archived_at timestamp with time zone not null default now()
+legacy_session_event_supersessions.event_id bigint not null
+legacy_session_event_supersessions.owner text not null
+legacy_session_event_supersessions.client text not null
+legacy_session_event_supersessions.session_id text not null
+legacy_session_event_supersessions.revision text not null
+legacy_session_event_supersessions.event_snapshot jsonb not null
+legacy_session_event_supersessions.superseded_at timestamp with time zone not null default now()
+legacy_session_event_supersessions.reason text not null default 'native_bsky_session_v1'::text
+linear_sync.id integer not null default 1
+linear_sync.last_sync_at timestamp with time zone
+linear_sync.last_reconcile_at timestamp with time zone
+linear_sync.visibility_swept_at timestamp with time zone
+linear_sync.sync_runs_total bigint not null default 0
+linear_sync.reconcile_runs_total bigint not null default 0
+linear_sync.visibility_runs_total bigint not null default 0
+linear_sync.backfill_cursor text
+linear_sync.backfill_requested_at timestamp with time zone
+linear_sync.backfill_project text
+linear_sync.backfill_project_id text
+mcp_tasks.id uuid not null
+mcp_tasks.owner_email text not null
+mcp_tasks.status text not null
+mcp_tasks.status_message text
+mcp_tasks.created_at timestamp with time zone not null
+mcp_tasks.last_updated_at timestamp with time zone not null
+mcp_tasks.expires_at timestamp with time zone not null
+mcp_tasks.poll_interval_ms bigint
+mcp_tasks.result jsonb
+mcp_tasks.error jsonb
+notion_discovered_resources.object_type text not null
+notion_discovered_resources.object_id text not null
+notion_discovered_resources.parent_id text not null default ''::text
+notion_discovered_resources.title text not null default ''::text
+notion_discovered_resources.url text not null default ''::text
+notion_discovered_resources.first_seen_at timestamp with time zone not null default now()
+notion_discovered_resources.last_seen_at timestamp with time zone not null default now()
+notion_discovered_resources.last_seen_run_id text
+notion_page_roots.page_id text not null
+notion_page_roots.root_object_type text not null
+notion_page_roots.root_object_id text not null
+notion_page_roots.last_seen_run_id text not null
+notion_page_state.page_id text not null
+notion_page_state.remote_last_edited_at timestamp with time zone
+notion_page_state.last_seen_at timestamp with time zone not null
+notion_page_state.last_seen_run_id text
+notion_page_state.access_state text not null default 'active'::text
+notion_page_state.last_error text not null default ''::text
+notion_page_state.source_metadata jsonb not null default '{}'::jsonb
+notion_roots.object_type text not null default 'auto'::text
+notion_roots.object_id text not null
+notion_roots.label text not null default ''::text
+notion_roots.added_at timestamp with time zone not null default now()
+notion_roots.added_by text not null default ''::text
+notion_roots.last_walked_at timestamp with time zone
+notion_roots.last_walk_status text not null default 'never'::text
+notion_roots.last_walk_error text not null default ''::text
+notion_sync.id integer not null default 1
+notion_sync.last_search_at timestamp with time zone
+notion_sync.last_reconcile_at timestamp with time zone
+notion_sync.search_runs_total bigint not null default 0
+notion_sync.reconcile_runs_total bigint not null default 0
+notion_sync.backfill_requested_at timestamp with time zone
+notion_sync.backfill_cursor text
+notion_sync.last_discovery_at timestamp with time zone
+notion_sync.discovery_runs_total bigint not null default 0
+notion_sync.integration_id text
+notion_sync_runs.run_id text not null
+notion_sync_runs.run_type text not null
+notion_sync_runs.started_at timestamp with time zone not null
+notion_sync_runs.completed_at timestamp with time zone
+notion_sync_runs.status text not null
+notion_sync_runs.attempted bigint not null default 0
+notion_sync_runs.created_count bigint not null default 0
+notion_sync_runs.updated_count bigint not null default 0
+notion_sync_runs.unchanged_count bigint not null default 0
+notion_sync_runs.hidden_count bigint not null default 0
+notion_sync_runs.failed_count bigint not null default 0
+notion_sync_runs.error text not null default ''::text
+pagerduty_investigations.event_id text not null
+pagerduty_investigations.incident_id text not null
+pagerduty_investigations.occurred_at timestamp with time zone not null
+pagerduty_investigations.event jsonb not null
+pagerduty_investigations.session_id uuid
+pagerduty_investigations.output text
+pagerduty_investigations.note_id text
+pagerduty_investigations.slack_channel_id text
+pagerduty_investigations.slack_thread_ts text
+pagerduty_investigations.slack_message_ts text
+pagerduty_investigations.state text not null default 'pending'::text
+pagerduty_investigations.attempts integer not null default 0
+pagerduty_investigations.delivery_attempts integer not null default 0
+pagerduty_investigations.worker_token uuid
+pagerduty_investigations.lease_until timestamp with time zone
+pagerduty_investigations.next_attempt_at timestamp with time zone not null default now()
+pagerduty_investigations.last_error text
+pagerduty_investigations.created_at timestamp with time zone not null default now()
+pagerduty_investigations.completed_at timestamp with time zone
+pagerduty_investigations.assistant_turn integer not null default 0
+prompt_active_release.singleton boolean not null default true
+prompt_active_release.release_id bigint not null
+prompt_active_release.activated_by text not null
+prompt_active_release.activated_at timestamp with time zone not null default now()
+prompt_release_activations.id bigint not null identity always
+prompt_release_activations.from_release_id bigint
+prompt_release_activations.to_release_id bigint not null
+prompt_release_activations.activated_by text not null
+prompt_release_activations.activated_at timestamp with time zone not null default now()
+prompt_release_entries.release_id bigint not null
+prompt_release_entries.prompt_key text not null
+prompt_release_entries.source_path text not null
+prompt_release_entries.description text not null default ''::text
+prompt_release_entries.body text not null
+prompt_release_entries.body_sha256 text not null
+prompt_releases.id bigint not null identity always
+prompt_releases.source_revision text not null
+prompt_releases.bundle_sha256 text not null
+prompt_releases.schema_version integer not null
+prompt_releases.created_by text not null
+prompt_releases.note text not null default ''::text
+prompt_releases.created_at timestamp with time zone not null default now()
+qdrant_delete_queue.point_id bigint not null
+qdrant_delete_queue.enqueued_at timestamp with time zone not null default now()
+qdrant_delete_queue.attempts integer not null default 0
+qdrant_delete_queue.next_attempt_at timestamp with time zone not null default now()
+qdrant_delete_queue.last_error text
+retrieve_log.id bigint not null identity always
+retrieve_log.called_at timestamp with time zone not null default now()
+retrieve_log.endpoint text not null
+retrieve_log.question text
+retrieve_log.filters jsonb not null default '{}'::jsonb
+retrieve_log.results jsonb not null
+retrieve_log.latency_ms integer not null
+retrieve_log.caller_sub text not null
+retrieve_log.caller_email text
+scheduled_report_runs.id uuid not null default gen_random_uuid()
+scheduled_report_runs.report_id uuid not null
+scheduled_report_runs.trigger text not null
+scheduled_report_runs.scheduled_for timestamp with time zone not null
+scheduled_report_runs.window_start timestamp with time zone not null
+scheduled_report_runs.window_end timestamp with time zone not null
+scheduled_report_runs.prompt_snapshot text not null
+scheduled_report_runs.status text not null
+scheduled_report_runs.attempts integer not null default 0
+scheduled_report_runs.claimed_at timestamp with time zone
+scheduled_report_runs.finished_at timestamp with time zone
+scheduled_report_runs.ask_session_id uuid
+scheduled_report_runs.output text
+scheduled_report_runs.delivery_ts text
+scheduled_report_runs.error text
+scheduled_report_runs.created_at timestamp with time zone not null default now()
+scheduled_report_runs.updated_at timestamp with time zone not null default now()
+scheduled_report_runs.ask_assistant_turn integer
+scheduled_report_runs.delivery_kind text
+scheduled_report_runs.slack_target text
+scheduled_reports.id uuid not null default gen_random_uuid()
+scheduled_reports.name text not null
+scheduled_reports.prompt text not null
+scheduled_reports.cadence text not null
+scheduled_reports.weekday smallint
+scheduled_reports.schedule_hour smallint not null
+scheduled_reports.schedule_minute smallint not null
+scheduled_reports.timezone text not null
+scheduled_reports.delivery_kind text not null
+scheduled_reports.slack_target text not null
+scheduled_reports.owner_email text not null
+scheduled_reports.catchup_window_seconds integer not null default 21600
+scheduled_reports.enabled boolean not null default true
+scheduled_reports.next_run_at timestamp with time zone not null
+scheduled_reports.last_success_at timestamp with time zone
+scheduled_reports.last_error text
+scheduled_reports.created_at timestamp with time zone not null default now()
+scheduled_reports.updated_at timestamp with time zone not null default now()
+scheduled_reports.created_by text not null
+session_ingest_bindings.session_id text not null
+session_ingest_bindings.owner_canonical text not null
+session_ingest_bindings.writer text not null
+session_ingest_bindings.format text not null
+session_ingest_bindings.head_revision text
+session_ingest_bindings.created_at timestamp with time zone not null default now()
+session_ingest_bindings.updated_at timestamp with time zone not null default now()
+session_ingest_candidates.owner text not null
+session_ingest_candidates.client text not null
+session_ingest_candidates.session_id text not null
+session_ingest_candidates.owner_kind text not null default ''::text
+session_ingest_candidates.role text not null default ''::text
+session_ingest_candidates.origin_app text not null default ''::text
+session_ingest_candidates.revision text not null default ''::text
+session_ingest_candidates.rewrite_epoch bigint not null default 0
+session_ingest_candidates.change_seq bigint not null default 0
+session_ingest_candidates.record_count integer not null default 0
+session_ingest_candidates.user_turn_count integer not null default 0
+session_ingest_candidates.content_bytes bigint not null default 0
+session_ingest_candidates.updated_at timestamp with time zone
+session_ingest_candidates.complete boolean not null default false
+session_ingest_candidates.deleted boolean not null default false
+session_ingest_candidates.published_revision text not null default ''::text
+session_ingest_candidates.published_rewrite_epoch bigint not null default 0
+session_ingest_candidates.published_record_count integer not null default 0
+session_ingest_candidates.published_user_turn_count integer not null default 0
+session_ingest_candidates.published_content_bytes bigint not null default 0
+session_ingest_candidates.published_at timestamp with time zone
+session_ingest_candidates.first_pending_at timestamp with time zone
+session_ingest_candidates.eligible_at timestamp with time zone
+session_ingest_candidates.excluded_at timestamp with time zone
+session_ingest_candidates.corpus_tombstone_pending timestamp with time zone
+session_ingest_candidates.updated_in_db timestamp with time zone not null default now()
+session_ingest_candidates.source_started_at timestamp with time zone
+session_ingest_candidates.source_updated_at timestamp with time zone
+session_ingest_candidates.published_source_started_at timestamp with time zone
+session_ingest_candidates.published_source_updated_at timestamp with time zone
+session_ingest_candidates.visibility_scope text not null default 'internal'::text
+session_ingest_candidates.owner_canonical text not null
+session_ingest_candidates.privacy_owner_only boolean
+session_ingest_candidates.index_failure_revision text not null default ''::text
+session_ingest_candidates.index_failure_count integer not null default 0
+session_ingest_candidates.index_last_error text
+session_ingest_candidates.index_last_failed_at timestamp with time zone
+session_ingest_candidates.index_retry_at timestamp with time zone
+session_ingest_candidates.index_quarantined_at timestamp with time zone
+session_ingest_chunk_summaries.owner text not null
+session_ingest_chunk_summaries.client text not null
+session_ingest_chunk_summaries.session_id text not null
+session_ingest_chunk_summaries.record_start integer not null
+session_ingest_chunk_summaries.record_end integer not null
+session_ingest_chunk_summaries.content_hash text not null default ''::text
+session_ingest_chunk_summaries.evidence text[] not null default '{}'::text[]
+session_ingest_chunk_summaries.summary text not null
+session_ingest_chunk_summaries.model_id text not null default ''::text
+session_ingest_chunk_summaries.input_tokens integer not null default 0
+session_ingest_chunk_summaries.output_tokens integer not null default 0
+session_ingest_chunk_summaries.created_at timestamp with time zone not null default now()
+session_ingest_chunk_summaries.map_input_digest text not null default ''::text
+session_ingest_chunk_summaries.occurred_at timestamp with time zone
+session_ingest_control.id boolean not null default true
+session_ingest_control.summarization_enabled boolean not null default false
+session_ingest_control.updated_at timestamp with time zone not null default now()
+session_ingest_cursor.id boolean not null default true
+session_ingest_cursor.change_seq bigint not null default 0
+session_ingest_cursor.policy_hash text not null default ''::text
+session_ingest_cursor.updated_at timestamp with time zone not null default now()
+session_ingest_map_checkpoints.session_id text not null
+session_ingest_map_checkpoints.record_start integer not null
+session_ingest_map_checkpoints.owner text not null
+session_ingest_map_checkpoints.client text not null
+session_ingest_map_checkpoints.record_end integer not null
+session_ingest_map_checkpoints.content_hash text not null
+session_ingest_map_checkpoints.map_input_digest text not null
+session_ingest_map_checkpoints.evidence text[] not null default '{}'::text[]
+session_ingest_map_checkpoints.summary text not null
+session_ingest_map_checkpoints.model_id text not null
+session_ingest_published.owner text not null
+session_ingest_published.client text not null
+session_ingest_published.session_id text not null
+session_ingest_published.revision text not null
+session_ingest_published.rewrite_epoch bigint not null default 0
+session_ingest_published.content_digest text not null default ''::text
+session_ingest_published.published_at timestamp with time zone not null default now()
+session_ingest_published.superseded_at timestamp with time zone
+session_ingest_published.tombstoned_at timestamp with time zone
+session_ingest_published.source_started_at timestamp with time zone
+session_ingest_published.source_updated_at timestamp with time zone
+session_ingest_summaries.owner text not null
+session_ingest_summaries.client text not null
+session_ingest_summaries.session_id text not null
+session_ingest_summaries.revision text not null
+session_ingest_summaries.rewrite_epoch bigint not null default 0
+session_ingest_summaries.narrative text not null
+session_ingest_summaries.embedding_text text
+session_ingest_summaries.context_hint text
+session_ingest_summaries.tags text[] not null default '{}'::text[]
+session_ingest_summaries.model_id text not null default ''::text
+session_ingest_summaries.input_tokens integer not null default 0
+session_ingest_summaries.output_tokens integer not null default 0
+session_ingest_summaries.record_count integer not null default 0
+session_ingest_summaries.summarized_at timestamp with time zone not null default now()
+session_ingest_summaries.input_digest text not null default ''::text
+session_ingest_summaries.title text
+session_ingest_summaries.title_model text
+session_ingest_summaries.title_input_digest text
+session_ingest_summaries.title_generated_at timestamp with time zone
+session_ingest_summaries.title_attempted_at timestamp with time zone
+session_ingest_summaries.title_failure_count integer not null default 0
+session_ingest_summaries.title_last_error text
+session_owner_privacy.owner text not null
+session_owner_privacy.owner_only boolean not null
+session_owner_privacy.updated_at timestamp with time zone not null default now()
+session_owner_privacy.updated_by text not null
+session_owner_privacy_audit.id bigint not null identity always
+session_owner_privacy_audit.owner text not null
+session_owner_privacy_audit.owner_only boolean not null
+session_owner_privacy_audit.actor text not null
+session_owner_privacy_audit.candidate_updates bigint not null
+session_owner_privacy_audit.event_updates bigint not null
+session_owner_privacy_audit.created_at timestamp with time zone not null default now()
+session_privacy_audit.id bigint not null identity always
+session_privacy_audit.owner text not null
+session_privacy_audit.client text not null
+session_privacy_audit.session_id text not null
+session_privacy_audit.owner_only boolean not null
+session_privacy_audit.actor text not null
+session_privacy_audit.event_updates bigint not null
+session_privacy_audit.created_at timestamp with time zone not null default now()
+session_push_blob_chunks.blob_id bigint not null
+session_push_blob_chunks.ordinal integer not null
+session_push_blob_chunks.session_id text not null
+session_push_blob_chunks.digest bytea not null
+session_push_blobs.id bigint not null default nextval('session_push_blobs_id_seq'::regclass)
+session_push_blobs.session_id text not null
+session_push_blobs.byte_size bigint not null
+session_push_blobs.sha256 bytea not null
+session_push_chunks.session_id text not null
+session_push_chunks.digest bytea not null
+session_push_chunks.data bytea not null
+session_push_materializations.session_id text not null
+session_push_materializations.revision text not null
+session_push_materializations.decoder_version text not null
+session_push_materializations.format text not null
+session_push_materializations.source_version text not null default ''::text
+session_push_materializations.harness text not null default ''::text
+session_push_materializations.record_count integer not null
+session_push_materializations.user_turn_count integer not null
+session_push_materializations.content_bytes bigint not null
+session_push_materializations.warning_records integer not null default 0
+session_push_materializations.started_at timestamp with time zone not null
+session_push_materializations.source_updated_at timestamp with time zone not null
+session_push_materializations.records_blob_id bigint not null
+session_push_materializations.created_at timestamp with time zone not null default now()
+session_push_owner_usage.owner_canonical text not null
+session_push_owner_usage.stored_bytes bigint not null default 0
+session_push_owner_usage.revisions bigint not null default 0
+session_push_owner_usage.updated_at timestamp with time zone not null default now()
+session_push_revisions.session_id text not null
+session_push_revisions.revision text not null
+session_push_revisions.owner_canonical text not null
+session_push_revisions.format text not null
+session_push_revisions.source_version text not null default ''::text
+session_push_revisions.byte_size bigint not null
+session_push_revisions.body_blob_id bigint
+session_push_revisions.accepted_at timestamp with time zone not null default now()
+session_push_revisions.superseded_at timestamp with time zone
+session_push_revisions.pruned_at timestamp with time zone
+slack_bots.bot_id text not null
+slack_bots.name text
+slack_bots.app_id text
+slack_bots.user_id text
+slack_bots.deleted boolean not null default false
+slack_bots.fetched_at timestamp with time zone not null default now()
+slack_channel_config.channel_id text not null
+slack_channel_config.allow_external_ask boolean not null default false
+slack_channel_config.has_external_members boolean
+slack_channel_config.external_members_checked_at timestamp with time zone
+slack_channel_config.updated_by text
+slack_channel_config.updated_at timestamp with time zone not null default now()
+slack_channel_config.ask_enabled boolean not null default false
+slack_channel_config.external_members text[] not null default '{}'::text[]
+slack_channel_config.doc_ingest_enabled boolean not null default false
+slack_channel_config.doc_backfill_cursor bigint
+slack_channel_info.channel_id text not null
+slack_channel_info.name text
+slack_channel_info.is_private boolean not null default false
+slack_channel_info.is_archived boolean not null default false
+slack_channel_info.fetched_at timestamp with time zone not null default now()
+slack_channel_info.is_ext_shared boolean
+slack_channel_info.is_pending_ext_shared boolean
+slack_channel_sync.channel_id text not null
+slack_channel_sync.last_synced_at timestamp with time zone
+slack_channel_sync.cursor text
+slack_channel_sync.in_progress_at timestamp with time zone
+slack_channel_sync.worker_token uuid
+slack_channel_sync.last_error text
+slack_channel_sync.ingest_enabled boolean not null default true
+slack_channel_sync.oldest_ts double precision
+slack_channel_sync.last_deep_sweep_at timestamp with time zone
+slack_ingest_blacklist.id integer not null default nextval('slack_ingest_blacklist_id_seq'::regclass)
+slack_ingest_blacklist.channel_id text not null
+slack_ingest_blacklist.channel_name text
+slack_ingest_blacklist.reason text not null default ''::text
+slack_ingest_blacklist.added_by text
+slack_ingest_blacklist.added_at timestamp with time zone not null default now()
+slack_message_details.event_id bigint not null
+slack_message_details.channel_id text not null
+slack_message_details.user_id text
+slack_message_details.thread_ts text
+slack_message_details.is_edit boolean not null default false
+slack_message_details.has_files boolean not null default false
+slack_message_details.occurred_at timestamp with time zone not null
+slack_tail_cursors.session text not null
+slack_tail_cursors.channel_id text not null
+slack_tail_cursors.cursor_event_id bigint not null
+slack_tail_cursors.last_used_at timestamp with time zone not null default now()
+slack_thread_sync.channel_id text not null
+slack_thread_sync.thread_ts text not null
+slack_thread_sync.enqueued_at timestamp with time zone not null default now()
+slack_thread_sync.in_progress_at timestamp with time zone
+slack_thread_sync.worker_token uuid
+slack_thread_sync.cursor text
+slack_thread_sync.last_error text
+slack_thread_sync.done_at timestamp with time zone
+slack_thread_sync.latest_reply text
+slack_thread_sync.walked_latest_reply text
+slack_thread_sync.activity_ts text not null generated as COALESCE(latest_reply, thread_ts)
+slack_usergroups.usergroup_id text not null
+slack_usergroups.name text
+slack_usergroups.handle text
+slack_usergroups.fetched_at timestamp with time zone not null default now()
+slack_users.user_id text not null
+slack_users.name text
+slack_users.display_name text
+slack_users.real_name text
+slack_users.email text
+slack_users.is_bot boolean not null default false
+slack_users.fetched_at timestamp with time zone not null default now()
+slack_users.team_id text
+slack_users.is_stranger boolean not null default false
+slack_users.is_restricted boolean not null default false
+slack_users.is_ultra_restricted boolean not null default false
+slack_users.tz text
+slack_users.tz_label text
+slack_users.tz_offset integer
+source_state.source text not null
+source_state.key text not null
+source_state.value jsonb not null
+source_state.updated_at timestamp with time zone not null default now()
+zendesk_files.source_file_id text not null
+zendesk_files.event_id bigint not null
+zendesk_files.content_url text not null
+zendesk_files.media_type text not null
+zendesk_retry.tenant text not null
+zendesk_retry.kind text not null
+zendesk_retry.source_id bigint not null
+zendesk_retry.attempts integer not null default 0
+zendesk_retry.not_before timestamp with time zone not null default (now() + '00:15:00'::interval)
+zendesk_sync.tenant text not null
+zendesk_sync.stream text not null
+zendesk_sync.cursor text not null default ''::text
+zendesk_sync.watermark bigint not null default 0
+zendesk_sync.updated_at timestamp with time zone not null default now()
+-- constraints
+admin_audit_log admin_audit_log_action_not_null NOT NULL action
+admin_audit_log admin_audit_log_actor_email_not_null NOT NULL actor_email
+admin_audit_log admin_audit_log_created_at_not_null NOT NULL created_at
+admin_audit_log admin_audit_log_details_not_null NOT NULL details
+admin_audit_log admin_audit_log_id_not_null NOT NULL id
+admin_audit_log admin_audit_log_pkey PRIMARY KEY (id)
+admin_audit_log admin_audit_log_status_check CHECK ((status = ANY (ARRAY['started'::text, 'succeeded'::text, 'failed'::text])))
+admin_audit_log admin_audit_log_status_not_null NOT NULL status
+admin_audit_log admin_audit_log_target_not_null NOT NULL target
+admin_jobs admin_jobs_finished_state CHECK ((((status = ANY (ARRAY['queued'::text, 'running'::text])) AND (finished_at IS NULL)) OR ((status = ANY (ARRAY['succeeded'::text, 'failed'::text, 'canceled'::text])) AND (finished_at IS NOT NULL))))
+admin_jobs admin_jobs_heartbeat_at_not_null NOT NULL heartbeat_at
+admin_jobs admin_jobs_id_not_null NOT NULL id
+admin_jobs admin_jobs_kind_check CHECK ((kind <> ''::text))
+admin_jobs admin_jobs_kind_not_null NOT NULL kind
+admin_jobs admin_jobs_pkey PRIMARY KEY (id)
+admin_jobs admin_jobs_progress_not_null NOT NULL progress
+admin_jobs admin_jobs_request_not_null NOT NULL request
+admin_jobs admin_jobs_requested_at_not_null NOT NULL requested_at
+admin_jobs admin_jobs_requested_by_check CHECK ((requested_by <> ''::text))
+admin_jobs admin_jobs_requested_by_not_null NOT NULL requested_by
+admin_jobs admin_jobs_stale_after_seconds_check CHECK ((stale_after_seconds > 0))
+admin_jobs admin_jobs_stale_after_seconds_not_null NOT NULL stale_after_seconds
+admin_jobs admin_jobs_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'running'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text])))
+admin_jobs admin_jobs_status_not_null NOT NULL status
+ask_answer_messages ask_answer_messages_channel_id_not_null NOT NULL channel_id
+ask_answer_messages ask_answer_messages_chunk_index_not_null NOT NULL chunk_index
+ask_answer_messages ask_answer_messages_created_at_not_null NOT NULL created_at
+ask_answer_messages ask_answer_messages_message_ts_not_null NOT NULL message_ts
+ask_answer_messages ask_answer_messages_pkey PRIMARY KEY (channel_id, message_ts)
+ask_answer_messages ask_answer_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_answer_messages ask_answer_messages_session_id_not_null NOT NULL session_id
+ask_answer_messages ask_answer_messages_turn_not_null NOT NULL turn
+ask_artifact_deliveries ask_artifact_deliveries_artifact_id_fkey FOREIGN KEY (artifact_id) REFERENCES ask_artifacts(id) ON DELETE CASCADE
+ask_artifact_deliveries ask_artifact_deliveries_artifact_id_not_null NOT NULL artifact_id
+ask_artifact_deliveries ask_artifact_deliveries_assistant_turn_not_null NOT NULL assistant_turn
+ask_artifact_deliveries ask_artifact_deliveries_created_at_not_null NOT NULL created_at
+ask_artifact_deliveries ask_artifact_deliveries_pkey PRIMARY KEY (session_id, assistant_turn, artifact_id, surface, target)
+ask_artifact_deliveries ask_artifact_deliveries_session_id_assistant_turn_artifact_fkey FOREIGN KEY (session_id, assistant_turn, artifact_id) REFERENCES ask_result_artifacts(session_id, assistant_turn, artifact_id) ON DELETE CASCADE
+ask_artifact_deliveries ask_artifact_deliveries_session_id_not_null NOT NULL session_id
+ask_artifact_deliveries ask_artifact_deliveries_status_check CHECK ((status = ANY (ARRAY['delivered'::text, 'failed'::text])))
+ask_artifact_deliveries ask_artifact_deliveries_status_not_null NOT NULL status
+ask_artifact_deliveries ask_artifact_deliveries_surface_check CHECK ((surface = ANY (ARRAY['slack'::text, 'scheduled'::text])))
+ask_artifact_deliveries ask_artifact_deliveries_surface_not_null NOT NULL surface
+ask_artifact_deliveries ask_artifact_deliveries_target_check CHECK ((target <> ''::text))
+ask_artifact_deliveries ask_artifact_deliveries_target_not_null NOT NULL target
+ask_artifact_deliveries ask_artifact_deliveries_updated_at_not_null NOT NULL updated_at
+ask_artifacts ask_artifacts_byte_size_check CHECK (((byte_size > 0) AND (byte_size <= 10485760)))
+ask_artifacts ask_artifacts_byte_size_not_null NOT NULL byte_size
+ask_artifacts ask_artifacts_content_sha256_check CHECK ((content_sha256 ~ '^[0-9a-f]{64}$'::text))
+ask_artifacts ask_artifacts_content_sha256_not_null NOT NULL content_sha256
+ask_artifacts ask_artifacts_created_at_not_null NOT NULL created_at
+ask_artifacts ask_artifacts_height_check CHECK (((height > 0) AND (height <= 4096)))
+ask_artifacts ask_artifacts_height_not_null NOT NULL height
+ask_artifacts ask_artifacts_id_not_null NOT NULL id
+ask_artifacts ask_artifacts_idempotency_key_check CHECK ((idempotency_key ~ '^[0-9a-f]{64}$'::text))
+ask_artifacts ask_artifacts_idempotency_key_key UNIQUE (idempotency_key)
+ask_artifacts ask_artifacts_idempotency_key_not_null NOT NULL idempotency_key
+ask_artifacts ask_artifacts_media_type_check CHECK ((media_type = 'image/png'::text))
+ask_artifacts ask_artifacts_media_type_not_null NOT NULL media_type
+ask_artifacts ask_artifacts_pkey PRIMARY KEY (id)
+ask_artifacts ask_artifacts_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_artifacts ask_artifacts_session_id_not_null NOT NULL session_id
+ask_artifacts ask_artifacts_source_tool_check CHECK ((source_tool = 'grafana_get_panel_image'::text))
+ask_artifacts ask_artifacts_source_tool_not_null NOT NULL source_tool
+ask_artifacts ask_artifacts_status_check CHECK ((status = ANY (ARRAY['ready'::text, 'unavailable'::text])))
+ask_artifacts ask_artifacts_status_not_null NOT NULL status
+ask_artifacts ask_artifacts_storage_key_check CHECK ((storage_key <> ''::text))
+ask_artifacts ask_artifacts_storage_key_not_null NOT NULL storage_key
+ask_artifacts ask_artifacts_tool_call_id_check CHECK ((tool_call_id <> ''::text))
+ask_artifacts ask_artifacts_tool_call_id_not_null NOT NULL tool_call_id
+ask_artifacts ask_artifacts_width_check CHECK (((width > 0) AND (width <= 4096)))
+ask_artifacts ask_artifacts_width_not_null NOT NULL width
+ask_citations ask_citations_created_at_not_null NOT NULL created_at
+ask_citations ask_citations_event_id_not_null NOT NULL event_id
+ask_citations ask_citations_pkey PRIMARY KEY (session_id, turn, event_id)
+ask_citations ask_citations_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_citations ask_citations_session_id_not_null NOT NULL session_id
+ask_citations ask_citations_turn_not_null NOT NULL turn
+ask_citations ask_citations_url_not_null NOT NULL url
+ask_feedback ask_feedback_added_at_not_null NOT NULL added_at
+ask_feedback ask_feedback_channel_id_not_null NOT NULL channel_id
+ask_feedback ask_feedback_emoji_not_null NOT NULL emoji
+ask_feedback ask_feedback_message_ts_not_null NOT NULL message_ts
+ask_feedback ask_feedback_pkey PRIMARY KEY (session_id, turn, message_ts, reactor, emoji)
+ask_feedback ask_feedback_reactor_not_null NOT NULL reactor
+ask_feedback ask_feedback_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_feedback ask_feedback_session_id_not_null NOT NULL session_id
+ask_feedback ask_feedback_turn_not_null NOT NULL turn
+ask_feedback ask_feedback_verdict_check CHECK ((verdict = ANY (ARRAY['up'::text, 'down'::text, 'other'::text])))
+ask_feedback ask_feedback_verdict_not_null NOT NULL verdict
+ask_inference_calls ask_inference_calls_completed_at_not_null NOT NULL completed_at
+ask_inference_calls ask_inference_calls_duration_ms_not_null NOT NULL duration_ms
+ask_inference_calls ask_inference_calls_model_id_not_null NOT NULL model_id
+ask_inference_calls ask_inference_calls_outcome_not_null NOT NULL outcome
+ask_inference_calls ask_inference_calls_pkey PRIMARY KEY (run_id, sequence)
+ask_inference_calls ask_inference_calls_run_id_fkey FOREIGN KEY (run_id) REFERENCES ask_runs(id) ON DELETE CASCADE
+ask_inference_calls ask_inference_calls_run_id_not_null NOT NULL run_id
+ask_inference_calls ask_inference_calls_sequence_not_null NOT NULL sequence
+ask_inference_calls ask_inference_calls_started_at_not_null NOT NULL started_at
+ask_inference_calls ask_inference_calls_workload_not_null NOT NULL workload
+ask_inference_calls ask_inference_duration_nonnegative CHECK ((duration_ms >= 0))
+ask_inference_calls ask_inference_error_bounded CHECK (((error IS NULL) OR (length(error) <= 4096)))
+ask_inference_calls ask_inference_outcome_known CHECK ((outcome = ANY (ARRAY['ok'::text, 'error'::text])))
+ask_inference_calls ask_inference_sequence_nonnegative CHECK ((sequence >= 0))
+ask_inference_calls ask_inference_tokens_nonnegative CHECK ((((input_tokens IS NULL) OR (input_tokens >= 0)) AND ((output_tokens IS NULL) OR (output_tokens >= 0)) AND ((cache_read_tokens IS NULL) OR (cache_read_tokens >= 0)) AND ((reasoning_tokens IS NULL) OR (reasoning_tokens >= 0))))
+ask_inference_calls ask_inference_workload_known CHECK ((workload = ANY (ARRAY['root'::text, 'observability_child'::text])))
+ask_input_images ask_input_images_created_at_not_null NOT NULL created_at
+ask_input_images ask_input_images_delivery_status_check CHECK ((delivery_status = ANY (ARRAY['captioned'::text, 'unavailable'::text])))
+ask_input_images ask_input_images_delivery_status_not_null NOT NULL delivery_status
+ask_input_images ask_input_images_pkey PRIMARY KEY (session_id, source_turn_id, source_image_id)
+ask_input_images ask_input_images_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_input_images ask_input_images_session_id_not_null NOT NULL session_id
+ask_input_images ask_input_images_source_event_id_fkey FOREIGN KEY (source_event_id) REFERENCES events(id) ON DELETE CASCADE
+ask_input_images ask_input_images_source_event_id_not_null NOT NULL source_event_id
+ask_input_images ask_input_images_source_image_id_not_null NOT NULL source_image_id
+ask_input_images ask_input_images_source_message_id_not_null NOT NULL source_message_id
+ask_input_images ask_input_images_source_not_null NOT NULL source
+ask_input_images ask_input_images_source_turn_id_not_null NOT NULL source_turn_id
+ask_messages ask_messages_created_at_not_null NOT NULL created_at
+ask_messages ask_messages_id_not_null NOT NULL id
+ask_messages ask_messages_incomplete_reason_check CHECK (((incomplete_reason IS NULL) OR ((role = 'assistant'::text) AND (incomplete_reason = ANY (ARRAY['max_tokens'::text, 'stop_sequence'::text, 'malformed_tool_use'::text, 'guardrail_intervened'::text, 'content_filtered'::text, 'malformed_model_output'::text, 'model_context_window_exceeded'::text, 'unknown_stop_reason'::text, 'tool_budget_exhausted'::text, 'synthesis_error'::text, 'reference_unavailable'::text, 'stop_without_respond'::text])))))
+ask_messages ask_messages_message_not_null NOT NULL message
+ask_messages ask_messages_message_role_matches CHECK (((message ->> 'role'::text) = role))
+ask_messages ask_messages_message_schema_version_not_null NOT NULL message_schema_version
+ask_messages ask_messages_pkey PRIMARY KEY (id)
+ask_messages ask_messages_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])))
+ask_messages ask_messages_role_not_null NOT NULL role
+ask_messages ask_messages_schema_version_v1 CHECK ((message_schema_version = 1))
+ask_messages ask_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_messages ask_messages_session_id_not_null NOT NULL session_id
+ask_messages ask_messages_turn_not_null NOT NULL turn
+ask_observability_steering ask_observability_steering_bundle_hash_check CHECK ((bundle_hash ~ '^[0-9a-f]{64}$'::text))
+ask_observability_steering ask_observability_steering_bundle_hash_not_null NOT NULL bundle_hash
+ask_observability_steering ask_observability_steering_bundle_version_not_null NOT NULL bundle_version
+ask_observability_steering ask_observability_steering_card_ids_not_null NOT NULL card_ids
+ask_observability_steering ask_observability_steering_created_at_not_null NOT NULL created_at
+ask_observability_steering ask_observability_steering_intent_check CHECK ((intent = ANY (ARRAY['none'::text, 'alert'::text, 'slo'::text, 'exploration'::text, 'incident'::text])))
+ask_observability_steering ask_observability_steering_intent_not_null NOT NULL intent
+ask_observability_steering ask_observability_steering_pkey PRIMARY KEY (session_id, user_turn)
+ask_observability_steering ask_observability_steering_router_hash_check CHECK ((router_hash ~ '^[0-9a-f]{64}$'::text))
+ask_observability_steering ask_observability_steering_router_hash_not_null NOT NULL router_hash
+ask_observability_steering ask_observability_steering_router_version_not_null NOT NULL router_version
+ask_observability_steering ask_observability_steering_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_observability_steering ask_observability_steering_session_id_not_null NOT NULL session_id
+ask_observability_steering ask_observability_steering_user_turn_check CHECK ((user_turn >= 0))
+ask_observability_steering ask_observability_steering_user_turn_not_null NOT NULL user_turn
+ask_result_artifacts ask_result_artifacts_alt_text_check CHECK (((alt_text <> ''::text) AND (char_length(alt_text) <= 600)))
+ask_result_artifacts ask_result_artifacts_alt_text_not_null NOT NULL alt_text
+ask_result_artifacts ask_result_artifacts_artifact_id_fkey FOREIGN KEY (artifact_id) REFERENCES ask_artifacts(id) ON DELETE RESTRICT
+ask_result_artifacts ask_result_artifacts_artifact_id_not_null NOT NULL artifact_id
+ask_result_artifacts ask_result_artifacts_assistant_turn_check CHECK ((assistant_turn >= 0))
+ask_result_artifacts ask_result_artifacts_assistant_turn_not_null NOT NULL assistant_turn
+ask_result_artifacts ask_result_artifacts_created_at_not_null NOT NULL created_at
+ask_result_artifacts ask_result_artifacts_pkey PRIMARY KEY (session_id, assistant_turn, "position")
+ask_result_artifacts ask_result_artifacts_position_check CHECK ((("position" >= 0) AND ("position" < 4)))
+ask_result_artifacts ask_result_artifacts_position_not_null NOT NULL "position"
+ask_result_artifacts ask_result_artifacts_session_id_assistant_turn_artifact_id_key UNIQUE (session_id, assistant_turn, artifact_id)
+ask_result_artifacts ask_result_artifacts_session_id_assistant_turn_fkey FOREIGN KEY (session_id, assistant_turn) REFERENCES ask_messages(session_id, turn) ON DELETE CASCADE
+ask_result_artifacts ask_result_artifacts_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_result_artifacts ask_result_artifacts_session_id_not_null NOT NULL session_id
+ask_result_artifacts ask_result_artifacts_title_check CHECK (((title <> ''::text) AND (char_length(title) <= 160)))
+ask_result_artifacts ask_result_artifacts_title_not_null NOT NULL title
+ask_runs ask_runs_completed_at_not_null NOT NULL completed_at
+ask_runs ask_runs_duration_ms_not_null NOT NULL duration_ms
+ask_runs ask_runs_duration_nonnegative CHECK ((duration_ms >= 0))
+ask_runs ask_runs_error_bounded CHECK (((error IS NULL) OR (length(error) <= 4096)))
+ask_runs ask_runs_id_not_null NOT NULL id
+ask_runs ask_runs_model_id_not_null NOT NULL model_id
+ask_runs ask_runs_model_nonempty CHECK ((model_id <> ''::text))
+ask_runs ask_runs_outcome_known CHECK ((outcome = ANY (ARRAY['answered'::text, 'incomplete'::text, 'error'::text])))
+ask_runs ask_runs_outcome_not_null NOT NULL outcome
+ask_runs ask_runs_pkey PRIMARY KEY (id)
+ask_runs ask_runs_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_runs ask_runs_session_id_not_null NOT NULL session_id
+ask_runs ask_runs_started_at_not_null NOT NULL started_at
+ask_runs ask_runs_surface_known CHECK ((surface = ANY (ARRAY['http'::text, 'slack'::text, 'scheduled'::text, 'pagerduty'::text])))
+ask_runs ask_runs_surface_not_null NOT NULL surface
+ask_runs ask_runs_user_turn_nonnegative CHECK (((user_turn IS NULL) OR (user_turn >= 0)))
+ask_sessions ask_sessions_created_at_not_null NOT NULL created_at
+ask_sessions ask_sessions_id_not_null NOT NULL id
+ask_sessions ask_sessions_initial_model_nonempty CHECK (((initial_model_id IS NULL) OR (btrim(initial_model_id) <> ''::text)))
+ask_sessions ask_sessions_initial_scopes_nonempty CHECK (((initial_scopes IS NULL) OR (cardinality(initial_scopes) > 0)))
+ask_sessions ask_sessions_last_turn_at_not_null NOT NULL last_turn_at
+ask_sessions ask_sessions_pkey PRIMARY KEY (id)
+ask_sessions ask_sessions_prompt_release_id_fkey FOREIGN KEY (prompt_release_id) REFERENCES prompt_releases(id)
+ask_sessions ask_sessions_surface_known CHECK (((surface IS NULL) OR (surface = ANY (ARRAY['http'::text, 'slack'::text, 'scheduled'::text, 'pagerduty'::text, 'unknown'::text]))))
+ask_sessions ask_sessions_title_nonempty CHECK (((title IS NULL) OR (btrim(title) <> ''::text)))
+ask_slack_sessions ask_slack_sessions_channel_id_not_null NOT NULL channel_id
+ask_slack_sessions ask_slack_sessions_pkey PRIMARY KEY (channel_id, thread_ts)
+ask_slack_sessions ask_slack_sessions_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE CASCADE
+ask_slack_sessions ask_slack_sessions_session_id_not_null NOT NULL session_id
+ask_slack_sessions ask_slack_sessions_thread_ts_not_null NOT NULL thread_ts
+ask_tool_calls ask_tool_calls_completed_at_not_null NOT NULL completed_at
+ask_tool_calls ask_tool_calls_duration_ms_not_null NOT NULL duration_ms
+ask_tool_calls ask_tool_calls_outcome_not_null NOT NULL outcome
+ask_tool_calls ask_tool_calls_pkey PRIMARY KEY (run_id, sequence)
+ask_tool_calls ask_tool_calls_run_id_fkey FOREIGN KEY (run_id) REFERENCES ask_runs(id) ON DELETE CASCADE
+ask_tool_calls ask_tool_calls_run_id_not_null NOT NULL run_id
+ask_tool_calls ask_tool_calls_sequence_not_null NOT NULL sequence
+ask_tool_calls ask_tool_calls_started_at_not_null NOT NULL started_at
+ask_tool_calls ask_tool_calls_tool_name_not_null NOT NULL tool_name
+ask_tool_calls ask_tool_calls_workload_not_null NOT NULL workload
+ask_tool_calls ask_tool_duration_nonnegative CHECK ((duration_ms >= 0))
+ask_tool_calls ask_tool_error_bounded CHECK (((error IS NULL) OR (length(error) <= 4096)))
+ask_tool_calls ask_tool_name_nonempty CHECK ((tool_name <> ''::text))
+ask_tool_calls ask_tool_outcome_known CHECK ((outcome = ANY (ARRAY['ok'::text, 'error'::text])))
+ask_tool_calls ask_tool_sequence_nonnegative CHECK ((sequence >= 0))
+ask_tool_calls ask_tool_workload_known CHECK ((workload = ANY (ARRAY['root'::text, 'observability_child'::text])))
+ask_turn_claims ask_turn_claims_channel_id_not_null NOT NULL channel_id
+ask_turn_claims ask_turn_claims_claimed_at_not_null NOT NULL claimed_at
+ask_turn_claims ask_turn_claims_message_ts_not_null NOT NULL message_ts
+ask_turn_claims ask_turn_claims_pkey PRIMARY KEY (channel_id, message_ts)
+connector_settings connector_settings_connector_check CHECK ((btrim(connector) <> ''::text))
+connector_settings connector_settings_connector_not_null NOT NULL connector
+connector_settings connector_settings_enabled_not_null NOT NULL enabled
+connector_settings connector_settings_pkey PRIMARY KEY (connector)
+connector_settings connector_settings_secrets_not_null NOT NULL secrets
+connector_settings connector_settings_settings_not_null NOT NULL settings
+connector_settings connector_settings_updated_at_not_null NOT NULL updated_at
+connector_settings connector_settings_updated_by_check CHECK ((btrim(updated_by) <> ''::text))
+connector_settings connector_settings_updated_by_not_null NOT NULL updated_by
+connector_settings connector_settings_version_check CHECK ((version > 0))
+connector_settings connector_settings_version_not_null NOT NULL version
+eval_golden_set_splits eval_golden_set_splits_assigned_at_not_null NOT NULL assigned_at
+eval_golden_set_splits eval_golden_set_splits_assigned_by_not_null NOT NULL assigned_by
+eval_golden_set_splits eval_golden_set_splits_confirmation_percent_check CHECK (((confirmation_percent >= 1) AND (confirmation_percent <= 50)))
+eval_golden_set_splits eval_golden_set_splits_confirmation_percent_not_null NOT NULL confirmation_percent
+eval_golden_set_splits eval_golden_set_splits_golden_set_not_null NOT NULL golden_set
+eval_golden_set_splits eval_golden_set_splits_pkey PRIMARY KEY (golden_set)
+eval_golden_set_splits eval_golden_set_splits_seed_not_null NOT NULL seed
+eval_judgments eval_judgments_event_id_not_null NOT NULL event_id
+eval_judgments eval_judgments_grade_check CHECK (((grade >= 0) AND (grade <= 3)))
+eval_judgments eval_judgments_grade_not_null NOT NULL grade
+eval_judgments eval_judgments_judged_at_not_null NOT NULL judged_at
+eval_judgments eval_judgments_judged_content_hash_not_null NOT NULL judged_content_hash
+eval_judgments eval_judgments_label_run_id_fkey FOREIGN KEY (label_run_id) REFERENCES eval_label_runs(id)
+eval_judgments eval_judgments_label_run_id_not_null NOT NULL label_run_id
+eval_judgments eval_judgments_pkey PRIMARY KEY (question_id, event_id, label_run_id)
+eval_judgments eval_judgments_question_id_fkey FOREIGN KEY (question_id) REFERENCES eval_questions(id)
+eval_judgments eval_judgments_question_id_not_null NOT NULL question_id
+eval_label_runs eval_label_runs_created_at_not_null NOT NULL created_at
+eval_label_runs eval_label_runs_golden_set_not_null NOT NULL golden_set
+eval_label_runs eval_label_runs_id_not_null NOT NULL id
+eval_label_runs eval_label_runs_label_source_check CHECK ((label_source = ANY (ARRAY['cited'::text, 'judge'::text, 'human'::text])))
+eval_label_runs eval_label_runs_label_source_not_null NOT NULL label_source
+eval_label_runs eval_label_runs_pkey PRIMARY KEY (id)
+eval_pool_candidates eval_pool_candidates_created_at_not_null NOT NULL created_at
+eval_pool_candidates eval_pool_candidates_event_id_not_null NOT NULL event_id
+eval_pool_candidates eval_pool_candidates_origin_not_null NOT NULL origin
+eval_pool_candidates eval_pool_candidates_pkey PRIMARY KEY (question_id, event_id, origin)
+eval_pool_candidates eval_pool_candidates_question_id_fkey FOREIGN KEY (question_id) REFERENCES eval_questions(id)
+eval_pool_candidates eval_pool_candidates_question_id_not_null NOT NULL question_id
+eval_question_triage eval_question_triage_audit_required_not_null NOT NULL audit_required
+eval_question_triage eval_question_triage_confidence_check CHECK ((confidence = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])))
+eval_question_triage eval_question_triage_confidence_not_null NOT NULL confidence
+eval_question_triage eval_question_triage_created_at_not_null NOT NULL created_at
+eval_question_triage eval_question_triage_id_not_null NOT NULL id
+eval_question_triage eval_question_triage_pkey PRIMARY KEY (id)
+eval_question_triage eval_question_triage_question_id_fkey FOREIGN KEY (question_id) REFERENCES eval_questions(id)
+eval_question_triage eval_question_triage_question_id_not_null NOT NULL question_id
+eval_question_triage eval_question_triage_raw_response_not_null NOT NULL raw_response
+eval_question_triage eval_question_triage_reason_not_null NOT NULL reason
+eval_question_triage eval_question_triage_recommendation_check CHECK ((recommendation = ANY (ARRAY['approve'::text, 'exclude'::text])))
+eval_question_triage eval_question_triage_recommendation_not_null NOT NULL recommendation
+eval_question_triage eval_question_triage_run_id_fkey FOREIGN KEY (run_id) REFERENCES eval_question_triage_runs(id)
+eval_question_triage eval_question_triage_run_id_not_null NOT NULL run_id
+eval_question_triage eval_question_triage_run_id_question_id_key UNIQUE (run_id, question_id)
+eval_question_triage_runs eval_question_triage_runs_audit_percent_check CHECK (((audit_percent >= 1) AND (audit_percent <= 100)))
+eval_question_triage_runs eval_question_triage_runs_audit_percent_not_null NOT NULL audit_percent
+eval_question_triage_runs eval_question_triage_runs_check CHECK (((applied_at IS NULL) = (applied_by IS NULL)))
+eval_question_triage_runs eval_question_triage_runs_created_at_not_null NOT NULL created_at
+eval_question_triage_runs eval_question_triage_runs_golden_set_not_null NOT NULL golden_set
+eval_question_triage_runs eval_question_triage_runs_id_not_null NOT NULL id
+eval_question_triage_runs eval_question_triage_runs_model_not_null NOT NULL model
+eval_question_triage_runs eval_question_triage_runs_pkey PRIMARY KEY (id)
+eval_question_triage_runs eval_question_triage_runs_questions_failed_not_null NOT NULL questions_failed
+eval_question_triage_runs eval_question_triage_runs_questions_triaged_not_null NOT NULL questions_triaged
+eval_question_triage_runs eval_question_triage_runs_rubric_prompt_not_null NOT NULL rubric_prompt
+eval_question_triage_runs eval_question_triage_runs_rubric_version_not_null NOT NULL rubric_version
+eval_question_triage_runs eval_question_triage_runs_superseded_fields CHECK ((((superseded_at IS NULL) AND (superseded_by IS NULL) AND (superseded_reason IS NULL)) OR ((superseded_at IS NOT NULL) AND (superseded_by IS NOT NULL) AND (superseded_reason IS NOT NULL))))
+eval_question_triage_runs eval_question_triage_runs_terminal_state CHECK ((NOT ((applied_at IS NOT NULL) AND (superseded_at IS NOT NULL))))
+eval_questions eval_questions_applied_triage_id_fkey FOREIGN KEY (applied_triage_id) REFERENCES eval_question_triage(id)
+eval_questions eval_questions_created_at_not_null NOT NULL created_at
+eval_questions eval_questions_curation_fields_together CHECK ((((curated_at IS NULL) AND (curated_by IS NULL) AND (curation_method IS NULL) AND (applied_triage_id IS NULL)) OR ((curated_at IS NOT NULL) AND (curated_by IS NOT NULL) AND (curation_method = 'human'::text) AND (applied_triage_id IS NULL)) OR ((curated_at IS NOT NULL) AND (curated_by IS NOT NULL) AND (curation_method = 'model'::text) AND (applied_triage_id IS NOT NULL))))
+eval_questions eval_questions_curation_method_check CHECK ((curation_method = ANY (ARRAY['human'::text, 'model'::text])))
+eval_questions eval_questions_eval_split_check CHECK ((eval_split = ANY (ARRAY['development'::text, 'confirmation'::text])))
+eval_questions eval_questions_golden_set_not_null NOT NULL golden_set
+eval_questions eval_questions_id_not_null NOT NULL id
+eval_questions eval_questions_origin_session_fkey FOREIGN KEY (origin_session) REFERENCES ask_sessions(id)
+eval_questions eval_questions_pkey PRIMARY KEY (id)
+eval_questions eval_questions_question_not_null NOT NULL question
+eval_questions eval_questions_source_kind_check CHECK ((source_kind = ANY (ARRAY['mined'::text, 'synthetic'::text, 'manual'::text])))
+eval_questions eval_questions_source_kind_not_null NOT NULL source_kind
+eval_questions eval_questions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'excluded'::text])))
+eval_questions eval_questions_status_not_null NOT NULL status
+eval_runs eval_runs_decision_grade_not_null NOT NULL decision_grade
+eval_runs eval_runs_effective_set_hash_not_null NOT NULL effective_set_hash
+eval_runs eval_runs_golden_set_not_null NOT NULL golden_set
+eval_runs eval_runs_id_not_null NOT NULL id
+eval_runs eval_runs_label_run_ids_not_null NOT NULL label_run_ids
+eval_runs eval_runs_params_not_null NOT NULL params
+eval_runs eval_runs_pkey PRIMARY KEY (id)
+eval_runs eval_runs_pool_coverage_not_null NOT NULL pool_coverage
+eval_runs eval_runs_ran_at_not_null NOT NULL ran_at
+eval_runs eval_runs_results_not_null NOT NULL results
+eval_runs eval_runs_retriever_tag_not_null NOT NULL retriever_tag
+event_chunks event_chunks_chunk_idx_not_null NOT NULL chunk_idx
+event_chunks event_chunks_content_not_null NOT NULL content
+event_chunks event_chunks_document_id_iff_document_kind CHECK (((kind = 'document_text'::text) = (event_document_id IS NOT NULL)))
+event_chunks event_chunks_event_document_id_fkey FOREIGN KEY (event_document_id) REFERENCES event_documents(id) ON DELETE CASCADE
+event_chunks event_chunks_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+event_chunks event_chunks_event_id_not_null NOT NULL event_id
+event_chunks event_chunks_failure_count_not_null NOT NULL failure_count
+event_chunks event_chunks_id_not_null NOT NULL id
+event_chunks event_chunks_kind_not_null NOT NULL kind
+event_chunks event_chunks_kind_valid CHECK ((kind = ANY (ARRAY['text'::text, 'image_caption'::text, 'document_text'::text])))
+event_chunks event_chunks_occurred_at_not_null NOT NULL occurred_at
+event_chunks event_chunks_pkey PRIMARY KEY (id)
+event_chunks event_chunks_scope_sync_attempts_not_null NOT NULL scope_sync_attempts
+event_chunks event_chunks_scope_sync_needed_not_null NOT NULL scope_sync_needed
+event_chunks event_chunks_scope_sync_next_attempt_at_not_null NOT NULL scope_sync_next_attempt_at
+event_document_extract_parts event_document_extract_parts_cost_usd_check CHECK ((cost_usd >= (0)::numeric))
+event_document_extract_parts event_document_extract_parts_cost_usd_not_null NOT NULL cost_usd
+event_document_extract_parts event_document_extract_parts_created_at_not_null NOT NULL created_at
+event_document_extract_parts event_document_extract_parts_event_document_id_fkey FOREIGN KEY (event_document_id) REFERENCES event_documents(id) ON DELETE CASCADE
+event_document_extract_parts event_document_extract_parts_event_document_id_not_null NOT NULL event_document_id
+event_document_extract_parts event_document_extract_parts_event_document_id_source_sha25_key UNIQUE (event_document_id, source_sha256, extract_model, page_number)
+event_document_extract_parts event_document_extract_parts_extract_model_not_null NOT NULL extract_model
+event_document_extract_parts event_document_extract_parts_id_not_null NOT NULL id
+event_document_extract_parts event_document_extract_parts_markdown_not_null NOT NULL markdown
+event_document_extract_parts event_document_extract_parts_page_number_check CHECK ((page_number > 0))
+event_document_extract_parts event_document_extract_parts_page_number_not_null NOT NULL page_number
+event_document_extract_parts event_document_extract_parts_pkey PRIMARY KEY (id)
+event_document_extract_parts event_document_extract_parts_source_sha256_not_null NOT NULL source_sha256
+event_document_extract_parts event_document_extract_parts_truncated_not_null NOT NULL truncated
+event_documents event_documents_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+event_documents event_documents_event_id_not_null NOT NULL event_id
+event_documents event_documents_event_id_source_file_id_key UNIQUE (event_id, source_file_id)
+event_documents event_documents_extract_cost_usd_check CHECK ((extract_cost_usd >= (0)::numeric))
+event_documents event_documents_failure_count_not_null NOT NULL failure_count
+event_documents event_documents_filename_not_null NOT NULL filename
+event_documents event_documents_id_not_null NOT NULL id
+event_documents event_documents_incomplete_reason_check CHECK ((incomplete_reason = ANY (ARRAY['cost_limit'::text, 'output_truncated'::text, 'missing_pages'::text])))
+event_documents event_documents_media_type_not_null NOT NULL media_type
+event_documents event_documents_occurred_at_not_null NOT NULL occurred_at
+event_documents event_documents_page_count_check CHECK ((page_count >= 0))
+event_documents event_documents_pages_extracted_check CHECK ((pages_extracted >= 0))
+event_documents event_documents_pkey PRIMARY KEY (id)
+event_documents event_documents_source_file_id_not_null NOT NULL source_file_id
+event_images event_images_chunk_id_fkey FOREIGN KEY (chunk_id) REFERENCES event_chunks(id) ON DELETE SET NULL
+event_images event_images_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+event_images event_images_event_id_not_null NOT NULL event_id
+event_images event_images_event_id_source_image_id_key UNIQUE (event_id, source_image_id)
+event_images event_images_failure_count_not_null NOT NULL failure_count
+event_images event_images_id_not_null NOT NULL id
+event_images event_images_media_type_is_image CHECK ((lower(media_type) ~~ 'image/%'::text))
+event_images event_images_media_type_not_null NOT NULL media_type
+event_images event_images_occurred_at_not_null NOT NULL occurred_at
+event_images event_images_pkey PRIMARY KEY (id)
+event_images event_images_source_image_id_not_null NOT NULL source_image_id
+event_images event_images_unread_flagged_not_null NOT NULL unread_flagged
+events events_actor_canonical_not_null NOT NULL actor_canonical
+events events_body_not_null NOT NULL body
+events events_content_hash_not_null NOT NULL content_hash
+events events_deleted_not_null NOT NULL deleted
+events events_eval_content_hash_not_null NOT NULL eval_content_hash
+events events_external_id_not_null NOT NULL external_id
+events events_id_not_null NOT NULL id
+events events_image_count_not_null NOT NULL image_count
+events events_ingested_at_not_null NOT NULL ingested_at
+events events_occurred_at_not_null NOT NULL occurred_at
+events events_pkey PRIMARY KEY (id)
+events events_raw_not_null NOT NULL raw
+events events_scope_not_null NOT NULL scope
+events events_source_external_id_key UNIQUE (source, external_id)
+events events_source_not_null NOT NULL source
+legacy_ask_prompts legacy_ask_prompts_body_check CHECK ((btrim(body) <> ''::text))
+legacy_ask_prompts legacy_ask_prompts_body_not_null NOT NULL body
+legacy_ask_prompts legacy_ask_prompts_created_at_not_null NOT NULL created_at
+legacy_ask_prompts legacy_ask_prompts_id_check CHECK ((id > 0))
+legacy_ask_prompts legacy_ask_prompts_id_not_null NOT NULL id
+legacy_ask_prompts legacy_ask_prompts_pkey PRIMARY KEY (id)
+legacy_ask_prompts legacy_ask_prompts_recovered_at_not_null NOT NULL recovered_at
+legacy_ask_prompts legacy_ask_prompts_recovery_source_check CHECK ((btrim(recovery_source) <> ''::text))
+legacy_ask_prompts legacy_ask_prompts_recovery_source_not_null NOT NULL recovery_source
+legacy_ask_session_prompts legacy_ask_session_prompts_legacy_prompt_id_fkey FOREIGN KEY (legacy_prompt_id) REFERENCES legacy_ask_prompts(id) ON DELETE RESTRICT
+legacy_ask_session_prompts legacy_ask_session_prompts_legacy_prompt_id_not_null NOT NULL legacy_prompt_id
+legacy_ask_session_prompts legacy_ask_session_prompts_pkey PRIMARY KEY (session_id)
+legacy_ask_session_prompts legacy_ask_session_prompts_recovered_at_not_null NOT NULL recovered_at
+legacy_ask_session_prompts legacy_ask_session_prompts_recovery_source_check CHECK ((btrim(recovery_source) <> ''::text))
+legacy_ask_session_prompts legacy_ask_session_prompts_recovery_source_not_null NOT NULL recovery_source
+legacy_ask_session_prompts legacy_ask_session_prompts_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id) ON DELETE RESTRICT
+legacy_ask_session_prompts legacy_ask_session_prompts_session_id_not_null NOT NULL session_id
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_archived_at_not_null NOT NULL archived_at
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_chunk_id_not_null NOT NULL chunk_id
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_chunk_snapshot_not_null NOT NULL chunk_snapshot
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_event_id_fkey FOREIGN KEY (event_id) REFERENCES legacy_session_event_supersessions(event_id) ON DELETE RESTRICT
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_event_id_not_null NOT NULL event_id
+legacy_session_event_chunk_archive legacy_session_event_chunk_archive_pkey PRIMARY KEY (chunk_id)
+legacy_session_event_supersessions legacy_session_event_supersessions_client_not_null NOT NULL client
+legacy_session_event_supersessions legacy_session_event_supersessions_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE RESTRICT
+legacy_session_event_supersessions legacy_session_event_supersessions_event_id_not_null NOT NULL event_id
+legacy_session_event_supersessions legacy_session_event_supersessions_event_snapshot_not_null NOT NULL event_snapshot
+legacy_session_event_supersessions legacy_session_event_supersessions_owner_not_null NOT NULL owner
+legacy_session_event_supersessions legacy_session_event_supersessions_pkey PRIMARY KEY (event_id)
+legacy_session_event_supersessions legacy_session_event_supersessions_reason_check CHECK ((btrim(reason) <> ''::text))
+legacy_session_event_supersessions legacy_session_event_supersessions_reason_not_null NOT NULL reason
+legacy_session_event_supersessions legacy_session_event_supersessions_revision_not_null NOT NULL revision
+legacy_session_event_supersessions legacy_session_event_supersessions_session_id_not_null NOT NULL session_id
+legacy_session_event_supersessions legacy_session_event_supersessions_superseded_at_not_null NOT NULL superseded_at
+linear_sync linear_sync_id_check CHECK ((id = 1))
+linear_sync linear_sync_id_not_null NOT NULL id
+linear_sync linear_sync_pkey PRIMARY KEY (id)
+linear_sync linear_sync_reconcile_runs_total_not_null NOT NULL reconcile_runs_total
+linear_sync linear_sync_sync_runs_total_not_null NOT NULL sync_runs_total
+linear_sync linear_sync_visibility_runs_total_not_null NOT NULL visibility_runs_total
+mcp_tasks mcp_tasks_created_at_not_null NOT NULL created_at
+mcp_tasks mcp_tasks_expires_at_not_null NOT NULL expires_at
+mcp_tasks mcp_tasks_expiry_after_creation CHECK ((expires_at > created_at))
+mcp_tasks mcp_tasks_id_not_null NOT NULL id
+mcp_tasks mcp_tasks_last_updated_at_not_null NOT NULL last_updated_at
+mcp_tasks mcp_tasks_owner_email_not_null NOT NULL owner_email
+mcp_tasks mcp_tasks_owner_nonempty CHECK ((btrim(owner_email) <> ''::text))
+mcp_tasks mcp_tasks_pkey PRIMARY KEY (id)
+mcp_tasks mcp_tasks_poll_interval_positive CHECK (((poll_interval_ms IS NULL) OR (poll_interval_ms > 0)))
+mcp_tasks mcp_tasks_status_known CHECK ((status = ANY (ARRAY['working'::text, 'input_required'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])))
+mcp_tasks mcp_tasks_status_not_null NOT NULL status
+mcp_tasks mcp_tasks_terminal_payload CHECK ((((status = 'completed'::text) AND (result IS NOT NULL) AND (error IS NULL)) OR ((status = 'failed'::text) AND (result IS NULL) AND (error IS NOT NULL)) OR ((status <> ALL (ARRAY['completed'::text, 'failed'::text])) AND (result IS NULL) AND (error IS NULL))))
+notion_discovered_resources notion_discovered_resources_first_seen_at_not_null NOT NULL first_seen_at
+notion_discovered_resources notion_discovered_resources_last_seen_at_not_null NOT NULL last_seen_at
+notion_discovered_resources notion_discovered_resources_last_seen_run_id_fkey FOREIGN KEY (last_seen_run_id) REFERENCES notion_sync_runs(run_id)
+notion_discovered_resources notion_discovered_resources_object_id_not_null NOT NULL object_id
+notion_discovered_resources notion_discovered_resources_object_type_check CHECK ((object_type = ANY (ARRAY['database'::text, 'data_source'::text, 'view'::text])))
+notion_discovered_resources notion_discovered_resources_object_type_not_null NOT NULL object_type
+notion_discovered_resources notion_discovered_resources_parent_id_not_null NOT NULL parent_id
+notion_discovered_resources notion_discovered_resources_pkey PRIMARY KEY (object_type, object_id)
+notion_discovered_resources notion_discovered_resources_title_not_null NOT NULL title
+notion_discovered_resources notion_discovered_resources_url_not_null NOT NULL url
+notion_page_roots notion_page_roots_last_seen_run_id_fkey FOREIGN KEY (last_seen_run_id) REFERENCES notion_sync_runs(run_id)
+notion_page_roots notion_page_roots_last_seen_run_id_not_null NOT NULL last_seen_run_id
+notion_page_roots notion_page_roots_page_id_fkey FOREIGN KEY (page_id) REFERENCES notion_page_state(page_id) ON DELETE CASCADE
+notion_page_roots notion_page_roots_page_id_not_null NOT NULL page_id
+notion_page_roots notion_page_roots_pkey PRIMARY KEY (page_id, root_object_type, root_object_id)
+notion_page_roots notion_page_roots_root_object_id_not_null NOT NULL root_object_id
+notion_page_roots notion_page_roots_root_object_type_not_null NOT NULL root_object_type
+notion_page_roots notion_page_roots_root_object_type_root_object_id_fkey FOREIGN KEY (root_object_type, root_object_id) REFERENCES notion_roots(object_type, object_id) ON DELETE CASCADE
+notion_page_state notion_page_state_access_state_check CHECK ((access_state = ANY (ARRAY['active'::text, 'inaccessible'::text, 'trashed'::text, 'removed'::text, 'empty'::text])))
+notion_page_state notion_page_state_access_state_not_null NOT NULL access_state
+notion_page_state notion_page_state_last_error_not_null NOT NULL last_error
+notion_page_state notion_page_state_last_seen_at_not_null NOT NULL last_seen_at
+notion_page_state notion_page_state_last_seen_run_id_fkey FOREIGN KEY (last_seen_run_id) REFERENCES notion_sync_runs(run_id)
+notion_page_state notion_page_state_page_id_not_null NOT NULL page_id
+notion_page_state notion_page_state_pkey PRIMARY KEY (page_id)
+notion_page_state notion_page_state_source_metadata_not_null NOT NULL source_metadata
+notion_roots notion_roots_added_at_not_null NOT NULL added_at
+notion_roots notion_roots_added_by_not_null NOT NULL added_by
+notion_roots notion_roots_label_not_null NOT NULL label
+notion_roots notion_roots_last_walk_error_not_null NOT NULL last_walk_error
+notion_roots notion_roots_last_walk_status_not_null NOT NULL last_walk_status
+notion_roots notion_roots_object_id_not_null NOT NULL object_id
+notion_roots notion_roots_object_type_check CHECK ((object_type = ANY (ARRAY['auto'::text, 'page'::text, 'database'::text, 'data_source'::text, 'view'::text])))
+notion_roots notion_roots_object_type_not_null NOT NULL object_type
+notion_roots notion_roots_pkey PRIMARY KEY (object_type, object_id)
+notion_sync notion_sync_discovery_runs_total_not_null NOT NULL discovery_runs_total
+notion_sync notion_sync_id_check CHECK ((id = 1))
+notion_sync notion_sync_id_not_null NOT NULL id
+notion_sync notion_sync_pkey PRIMARY KEY (id)
+notion_sync notion_sync_reconcile_runs_total_not_null NOT NULL reconcile_runs_total
+notion_sync notion_sync_search_runs_total_not_null NOT NULL search_runs_total
+notion_sync_runs notion_sync_runs_attempted_not_null NOT NULL attempted
+notion_sync_runs notion_sync_runs_created_count_not_null NOT NULL created_count
+notion_sync_runs notion_sync_runs_error_not_null NOT NULL error
+notion_sync_runs notion_sync_runs_failed_count_not_null NOT NULL failed_count
+notion_sync_runs notion_sync_runs_hidden_count_not_null NOT NULL hidden_count
+notion_sync_runs notion_sync_runs_pkey PRIMARY KEY (run_id)
+notion_sync_runs notion_sync_runs_run_id_not_null NOT NULL run_id
+notion_sync_runs notion_sync_runs_run_type_check CHECK ((run_type = ANY (ARRAY['reconcile'::text, 'discovery'::text, 'backfill'::text])))
+notion_sync_runs notion_sync_runs_run_type_not_null NOT NULL run_type
+notion_sync_runs notion_sync_runs_started_at_not_null NOT NULL started_at
+notion_sync_runs notion_sync_runs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'complete'::text, 'partial'::text, 'failed'::text])))
+notion_sync_runs notion_sync_runs_status_not_null NOT NULL status
+notion_sync_runs notion_sync_runs_unchanged_count_not_null NOT NULL unchanged_count
+notion_sync_runs notion_sync_runs_updated_count_not_null NOT NULL updated_count
+pagerduty_investigations pagerduty_investigations_assistant_turn_check CHECK ((assistant_turn >= 0))
+pagerduty_investigations pagerduty_investigations_assistant_turn_not_null NOT NULL assistant_turn
+pagerduty_investigations pagerduty_investigations_attempts_not_null NOT NULL attempts
+pagerduty_investigations pagerduty_investigations_created_at_not_null NOT NULL created_at
+pagerduty_investigations pagerduty_investigations_delivery_attempts_not_null NOT NULL delivery_attempts
+pagerduty_investigations pagerduty_investigations_event_id_not_null NOT NULL event_id
+pagerduty_investigations pagerduty_investigations_event_not_null NOT NULL event
+pagerduty_investigations pagerduty_investigations_incident_id_not_null NOT NULL incident_id
+pagerduty_investigations pagerduty_investigations_incident_id_occurred_at_key UNIQUE (incident_id, occurred_at)
+pagerduty_investigations pagerduty_investigations_next_attempt_at_not_null NOT NULL next_attempt_at
+pagerduty_investigations pagerduty_investigations_occurred_at_not_null NOT NULL occurred_at
+pagerduty_investigations pagerduty_investigations_pkey PRIMARY KEY (event_id)
+pagerduty_investigations pagerduty_investigations_session_id_fkey FOREIGN KEY (session_id) REFERENCES ask_sessions(id)
+pagerduty_investigations pagerduty_investigations_state_check CHECK ((state = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text])))
+pagerduty_investigations pagerduty_investigations_state_not_null NOT NULL state
+prompt_active_release prompt_active_release_activated_at_not_null NOT NULL activated_at
+prompt_active_release prompt_active_release_activated_by_check CHECK ((btrim(activated_by) <> ''::text))
+prompt_active_release prompt_active_release_activated_by_not_null NOT NULL activated_by
+prompt_active_release prompt_active_release_pkey PRIMARY KEY (singleton)
+prompt_active_release prompt_active_release_release_id_fkey FOREIGN KEY (release_id) REFERENCES prompt_releases(id) ON DELETE RESTRICT
+prompt_active_release prompt_active_release_release_id_not_null NOT NULL release_id
+prompt_active_release prompt_active_release_singleton_check CHECK (singleton)
+prompt_active_release prompt_active_release_singleton_not_null NOT NULL singleton
+prompt_release_activations prompt_release_activations_activated_at_not_null NOT NULL activated_at
+prompt_release_activations prompt_release_activations_activated_by_check CHECK ((btrim(activated_by) <> ''::text))
+prompt_release_activations prompt_release_activations_activated_by_not_null NOT NULL activated_by
+prompt_release_activations prompt_release_activations_from_release_id_fkey FOREIGN KEY (from_release_id) REFERENCES prompt_releases(id) ON DELETE RESTRICT
+prompt_release_activations prompt_release_activations_id_not_null NOT NULL id
+prompt_release_activations prompt_release_activations_pkey PRIMARY KEY (id)
+prompt_release_activations prompt_release_activations_to_release_id_fkey FOREIGN KEY (to_release_id) REFERENCES prompt_releases(id) ON DELETE RESTRICT
+prompt_release_activations prompt_release_activations_to_release_id_not_null NOT NULL to_release_id
+prompt_release_entries prompt_release_entries_body_check CHECK ((btrim(body) <> ''::text))
+prompt_release_entries prompt_release_entries_body_not_null NOT NULL body
+prompt_release_entries prompt_release_entries_body_sha256_check CHECK ((body_sha256 ~ '^[0-9a-f]{64}$'::text))
+prompt_release_entries prompt_release_entries_body_sha256_not_null NOT NULL body_sha256
+prompt_release_entries prompt_release_entries_description_not_null NOT NULL description
+prompt_release_entries prompt_release_entries_pkey PRIMARY KEY (release_id, prompt_key)
+prompt_release_entries prompt_release_entries_prompt_key_check CHECK ((btrim(prompt_key) <> ''::text))
+prompt_release_entries prompt_release_entries_prompt_key_not_null NOT NULL prompt_key
+prompt_release_entries prompt_release_entries_release_id_fkey FOREIGN KEY (release_id) REFERENCES prompt_releases(id) ON DELETE RESTRICT
+prompt_release_entries prompt_release_entries_release_id_not_null NOT NULL release_id
+prompt_release_entries prompt_release_entries_source_path_check CHECK ((btrim(source_path) <> ''::text))
+prompt_release_entries prompt_release_entries_source_path_not_null NOT NULL source_path
+prompt_releases prompt_releases_bundle_sha256_check CHECK ((bundle_sha256 ~ '^[0-9a-f]{64}$'::text))
+prompt_releases prompt_releases_bundle_sha256_not_null NOT NULL bundle_sha256
+prompt_releases prompt_releases_created_at_not_null NOT NULL created_at
+prompt_releases prompt_releases_created_by_check CHECK ((btrim(created_by) <> ''::text))
+prompt_releases prompt_releases_created_by_not_null NOT NULL created_by
+prompt_releases prompt_releases_id_not_null NOT NULL id
+prompt_releases prompt_releases_note_not_null NOT NULL note
+prompt_releases prompt_releases_pkey PRIMARY KEY (id)
+prompt_releases prompt_releases_schema_version_not_null NOT NULL schema_version
+prompt_releases prompt_releases_source_revision_check CHECK ((btrim(source_revision) <> ''::text))
+prompt_releases prompt_releases_source_revision_key UNIQUE (source_revision)
+prompt_releases prompt_releases_source_revision_not_null NOT NULL source_revision
+qdrant_delete_queue qdrant_delete_queue_attempts_not_null NOT NULL attempts
+qdrant_delete_queue qdrant_delete_queue_enqueued_at_not_null NOT NULL enqueued_at
+qdrant_delete_queue qdrant_delete_queue_next_attempt_at_not_null NOT NULL next_attempt_at
+qdrant_delete_queue qdrant_delete_queue_pkey PRIMARY KEY (point_id)
+qdrant_delete_queue qdrant_delete_queue_point_id_not_null NOT NULL point_id
+retrieve_log retrieve_log_called_at_not_null NOT NULL called_at
+retrieve_log retrieve_log_caller_sub_not_null NOT NULL caller_sub
+retrieve_log retrieve_log_endpoint_check CHECK ((endpoint = ANY (ARRAY['retrieve'::text, 'list'::text])))
+retrieve_log retrieve_log_endpoint_not_null NOT NULL endpoint
+retrieve_log retrieve_log_filters_not_null NOT NULL filters
+retrieve_log retrieve_log_id_not_null NOT NULL id
+retrieve_log retrieve_log_latency_ms_not_null NOT NULL latency_ms
+retrieve_log retrieve_log_pkey PRIMARY KEY (id)
+retrieve_log retrieve_log_results_not_null NOT NULL results
+scheduled_report_runs scheduled_report_runs_ask_assistant_turn_check CHECK ((ask_assistant_turn >= 0))
+scheduled_report_runs scheduled_report_runs_ask_session_id_fkey FOREIGN KEY (ask_session_id) REFERENCES ask_sessions(id) ON DELETE SET NULL
+scheduled_report_runs scheduled_report_runs_attempts_check CHECK ((attempts >= 0))
+scheduled_report_runs scheduled_report_runs_attempts_not_null NOT NULL attempts
+scheduled_report_runs scheduled_report_runs_check CHECK ((window_start < window_end))
+scheduled_report_runs scheduled_report_runs_created_at_not_null NOT NULL created_at
+scheduled_report_runs scheduled_report_runs_delivery_audience CHECK ((((delivery_kind IS NULL) AND (slack_target IS NULL)) OR ((delivery_kind IS NOT NULL) AND (slack_target IS NOT NULL) AND (((delivery_kind = 'slack_channel'::text) AND (slack_target ~ '^[CG][A-Z0-9]+$'::text)) OR ((delivery_kind = 'slack_dm'::text) AND (slack_target ~ '^[UW][A-Z0-9]+$'::text))))))
+scheduled_report_runs scheduled_report_runs_id_not_null NOT NULL id
+scheduled_report_runs scheduled_report_runs_pkey PRIMARY KEY (id)
+scheduled_report_runs scheduled_report_runs_prompt_snapshot_not_null NOT NULL prompt_snapshot
+scheduled_report_runs scheduled_report_runs_report_id_fkey FOREIGN KEY (report_id) REFERENCES scheduled_reports(id) ON DELETE CASCADE
+scheduled_report_runs scheduled_report_runs_report_id_not_null NOT NULL report_id
+scheduled_report_runs scheduled_report_runs_report_id_scheduled_for_key UNIQUE (report_id, scheduled_for)
+scheduled_report_runs scheduled_report_runs_scheduled_for_not_null NOT NULL scheduled_for
+scheduled_report_runs scheduled_report_runs_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'generated'::text, 'succeeded'::text, 'failed'::text, 'skipped'::text])))
+scheduled_report_runs scheduled_report_runs_status_not_null NOT NULL status
+scheduled_report_runs scheduled_report_runs_trigger_check CHECK ((trigger = ANY (ARRAY['scheduled'::text, 'manual'::text])))
+scheduled_report_runs scheduled_report_runs_trigger_not_null NOT NULL trigger
+scheduled_report_runs scheduled_report_runs_updated_at_not_null NOT NULL updated_at
+scheduled_report_runs scheduled_report_runs_window_end_not_null NOT NULL window_end
+scheduled_report_runs scheduled_report_runs_window_start_not_null NOT NULL window_start
+scheduled_reports scheduled_reports_cadence_check CHECK ((cadence = ANY (ARRAY['daily'::text, 'weekdays'::text, 'weekly'::text])))
+scheduled_reports scheduled_reports_cadence_not_null NOT NULL cadence
+scheduled_reports scheduled_reports_cadence_weekday_check CHECK ((((cadence = ANY (ARRAY['daily'::text, 'weekdays'::text])) AND (weekday IS NULL)) OR ((cadence = 'weekly'::text) AND (weekday IS NOT NULL))))
+scheduled_reports scheduled_reports_catchup_window_seconds_check CHECK ((catchup_window_seconds > 0))
+scheduled_reports scheduled_reports_catchup_window_seconds_not_null NOT NULL catchup_window_seconds
+scheduled_reports scheduled_reports_created_at_not_null NOT NULL created_at
+scheduled_reports scheduled_reports_created_by_not_null NOT NULL created_by
+scheduled_reports scheduled_reports_delivery_kind_check CHECK ((delivery_kind = ANY (ARRAY['slack_channel'::text, 'slack_dm'::text])))
+scheduled_reports scheduled_reports_delivery_kind_not_null NOT NULL delivery_kind
+scheduled_reports scheduled_reports_enabled_not_null NOT NULL enabled
+scheduled_reports scheduled_reports_id_not_null NOT NULL id
+scheduled_reports scheduled_reports_name_key UNIQUE (name)
+scheduled_reports scheduled_reports_name_not_null NOT NULL name
+scheduled_reports scheduled_reports_next_run_at_not_null NOT NULL next_run_at
+scheduled_reports scheduled_reports_owner_email_not_null NOT NULL owner_email
+scheduled_reports scheduled_reports_pkey PRIMARY KEY (id)
+scheduled_reports scheduled_reports_prompt_not_null NOT NULL prompt
+scheduled_reports scheduled_reports_schedule_hour_check CHECK (((schedule_hour >= 0) AND (schedule_hour <= 23)))
+scheduled_reports scheduled_reports_schedule_hour_not_null NOT NULL schedule_hour
+scheduled_reports scheduled_reports_schedule_minute_check CHECK (((schedule_minute >= 0) AND (schedule_minute <= 59)))
+scheduled_reports scheduled_reports_schedule_minute_not_null NOT NULL schedule_minute
+scheduled_reports scheduled_reports_slack_target_not_null NOT NULL slack_target
+scheduled_reports scheduled_reports_timezone_not_null NOT NULL timezone
+scheduled_reports scheduled_reports_updated_at_not_null NOT NULL updated_at
+scheduled_reports scheduled_reports_weekday_check CHECK (((weekday >= 1) AND (weekday <= 7)))
+session_ingest_bindings session_ingest_bindings_check CHECK (((writer = 'push'::text) OR (head_revision IS NULL)))
+session_ingest_bindings session_ingest_bindings_created_at_not_null NOT NULL created_at
+session_ingest_bindings session_ingest_bindings_format_not_null NOT NULL format
+session_ingest_bindings session_ingest_bindings_owner_canonical_not_null NOT NULL owner_canonical
+session_ingest_bindings session_ingest_bindings_pkey PRIMARY KEY (session_id)
+session_ingest_bindings session_ingest_bindings_session_id_not_null NOT NULL session_id
+session_ingest_bindings session_ingest_bindings_updated_at_not_null NOT NULL updated_at
+session_ingest_bindings session_ingest_bindings_writer_check CHECK ((writer = ANY (ARRAY['feed'::text, 'push'::text])))
+session_ingest_bindings session_ingest_bindings_writer_not_null NOT NULL writer
+session_ingest_candidates session_ingest_candidates_change_seq_not_null NOT NULL change_seq
+session_ingest_candidates session_ingest_candidates_client_not_null NOT NULL client
+session_ingest_candidates session_ingest_candidates_complete_not_null NOT NULL complete
+session_ingest_candidates session_ingest_candidates_content_bytes_not_null NOT NULL content_bytes
+session_ingest_candidates session_ingest_candidates_deleted_not_null NOT NULL deleted
+session_ingest_candidates session_ingest_candidates_index_failure_count_nonnegative CHECK ((index_failure_count >= 0))
+session_ingest_candidates session_ingest_candidates_index_failure_count_not_null NOT NULL index_failure_count
+session_ingest_candidates session_ingest_candidates_index_failure_revision_not_null NOT NULL index_failure_revision
+session_ingest_candidates session_ingest_candidates_origin_app_not_null NOT NULL origin_app
+session_ingest_candidates session_ingest_candidates_owner_canonical_not_null NOT NULL owner_canonical
+session_ingest_candidates session_ingest_candidates_owner_kind_not_null NOT NULL owner_kind
+session_ingest_candidates session_ingest_candidates_owner_not_null NOT NULL owner
+session_ingest_candidates session_ingest_candidates_pkey PRIMARY KEY (owner, client, session_id)
+session_ingest_candidates session_ingest_candidates_published_content_bytes_not_null NOT NULL published_content_bytes
+session_ingest_candidates session_ingest_candidates_published_record_count_not_null NOT NULL published_record_count
+session_ingest_candidates session_ingest_candidates_published_revision_not_null NOT NULL published_revision
+session_ingest_candidates session_ingest_candidates_published_rewrite_epoch_not_null NOT NULL published_rewrite_epoch
+session_ingest_candidates session_ingest_candidates_published_source_time_pair CHECK ((((published_source_started_at IS NULL) AND (published_source_updated_at IS NULL)) OR ((published_source_started_at IS NOT NULL) AND (published_source_updated_at IS NOT NULL) AND (published_source_updated_at >= published_source_started_at))))
+session_ingest_candidates session_ingest_candidates_published_user_turn_count_not_null NOT NULL published_user_turn_count
+session_ingest_candidates session_ingest_candidates_record_count_not_null NOT NULL record_count
+session_ingest_candidates session_ingest_candidates_revision_not_null NOT NULL revision
+session_ingest_candidates session_ingest_candidates_rewrite_epoch_not_null NOT NULL rewrite_epoch
+session_ingest_candidates session_ingest_candidates_role_not_null NOT NULL role
+session_ingest_candidates session_ingest_candidates_session_id_not_null NOT NULL session_id
+session_ingest_candidates session_ingest_candidates_source_time_pair CHECK ((((source_started_at IS NULL) AND (source_updated_at IS NULL)) OR ((source_started_at IS NOT NULL) AND (source_updated_at IS NOT NULL) AND (source_updated_at >= source_started_at))))
+session_ingest_candidates session_ingest_candidates_updated_in_db_not_null NOT NULL updated_in_db
+session_ingest_candidates session_ingest_candidates_user_turn_count_not_null NOT NULL user_turn_count
+session_ingest_candidates session_ingest_candidates_visibility_scope CHECK (((visibility_scope = 'internal'::text) OR (starts_with(visibility_scope, 'owner:'::text) AND (length(visibility_scope) > length('owner:'::text)))))
+session_ingest_candidates session_ingest_candidates_visibility_scope_not_null NOT NULL visibility_scope
+session_ingest_chunk_summaries session_ingest_chunk_summaries_client_not_null NOT NULL client
+session_ingest_chunk_summaries session_ingest_chunk_summaries_content_hash_not_null NOT NULL content_hash
+session_ingest_chunk_summaries session_ingest_chunk_summaries_created_at_not_null NOT NULL created_at
+session_ingest_chunk_summaries session_ingest_chunk_summaries_evidence_not_null NOT NULL evidence
+session_ingest_chunk_summaries session_ingest_chunk_summaries_input_tokens_not_null NOT NULL input_tokens
+session_ingest_chunk_summaries session_ingest_chunk_summaries_map_input_digest_not_null NOT NULL map_input_digest
+session_ingest_chunk_summaries session_ingest_chunk_summaries_model_id_not_null NOT NULL model_id
+session_ingest_chunk_summaries session_ingest_chunk_summaries_output_tokens_not_null NOT NULL output_tokens
+session_ingest_chunk_summaries session_ingest_chunk_summaries_owner_not_null NOT NULL owner
+session_ingest_chunk_summaries session_ingest_chunk_summaries_pkey PRIMARY KEY (owner, client, session_id, record_start)
+session_ingest_chunk_summaries session_ingest_chunk_summaries_record_end_not_null NOT NULL record_end
+session_ingest_chunk_summaries session_ingest_chunk_summaries_record_start_not_null NOT NULL record_start
+session_ingest_chunk_summaries session_ingest_chunk_summaries_session_id_not_null NOT NULL session_id
+session_ingest_chunk_summaries session_ingest_chunk_summaries_summary_not_null NOT NULL summary
+session_ingest_control session_ingest_control_id_check CHECK (id)
+session_ingest_control session_ingest_control_id_not_null NOT NULL id
+session_ingest_control session_ingest_control_pkey PRIMARY KEY (id)
+session_ingest_control session_ingest_control_summarization_enabled_not_null NOT NULL summarization_enabled
+session_ingest_control session_ingest_control_updated_at_not_null NOT NULL updated_at
+session_ingest_cursor session_ingest_cursor_change_seq_not_null NOT NULL change_seq
+session_ingest_cursor session_ingest_cursor_id_not_null NOT NULL id
+session_ingest_cursor session_ingest_cursor_pkey PRIMARY KEY (id)
+session_ingest_cursor session_ingest_cursor_policy_hash_not_null NOT NULL policy_hash
+session_ingest_cursor session_ingest_cursor_single CHECK (id)
+session_ingest_cursor session_ingest_cursor_updated_at_not_null NOT NULL updated_at
+session_ingest_map_checkpoints session_ingest_map_checkpoints_check CHECK (((record_start >= 0) AND (record_end > record_start)))
+session_ingest_map_checkpoints session_ingest_map_checkpoints_client_not_null NOT NULL client
+session_ingest_map_checkpoints session_ingest_map_checkpoints_content_hash_not_null NOT NULL content_hash
+session_ingest_map_checkpoints session_ingest_map_checkpoints_evidence_not_null NOT NULL evidence
+session_ingest_map_checkpoints session_ingest_map_checkpoints_map_input_digest_not_null NOT NULL map_input_digest
+session_ingest_map_checkpoints session_ingest_map_checkpoints_model_id_not_null NOT NULL model_id
+session_ingest_map_checkpoints session_ingest_map_checkpoints_owner_not_null NOT NULL owner
+session_ingest_map_checkpoints session_ingest_map_checkpoints_pkey PRIMARY KEY (session_id, record_start)
+session_ingest_map_checkpoints session_ingest_map_checkpoints_record_end_not_null NOT NULL record_end
+session_ingest_map_checkpoints session_ingest_map_checkpoints_record_start_not_null NOT NULL record_start
+session_ingest_map_checkpoints session_ingest_map_checkpoints_session_id_not_null NOT NULL session_id
+session_ingest_map_checkpoints session_ingest_map_checkpoints_summary_not_null NOT NULL summary
+session_ingest_published session_ingest_published_client_not_null NOT NULL client
+session_ingest_published session_ingest_published_content_digest_not_null NOT NULL content_digest
+session_ingest_published session_ingest_published_owner_not_null NOT NULL owner
+session_ingest_published session_ingest_published_pkey PRIMARY KEY (owner, client, session_id, revision)
+session_ingest_published session_ingest_published_published_at_not_null NOT NULL published_at
+session_ingest_published session_ingest_published_revision_not_null NOT NULL revision
+session_ingest_published session_ingest_published_rewrite_epoch_not_null NOT NULL rewrite_epoch
+session_ingest_published session_ingest_published_session_id_not_null NOT NULL session_id
+session_ingest_published session_ingest_published_source_time_order CHECK ((((source_started_at IS NULL) AND (source_updated_at IS NULL)) OR ((source_started_at IS NOT NULL) AND (source_updated_at IS NOT NULL) AND (source_updated_at >= source_started_at))))
+session_ingest_summaries session_ingest_summaries_client_not_null NOT NULL client
+session_ingest_summaries session_ingest_summaries_input_digest_not_null NOT NULL input_digest
+session_ingest_summaries session_ingest_summaries_input_tokens_not_null NOT NULL input_tokens
+session_ingest_summaries session_ingest_summaries_model_id_not_null NOT NULL model_id
+session_ingest_summaries session_ingest_summaries_narrative_not_null NOT NULL narrative
+session_ingest_summaries session_ingest_summaries_output_tokens_not_null NOT NULL output_tokens
+session_ingest_summaries session_ingest_summaries_owner_not_null NOT NULL owner
+session_ingest_summaries session_ingest_summaries_pkey PRIMARY KEY (owner, client, session_id)
+session_ingest_summaries session_ingest_summaries_record_count_not_null NOT NULL record_count
+session_ingest_summaries session_ingest_summaries_revision_not_null NOT NULL revision
+session_ingest_summaries session_ingest_summaries_rewrite_epoch_not_null NOT NULL rewrite_epoch
+session_ingest_summaries session_ingest_summaries_session_id_not_null NOT NULL session_id
+session_ingest_summaries session_ingest_summaries_summarized_at_not_null NOT NULL summarized_at
+session_ingest_summaries session_ingest_summaries_tags_not_null NOT NULL tags
+session_ingest_summaries session_ingest_summaries_title_failure_count_nonnegative CHECK ((title_failure_count >= 0))
+session_ingest_summaries session_ingest_summaries_title_failure_count_not_null NOT NULL title_failure_count
+session_ingest_summaries session_ingest_summaries_title_nonempty CHECK (((title IS NULL) OR (btrim(title) <> ''::text)))
+session_owner_privacy session_owner_privacy_owner_check CHECK ((owner <> ''::text))
+session_owner_privacy session_owner_privacy_owner_not_null NOT NULL owner
+session_owner_privacy session_owner_privacy_owner_only_not_null NOT NULL owner_only
+session_owner_privacy session_owner_privacy_pkey PRIMARY KEY (owner)
+session_owner_privacy session_owner_privacy_updated_at_not_null NOT NULL updated_at
+session_owner_privacy session_owner_privacy_updated_by_check CHECK ((updated_by <> ''::text))
+session_owner_privacy session_owner_privacy_updated_by_not_null NOT NULL updated_by
+session_owner_privacy_audit session_owner_privacy_audit_actor_not_null NOT NULL actor
+session_owner_privacy_audit session_owner_privacy_audit_candidate_updates_not_null NOT NULL candidate_updates
+session_owner_privacy_audit session_owner_privacy_audit_created_at_not_null NOT NULL created_at
+session_owner_privacy_audit session_owner_privacy_audit_event_updates_not_null NOT NULL event_updates
+session_owner_privacy_audit session_owner_privacy_audit_id_not_null NOT NULL id
+session_owner_privacy_audit session_owner_privacy_audit_owner_not_null NOT NULL owner
+session_owner_privacy_audit session_owner_privacy_audit_owner_only_not_null NOT NULL owner_only
+session_owner_privacy_audit session_owner_privacy_audit_pkey PRIMARY KEY (id)
+session_privacy_audit session_privacy_audit_actor_check CHECK ((actor <> ''::text))
+session_privacy_audit session_privacy_audit_actor_not_null NOT NULL actor
+session_privacy_audit session_privacy_audit_client_check CHECK ((client <> ''::text))
+session_privacy_audit session_privacy_audit_client_not_null NOT NULL client
+session_privacy_audit session_privacy_audit_created_at_not_null NOT NULL created_at
+session_privacy_audit session_privacy_audit_event_updates_not_null NOT NULL event_updates
+session_privacy_audit session_privacy_audit_id_not_null NOT NULL id
+session_privacy_audit session_privacy_audit_owner_check CHECK ((owner <> ''::text))
+session_privacy_audit session_privacy_audit_owner_not_null NOT NULL owner
+session_privacy_audit session_privacy_audit_owner_only_not_null NOT NULL owner_only
+session_privacy_audit session_privacy_audit_pkey PRIMARY KEY (id)
+session_privacy_audit session_privacy_audit_session_id_check CHECK ((session_id <> ''::text))
+session_privacy_audit session_privacy_audit_session_id_not_null NOT NULL session_id
+session_push_blob_chunks session_push_blob_chunks_blob_id_fkey FOREIGN KEY (blob_id) REFERENCES session_push_blobs(id) ON DELETE CASCADE
+session_push_blob_chunks session_push_blob_chunks_blob_id_not_null NOT NULL blob_id
+session_push_blob_chunks session_push_blob_chunks_digest_not_null NOT NULL digest
+session_push_blob_chunks session_push_blob_chunks_ordinal_not_null NOT NULL ordinal
+session_push_blob_chunks session_push_blob_chunks_pkey PRIMARY KEY (blob_id, ordinal)
+session_push_blob_chunks session_push_blob_chunks_session_id_digest_fkey FOREIGN KEY (session_id, digest) REFERENCES session_push_chunks(session_id, digest)
+session_push_blob_chunks session_push_blob_chunks_session_id_not_null NOT NULL session_id
+session_push_blobs session_push_blobs_byte_size_check CHECK ((byte_size >= 0))
+session_push_blobs session_push_blobs_byte_size_not_null NOT NULL byte_size
+session_push_blobs session_push_blobs_id_not_null NOT NULL id
+session_push_blobs session_push_blobs_pkey PRIMARY KEY (id)
+session_push_blobs session_push_blobs_session_id_fkey FOREIGN KEY (session_id) REFERENCES session_ingest_bindings(session_id) ON DELETE CASCADE
+session_push_blobs session_push_blobs_session_id_not_null NOT NULL session_id
+session_push_blobs session_push_blobs_sha256_not_null NOT NULL sha256
+session_push_chunks session_push_chunks_data_not_null NOT NULL data
+session_push_chunks session_push_chunks_digest_not_null NOT NULL digest
+session_push_chunks session_push_chunks_pkey PRIMARY KEY (session_id, digest)
+session_push_chunks session_push_chunks_session_id_fkey FOREIGN KEY (session_id) REFERENCES session_ingest_bindings(session_id) ON DELETE CASCADE
+session_push_chunks session_push_chunks_session_id_not_null NOT NULL session_id
+session_push_materializations session_push_materializations_check CHECK ((source_updated_at >= started_at))
+session_push_materializations session_push_materializations_content_bytes_check CHECK ((content_bytes >= 0))
+session_push_materializations session_push_materializations_content_bytes_not_null NOT NULL content_bytes
+session_push_materializations session_push_materializations_created_at_not_null NOT NULL created_at
+session_push_materializations session_push_materializations_decoder_version_not_null NOT NULL decoder_version
+session_push_materializations session_push_materializations_format_not_null NOT NULL format
+session_push_materializations session_push_materializations_harness_not_null NOT NULL harness
+session_push_materializations session_push_materializations_pkey PRIMARY KEY (session_id, revision, decoder_version)
+session_push_materializations session_push_materializations_record_count_check CHECK ((record_count > 0))
+session_push_materializations session_push_materializations_record_count_not_null NOT NULL record_count
+session_push_materializations session_push_materializations_records_blob_id_fkey FOREIGN KEY (records_blob_id) REFERENCES session_push_blobs(id)
+session_push_materializations session_push_materializations_records_blob_id_not_null NOT NULL records_blob_id
+session_push_materializations session_push_materializations_revision_not_null NOT NULL revision
+session_push_materializations session_push_materializations_session_id_not_null NOT NULL session_id
+session_push_materializations session_push_materializations_session_id_revision_fkey FOREIGN KEY (session_id, revision) REFERENCES session_push_revisions(session_id, revision) ON DELETE CASCADE
+session_push_materializations session_push_materializations_source_updated_at_not_null NOT NULL source_updated_at
+session_push_materializations session_push_materializations_source_version_not_null NOT NULL source_version
+session_push_materializations session_push_materializations_started_at_not_null NOT NULL started_at
+session_push_materializations session_push_materializations_user_turn_count_check CHECK ((user_turn_count >= 0))
+session_push_materializations session_push_materializations_user_turn_count_not_null NOT NULL user_turn_count
+session_push_materializations session_push_materializations_warning_records_not_null NOT NULL warning_records
+session_push_owner_usage session_push_owner_usage_owner_canonical_not_null NOT NULL owner_canonical
+session_push_owner_usage session_push_owner_usage_pkey PRIMARY KEY (owner_canonical)
+session_push_owner_usage session_push_owner_usage_revisions_check CHECK ((revisions >= 0))
+session_push_owner_usage session_push_owner_usage_revisions_not_null NOT NULL revisions
+session_push_owner_usage session_push_owner_usage_stored_bytes_check CHECK ((stored_bytes >= 0))
+session_push_owner_usage session_push_owner_usage_stored_bytes_not_null NOT NULL stored_bytes
+session_push_owner_usage session_push_owner_usage_updated_at_not_null NOT NULL updated_at
+session_push_revisions session_push_revisions_accepted_at_not_null NOT NULL accepted_at
+session_push_revisions session_push_revisions_body_blob_id_fkey FOREIGN KEY (body_blob_id) REFERENCES session_push_blobs(id)
+session_push_revisions session_push_revisions_byte_size_check CHECK ((byte_size >= 0))
+session_push_revisions session_push_revisions_byte_size_not_null NOT NULL byte_size
+session_push_revisions session_push_revisions_check CHECK (((pruned_at IS NULL) = (body_blob_id IS NOT NULL)))
+session_push_revisions session_push_revisions_format_not_null NOT NULL format
+session_push_revisions session_push_revisions_owner_canonical_not_null NOT NULL owner_canonical
+session_push_revisions session_push_revisions_pkey PRIMARY KEY (session_id, revision)
+session_push_revisions session_push_revisions_revision_not_null NOT NULL revision
+session_push_revisions session_push_revisions_session_id_fkey FOREIGN KEY (session_id) REFERENCES session_ingest_bindings(session_id) ON DELETE CASCADE
+session_push_revisions session_push_revisions_session_id_not_null NOT NULL session_id
+session_push_revisions session_push_revisions_source_version_not_null NOT NULL source_version
+slack_bots slack_bots_bot_id_not_null NOT NULL bot_id
+slack_bots slack_bots_deleted_not_null NOT NULL deleted
+slack_bots slack_bots_fetched_at_not_null NOT NULL fetched_at
+slack_bots slack_bots_pkey PRIMARY KEY (bot_id)
+slack_channel_config slack_channel_config_allow_external_ask_not_null NOT NULL allow_external_ask
+slack_channel_config slack_channel_config_ask_enabled_not_null NOT NULL ask_enabled
+slack_channel_config slack_channel_config_channel_id_not_null NOT NULL channel_id
+slack_channel_config slack_channel_config_doc_backfill_cursor_check CHECK (((doc_backfill_cursor IS NULL) OR (doc_backfill_cursor >= 0)))
+slack_channel_config slack_channel_config_doc_ingest_enabled_not_null NOT NULL doc_ingest_enabled
+slack_channel_config slack_channel_config_external_members_not_null NOT NULL external_members
+slack_channel_config slack_channel_config_pkey PRIMARY KEY (channel_id)
+slack_channel_config slack_channel_config_updated_at_not_null NOT NULL updated_at
+slack_channel_info slack_channel_info_channel_id_not_null NOT NULL channel_id
+slack_channel_info slack_channel_info_fetched_at_not_null NOT NULL fetched_at
+slack_channel_info slack_channel_info_is_archived_not_null NOT NULL is_archived
+slack_channel_info slack_channel_info_is_private_not_null NOT NULL is_private
+slack_channel_info slack_channel_info_pkey PRIMARY KEY (channel_id)
+slack_channel_sync slack_channel_sync_channel_id_not_null NOT NULL channel_id
+slack_channel_sync slack_channel_sync_ingest_enabled_not_null NOT NULL ingest_enabled
+slack_channel_sync slack_channel_sync_pkey PRIMARY KEY (channel_id)
+slack_ingest_blacklist slack_ingest_blacklist_added_at_not_null NOT NULL added_at
+slack_ingest_blacklist slack_ingest_blacklist_channel_id_not_null NOT NULL channel_id
+slack_ingest_blacklist slack_ingest_blacklist_id_not_null NOT NULL id
+slack_ingest_blacklist slack_ingest_blacklist_pkey PRIMARY KEY (id)
+slack_ingest_blacklist slack_ingest_blacklist_reason_not_null NOT NULL reason
+slack_message_details slack_message_details_channel_id_not_null NOT NULL channel_id
+slack_message_details slack_message_details_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+slack_message_details slack_message_details_event_id_not_null NOT NULL event_id
+slack_message_details slack_message_details_has_files_not_null NOT NULL has_files
+slack_message_details slack_message_details_is_edit_not_null NOT NULL is_edit
+slack_message_details slack_message_details_occurred_at_not_null NOT NULL occurred_at
+slack_message_details slack_message_details_pkey PRIMARY KEY (event_id)
+slack_tail_cursors slack_tail_cursors_channel_id_not_null NOT NULL channel_id
+slack_tail_cursors slack_tail_cursors_cursor_event_id_not_null NOT NULL cursor_event_id
+slack_tail_cursors slack_tail_cursors_last_used_at_not_null NOT NULL last_used_at
+slack_tail_cursors slack_tail_cursors_pkey PRIMARY KEY (session, channel_id)
+slack_tail_cursors slack_tail_cursors_session_not_null NOT NULL session
+slack_thread_sync slack_thread_sync_activity_ts_not_null NOT NULL activity_ts
+slack_thread_sync slack_thread_sync_channel_id_not_null NOT NULL channel_id
+slack_thread_sync slack_thread_sync_enqueued_at_not_null NOT NULL enqueued_at
+slack_thread_sync slack_thread_sync_pkey PRIMARY KEY (channel_id, thread_ts)
+slack_thread_sync slack_thread_sync_thread_ts_not_null NOT NULL thread_ts
+slack_usergroups slack_usergroups_fetched_at_not_null NOT NULL fetched_at
+slack_usergroups slack_usergroups_pkey PRIMARY KEY (usergroup_id)
+slack_usergroups slack_usergroups_usergroup_id_not_null NOT NULL usergroup_id
+slack_users slack_users_fetched_at_not_null NOT NULL fetched_at
+slack_users slack_users_is_bot_not_null NOT NULL is_bot
+slack_users slack_users_is_restricted_not_null NOT NULL is_restricted
+slack_users slack_users_is_stranger_not_null NOT NULL is_stranger
+slack_users slack_users_is_ultra_restricted_not_null NOT NULL is_ultra_restricted
+slack_users slack_users_pkey PRIMARY KEY (user_id)
+slack_users slack_users_user_id_not_null NOT NULL user_id
+source_state source_state_key_check CHECK ((btrim(key) <> ''::text))
+source_state source_state_key_not_null NOT NULL key
+source_state source_state_pkey PRIMARY KEY (source, key)
+source_state source_state_source_check CHECK ((btrim(source) <> ''::text))
+source_state source_state_source_not_null NOT NULL source
+source_state source_state_updated_at_not_null NOT NULL updated_at
+source_state source_state_value_not_null NOT NULL value
+zendesk_files zendesk_files_content_url_not_null NOT NULL content_url
+zendesk_files zendesk_files_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+zendesk_files zendesk_files_event_id_not_null NOT NULL event_id
+zendesk_files zendesk_files_media_type_not_null NOT NULL media_type
+zendesk_files zendesk_files_pkey PRIMARY KEY (source_file_id)
+zendesk_files zendesk_files_source_file_id_not_null NOT NULL source_file_id
+zendesk_retry zendesk_retry_attempts_not_null NOT NULL attempts
+zendesk_retry zendesk_retry_kind_check CHECK ((kind = ANY (ARRAY['ticket'::text, 'article'::text])))
+zendesk_retry zendesk_retry_kind_not_null NOT NULL kind
+zendesk_retry zendesk_retry_not_before_not_null NOT NULL not_before
+zendesk_retry zendesk_retry_pkey PRIMARY KEY (tenant, kind, source_id)
+zendesk_retry zendesk_retry_source_id_check CHECK ((source_id > 0))
+zendesk_retry zendesk_retry_source_id_not_null NOT NULL source_id
+zendesk_retry zendesk_retry_tenant_not_null NOT NULL tenant
+zendesk_sync zendesk_sync_cursor_not_null NOT NULL cursor
+zendesk_sync zendesk_sync_pkey PRIMARY KEY (tenant, stream)
+zendesk_sync zendesk_sync_stream_not_null NOT NULL stream
+zendesk_sync zendesk_sync_tenant_not_null NOT NULL tenant
+zendesk_sync zendesk_sync_updated_at_not_null NOT NULL updated_at
+zendesk_sync zendesk_sync_watermark_not_null NOT NULL watermark
+-- indexes
+CREATE INDEX admin_audit_log_action_recent_idx ON public.admin_audit_log USING btree (action, created_at DESC, id DESC)
+CREATE INDEX admin_audit_log_actor_recent_idx ON public.admin_audit_log USING btree (actor_email, created_at DESC, id DESC)
+CREATE UNIQUE INDEX admin_audit_log_pkey ON public.admin_audit_log USING btree (id)
+CREATE INDEX admin_audit_log_recent_idx ON public.admin_audit_log USING btree (created_at DESC, id DESC)
+CREATE INDEX admin_audit_log_request_id_idx ON public.admin_audit_log USING btree (request_id) WHERE (request_id IS NOT NULL)
+CREATE INDEX admin_audit_log_status_recent_idx ON public.admin_audit_log USING btree (status, created_at DESC, id DESC)
+CREATE INDEX admin_audit_log_target_recent_idx ON public.admin_audit_log USING btree (target, created_at DESC, id DESC)
+CREATE UNIQUE INDEX admin_jobs_one_active_kind ON public.admin_jobs USING btree (kind) WHERE (status = ANY (ARRAY['queued'::text, 'running'::text]))
+CREATE UNIQUE INDEX admin_jobs_pkey ON public.admin_jobs USING btree (id)
+CREATE INDEX admin_jobs_recent ON public.admin_jobs USING btree (requested_at DESC, id DESC)
+CREATE UNIQUE INDEX ask_answer_messages_pkey ON public.ask_answer_messages USING btree (channel_id, message_ts)
+CREATE INDEX ask_answer_messages_session ON public.ask_answer_messages USING btree (session_id)
+CREATE UNIQUE INDEX ask_artifact_deliveries_pkey ON public.ask_artifact_deliveries USING btree (session_id, assistant_turn, artifact_id, surface, target)
+CREATE UNIQUE INDEX ask_artifacts_idempotency_key_key ON public.ask_artifacts USING btree (idempotency_key)
+CREATE UNIQUE INDEX ask_artifacts_pkey ON public.ask_artifacts USING btree (id)
+CREATE INDEX ask_artifacts_session_call ON public.ask_artifacts USING btree (session_id, tool_call_id)
+CREATE UNIQUE INDEX ask_citations_pkey ON public.ask_citations USING btree (session_id, turn, event_id)
+CREATE UNIQUE INDEX ask_feedback_pkey ON public.ask_feedback USING btree (session_id, turn, message_ts, reactor, emoji)
+CREATE INDEX ask_feedback_verdict ON public.ask_feedback USING btree (verdict) WHERE (removed_at IS NULL)
+CREATE UNIQUE INDEX ask_inference_calls_pkey ON public.ask_inference_calls USING btree (run_id, sequence)
+CREATE INDEX ask_input_images_event ON public.ask_input_images USING btree (source_event_id, source_image_id)
+CREATE UNIQUE INDEX ask_input_images_pkey ON public.ask_input_images USING btree (session_id, source_turn_id, source_image_id)
+CREATE INDEX ask_messages_created_at ON public.ask_messages USING btree (created_at)
+CREATE UNIQUE INDEX ask_messages_pkey ON public.ask_messages USING btree (id)
+CREATE UNIQUE INDEX ask_observability_steering_pkey ON public.ask_observability_steering USING btree (session_id, user_turn)
+CREATE UNIQUE INDEX ask_result_artifacts_pkey ON public.ask_result_artifacts USING btree (session_id, assistant_turn, "position")
+CREATE UNIQUE INDEX ask_result_artifacts_session_id_assistant_turn_artifact_id_key ON public.ask_result_artifacts USING btree (session_id, assistant_turn, artifact_id)
+CREATE UNIQUE INDEX ask_runs_pkey ON public.ask_runs USING btree (id)
+CREATE INDEX ask_runs_session_started_idx ON public.ask_runs USING btree (session_id, started_at, id)
+CREATE INDEX ask_sessions_created_desc ON public.ask_sessions USING btree (created_at DESC, id DESC)
+CREATE UNIQUE INDEX ask_sessions_pkey ON public.ask_sessions USING btree (id)
+CREATE INDEX ask_sessions_surface_created_desc ON public.ask_sessions USING btree (surface, created_at DESC, id DESC) WHERE (surface IS NOT NULL)
+CREATE INDEX ask_sessions_title_queue ON public.ask_sessions USING btree (created_at) WHERE ((title IS NULL) AND (title_attempted_at IS NULL))
+CREATE UNIQUE INDEX ask_slack_sessions_pkey ON public.ask_slack_sessions USING btree (channel_id, thread_ts)
+CREATE UNIQUE INDEX ask_tool_calls_pkey ON public.ask_tool_calls USING btree (run_id, sequence)
+CREATE UNIQUE INDEX ask_turn_claims_pkey ON public.ask_turn_claims USING btree (channel_id, message_ts)
+CREATE UNIQUE INDEX connector_settings_pkey ON public.connector_settings USING btree (connector)
+CREATE UNIQUE INDEX eval_golden_set_splits_pkey ON public.eval_golden_set_splits USING btree (golden_set)
+CREATE UNIQUE INDEX eval_judgments_pkey ON public.eval_judgments USING btree (question_id, event_id, label_run_id)
+CREATE UNIQUE INDEX eval_label_runs_pkey ON public.eval_label_runs USING btree (id)
+CREATE UNIQUE INDEX eval_pool_candidates_pkey ON public.eval_pool_candidates USING btree (question_id, event_id, origin)
+CREATE UNIQUE INDEX eval_question_triage_pkey ON public.eval_question_triage USING btree (id)
+CREATE UNIQUE INDEX eval_question_triage_run_id_question_id_key ON public.eval_question_triage USING btree (run_id, question_id)
+CREATE UNIQUE INDEX eval_question_triage_runs_pkey ON public.eval_question_triage_runs USING btree (id)
+CREATE UNIQUE INDEX eval_questions_pkey ON public.eval_questions USING btree (id)
+CREATE UNIQUE INDEX eval_runs_pkey ON public.eval_runs USING btree (id)
+CREATE UNIQUE INDEX event_chunks_document_chunk_idx ON public.event_chunks USING btree (event_document_id, chunk_idx) WHERE (event_document_id IS NOT NULL)
+CREATE INDEX event_chunks_embedded_at ON public.event_chunks USING btree (embedded_at) WHERE (embedded_at IS NOT NULL)
+CREATE UNIQUE INDEX event_chunks_event_id_kind_chunk_idx ON public.event_chunks USING btree (event_id, kind, chunk_idx) WHERE (kind <> 'document_text'::text)
+CREATE UNIQUE INDEX event_chunks_pkey ON public.event_chunks USING btree (id)
+CREATE UNIQUE INDEX event_document_extract_parts_event_document_id_source_sha25_key ON public.event_document_extract_parts USING btree (event_document_id, source_sha256, extract_model, page_number)
+CREATE UNIQUE INDEX event_document_extract_parts_pkey ON public.event_document_extract_parts USING btree (id)
+CREATE INDEX event_documents_by_source_file_id ON public.event_documents USING btree (source_file_id)
+CREATE UNIQUE INDEX event_documents_event_id_source_file_id_key ON public.event_documents USING btree (event_id, source_file_id)
+CREATE INDEX event_documents_incomplete ON public.event_documents USING btree (incomplete_reason) WHERE (incomplete_reason IS NOT NULL)
+CREATE INDEX event_documents_pending ON public.event_documents USING btree (occurred_at DESC, id) WHERE ((extracted_at IS NULL) AND (failure_count < 5))
+CREATE UNIQUE INDEX event_documents_pkey ON public.event_documents USING btree (id)
+CREATE INDEX event_images_by_source_image_id ON public.event_images USING btree (source_image_id)
+CREATE INDEX event_images_escalation_candidates ON public.event_images USING btree (event_id) WHERE ((caption_model IS DISTINCT FROM 'opus-4.7'::text) AND (truncated_at IS NULL))
+CREATE UNIQUE INDEX event_images_event_id_source_image_id_key ON public.event_images USING btree (event_id, source_image_id)
+CREATE UNIQUE INDEX event_images_pkey ON public.event_images USING btree (id)
+CREATE INDEX event_images_uncaptioned ON public.event_images USING btree (occurred_at DESC, id) WHERE ((captioned_at IS NULL) AND (failure_count < 5))
+CREATE INDEX events_ingested_at ON public.events USING btree (ingested_at)
+CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
+CREATE UNIQUE INDEX events_source_external_id_key ON public.events USING btree (source, external_id)
+CREATE UNIQUE INDEX idx_ask_messages_session ON public.ask_messages USING btree (session_id, turn)
+CREATE INDEX idx_ask_slack_sessions_by_session ON public.ask_slack_sessions USING btree (session_id)
+CREATE INDEX idx_chunks_unembedded ON public.event_chunks USING btree (occurred_at DESC, id DESC) WHERE ((embedded_at IS NULL) AND (failure_count < 5))
+CREATE INDEX idx_eval_judgments_run ON public.eval_judgments USING btree (label_run_id)
+CREATE INDEX idx_eval_question_triage_audit ON public.eval_question_triage USING btree (run_id, audit_required, question_id)
+CREATE INDEX idx_eval_question_triage_latest ON public.eval_question_triage USING btree (question_id, run_id DESC)
+CREATE INDEX idx_eval_question_triage_runs_open ON public.eval_question_triage_runs USING btree (golden_set, id DESC) WHERE ((applied_at IS NULL) AND (superseded_at IS NULL))
+CREATE UNIQUE INDEX idx_eval_questions_origin ON public.eval_questions USING btree (golden_set, origin_session, origin_answer_turn) WHERE (origin_session IS NOT NULL)
+CREATE INDEX idx_eval_questions_pending_curation ON public.eval_questions USING btree (golden_set, id) WHERE ((status = 'active'::text) AND (curated_at IS NULL))
+CREATE INDEX idx_eval_questions_set ON public.eval_questions USING btree (golden_set, status)
+CREATE INDEX idx_eval_questions_split ON public.eval_questions USING btree (golden_set, eval_split, id) WHERE (status = 'active'::text)
+CREATE INDEX idx_eval_runs_set ON public.eval_runs USING btree (golden_set, ran_at DESC)
+CREATE INDEX idx_event_chunks_event_id ON public.event_chunks USING btree (event_id)
+CREATE INDEX idx_event_chunks_scope_sync_pending ON public.event_chunks USING btree (scope_sync_next_attempt_at, id) WHERE (scope_sync_needed AND (embedded_at IS NOT NULL))
+CREATE INDEX idx_events_actor ON public.events USING btree (source, actor_id) WHERE (actor_id IS NOT NULL)
+CREATE INDEX idx_events_actor_canonical ON public.events USING btree (actor_canonical) WHERE (actor_canonical <> ''::text)
+CREATE INDEX idx_events_actor_canonical_occurred_at ON public.events USING btree (actor_canonical, occurred_at DESC) WHERE (actor_canonical <> ''::text)
+CREATE INDEX idx_events_agent_session_external_id_prefix ON public.events USING spgist (external_id) WHERE ((source = 'agent_session'::text) AND (deleted = false))
+CREATE INDEX idx_events_scope ON public.events USING btree (scope)
+CREATE INDEX idx_events_session_id ON public.events USING btree (session_id, record_start) WHERE (session_id IS NOT NULL)
+CREATE INDEX idx_events_source_occurred_at ON public.events USING btree (source, occurred_at DESC)
+CREATE INDEX idx_events_thread ON public.events USING btree (thread_id) WHERE (thread_id IS NOT NULL)
+CREATE INDEX idx_qdrant_delete_queue_ready ON public.qdrant_delete_queue USING btree (next_attempt_at, enqueued_at)
+CREATE INDEX idx_retrieve_log_called_at ON public.retrieve_log USING btree (called_at DESC)
+CREATE INDEX idx_slack_channel_config_external ON public.slack_channel_config USING btree (allow_external_ask, has_external_members)
+CREATE INDEX idx_slack_channel_info_name ON public.slack_channel_info USING btree (name) WHERE (name <> ''::text)
+CREATE INDEX idx_slack_message_details_channel ON public.slack_message_details USING btree (channel_id)
+CREATE INDEX idx_slack_message_details_channel_event_id ON public.slack_message_details USING btree (channel_id, event_id)
+CREATE INDEX idx_slack_message_details_channel_occurred_at ON public.slack_message_details USING btree (channel_id, occurred_at DESC, event_id DESC)
+CREATE INDEX idx_slack_message_details_channel_thread ON public.slack_message_details USING btree (channel_id, thread_ts) WHERE (thread_ts IS NOT NULL)
+CREATE UNIQUE INDEX legacy_ask_prompts_pkey ON public.legacy_ask_prompts USING btree (id)
+CREATE UNIQUE INDEX legacy_ask_session_prompts_pkey ON public.legacy_ask_session_prompts USING btree (session_id)
+CREATE INDEX legacy_ask_session_prompts_prompt ON public.legacy_ask_session_prompts USING btree (legacy_prompt_id)
+CREATE INDEX legacy_session_event_chunk_archive_event ON public.legacy_session_event_chunk_archive USING btree (event_id, chunk_id)
+CREATE UNIQUE INDEX legacy_session_event_chunk_archive_pkey ON public.legacy_session_event_chunk_archive USING btree (chunk_id)
+CREATE INDEX legacy_session_event_supersessions_identity ON public.legacy_session_event_supersessions USING btree (owner, client, session_id, revision)
+CREATE UNIQUE INDEX legacy_session_event_supersessions_pkey ON public.legacy_session_event_supersessions USING btree (event_id)
+CREATE UNIQUE INDEX linear_sync_pkey ON public.linear_sync USING btree (id)
+CREATE INDEX mcp_tasks_expires_at_idx ON public.mcp_tasks USING btree (expires_at)
+CREATE UNIQUE INDEX mcp_tasks_pkey ON public.mcp_tasks USING btree (id)
+CREATE UNIQUE INDEX notion_discovered_resources_pkey ON public.notion_discovered_resources USING btree (object_type, object_id)
+CREATE INDEX notion_page_roots_by_root ON public.notion_page_roots USING btree (root_object_type, root_object_id, last_seen_run_id)
+CREATE UNIQUE INDEX notion_page_roots_pkey ON public.notion_page_roots USING btree (page_id, root_object_type, root_object_id)
+CREATE UNIQUE INDEX notion_page_state_pkey ON public.notion_page_state USING btree (page_id)
+CREATE UNIQUE INDEX notion_roots_pkey ON public.notion_roots USING btree (object_type, object_id)
+CREATE UNIQUE INDEX notion_sync_pkey ON public.notion_sync USING btree (id)
+CREATE UNIQUE INDEX notion_sync_runs_pkey ON public.notion_sync_runs USING btree (run_id)
+CREATE UNIQUE INDEX pagerduty_investigations_incident_id_occurred_at_key ON public.pagerduty_investigations USING btree (incident_id, occurred_at)
+CREATE UNIQUE INDEX pagerduty_investigations_pkey ON public.pagerduty_investigations USING btree (event_id)
+CREATE INDEX pagerduty_investigations_queue ON public.pagerduty_investigations USING btree (next_attempt_at, created_at) WHERE (state = ANY (ARRAY['pending'::text, 'running'::text]))
+CREATE UNIQUE INDEX prompt_active_release_pkey ON public.prompt_active_release USING btree (singleton)
+CREATE UNIQUE INDEX prompt_release_activations_pkey ON public.prompt_release_activations USING btree (id)
+CREATE UNIQUE INDEX prompt_release_entries_pkey ON public.prompt_release_entries USING btree (release_id, prompt_key)
+CREATE INDEX prompt_releases_bundle_sha256 ON public.prompt_releases USING btree (bundle_sha256)
+CREATE UNIQUE INDEX prompt_releases_pkey ON public.prompt_releases USING btree (id)
+CREATE UNIQUE INDEX prompt_releases_source_revision_key ON public.prompt_releases USING btree (source_revision)
+CREATE UNIQUE INDEX qdrant_delete_queue_pkey ON public.qdrant_delete_queue USING btree (point_id)
+CREATE UNIQUE INDEX retrieve_log_pkey ON public.retrieve_log USING btree (id)
+CREATE UNIQUE INDEX scheduled_report_runs_pkey ON public.scheduled_report_runs USING btree (id)
+CREATE INDEX scheduled_report_runs_queue ON public.scheduled_report_runs USING btree (scheduled_for, created_at) WHERE (status = ANY (ARRAY['pending'::text, 'running'::text, 'generated'::text]))
+CREATE INDEX scheduled_report_runs_report ON public.scheduled_report_runs USING btree (report_id, scheduled_for DESC)
+CREATE UNIQUE INDEX scheduled_report_runs_report_id_scheduled_for_key ON public.scheduled_report_runs USING btree (report_id, scheduled_for)
+CREATE INDEX scheduled_reports_due ON public.scheduled_reports USING btree (next_run_at) WHERE enabled
+CREATE UNIQUE INDEX scheduled_reports_name_key ON public.scheduled_reports USING btree (name)
+CREATE UNIQUE INDEX scheduled_reports_pkey ON public.scheduled_reports USING btree (id)
+CREATE UNIQUE INDEX session_ingest_bindings_pkey ON public.session_ingest_bindings USING btree (session_id)
+CREATE INDEX session_ingest_candidates_identity ON public.session_ingest_candidates USING btree (owner, client, session_id)
+CREATE INDEX session_ingest_candidates_owner_canonical_recent ON public.session_ingest_candidates USING btree (owner_canonical, change_seq DESC)
+CREATE INDEX session_ingest_candidates_owner_only_scope ON public.session_ingest_candidates USING btree (owner, client, session_id, visibility_scope) WHERE ((visibility_scope <> 'internal'::text) AND (deleted = false) AND (excluded_at IS NULL) AND (published_revision <> ''::text))
+CREATE INDEX session_ingest_candidates_pending ON public.session_ingest_candidates USING btree (first_pending_at) WHERE ((excluded_at IS NULL) AND (deleted = false) AND (complete = true))
+CREATE UNIQUE INDEX session_ingest_candidates_pkey ON public.session_ingest_candidates USING btree (owner, client, session_id)
+CREATE INDEX session_ingest_candidates_session_id ON public.session_ingest_candidates USING btree (session_id)
+CREATE UNIQUE INDEX session_ingest_chunk_summaries_pkey ON public.session_ingest_chunk_summaries USING btree (owner, client, session_id, record_start)
+CREATE UNIQUE INDEX session_ingest_control_pkey ON public.session_ingest_control USING btree (id)
+CREATE UNIQUE INDEX session_ingest_cursor_pkey ON public.session_ingest_cursor USING btree (id)
+CREATE UNIQUE INDEX session_ingest_map_checkpoints_pkey ON public.session_ingest_map_checkpoints USING btree (session_id, record_start)
+CREATE INDEX session_ingest_published_identity ON public.session_ingest_published USING btree (owner, client, session_id, published_at)
+CREATE UNIQUE INDEX session_ingest_published_pkey ON public.session_ingest_published USING btree (owner, client, session_id, revision)
+CREATE INDEX session_ingest_summaries_identity ON public.session_ingest_summaries USING btree (owner, client, session_id)
+CREATE UNIQUE INDEX session_ingest_summaries_pkey ON public.session_ingest_summaries USING btree (owner, client, session_id)
+CREATE INDEX session_ingest_summary_title_queue ON public.session_ingest_summaries USING btree (title_attempted_at NULLS FIRST, summarized_at DESC) WHERE (((title IS NULL) OR (title_input_digest IS DISTINCT FROM input_digest)) AND (title_failure_count < 5))
+CREATE INDEX session_owner_privacy_audit_owner_recent ON public.session_owner_privacy_audit USING btree (owner, created_at DESC, id DESC)
+CREATE UNIQUE INDEX session_owner_privacy_audit_pkey ON public.session_owner_privacy_audit USING btree (id)
+CREATE UNIQUE INDEX session_owner_privacy_pkey ON public.session_owner_privacy USING btree (owner)
+CREATE INDEX session_privacy_audit_owner_recent ON public.session_privacy_audit USING btree (owner, created_at DESC, id DESC)
+CREATE UNIQUE INDEX session_privacy_audit_pkey ON public.session_privacy_audit USING btree (id)
+CREATE INDEX session_push_blob_chunks_chunk ON public.session_push_blob_chunks USING btree (session_id, digest)
+CREATE UNIQUE INDEX session_push_blob_chunks_pkey ON public.session_push_blob_chunks USING btree (blob_id, ordinal)
+CREATE UNIQUE INDEX session_push_blobs_pkey ON public.session_push_blobs USING btree (id)
+CREATE UNIQUE INDEX session_push_chunks_pkey ON public.session_push_chunks USING btree (session_id, digest)
+CREATE UNIQUE INDEX session_push_materializations_pkey ON public.session_push_materializations USING btree (session_id, revision, decoder_version)
+CREATE UNIQUE INDEX session_push_owner_usage_pkey ON public.session_push_owner_usage USING btree (owner_canonical)
+CREATE UNIQUE INDEX session_push_revisions_pkey ON public.session_push_revisions USING btree (session_id, revision)
+CREATE INDEX session_push_revisions_prunable ON public.session_push_revisions USING btree (superseded_at) WHERE ((superseded_at IS NOT NULL) AND (pruned_at IS NULL))
+CREATE UNIQUE INDEX slack_bots_pkey ON public.slack_bots USING btree (bot_id)
+CREATE UNIQUE INDEX slack_channel_config_pkey ON public.slack_channel_config USING btree (channel_id)
+CREATE UNIQUE INDEX slack_channel_info_pkey ON public.slack_channel_info USING btree (channel_id)
+CREATE INDEX slack_channel_sync_by_age ON public.slack_channel_sync USING btree (COALESCE(last_synced_at, '-infinity'::timestamp with time zone), in_progress_at) INCLUDE (channel_id) WHERE ingest_enabled
+CREATE UNIQUE INDEX slack_channel_sync_pkey ON public.slack_channel_sync USING btree (channel_id)
+CREATE UNIQUE INDEX slack_ingest_blacklist_by_channel_id ON public.slack_ingest_blacklist USING btree (channel_id)
+CREATE UNIQUE INDEX slack_ingest_blacklist_pkey ON public.slack_ingest_blacklist USING btree (id)
+CREATE UNIQUE INDEX slack_message_details_pkey ON public.slack_message_details USING btree (event_id)
+CREATE UNIQUE INDEX slack_tail_cursors_pkey ON public.slack_tail_cursors USING btree (session, channel_id)
+CREATE INDEX slack_thread_sync_pending ON public.slack_thread_sync USING btree (activity_ts DESC, thread_ts DESC, channel_id, in_progress_at) WHERE (done_at IS NULL)
+CREATE UNIQUE INDEX slack_thread_sync_pkey ON public.slack_thread_sync USING btree (channel_id, thread_ts)
+CREATE UNIQUE INDEX slack_usergroups_pkey ON public.slack_usergroups USING btree (usergroup_id)
+CREATE UNIQUE INDEX slack_users_pkey ON public.slack_users USING btree (user_id)
+CREATE UNIQUE INDEX source_state_pkey ON public.source_state USING btree (source, key)
+CREATE INDEX zendesk_files_event ON public.zendesk_files USING btree (event_id)
+CREATE UNIQUE INDEX zendesk_files_pkey ON public.zendesk_files USING btree (source_file_id)
+CREATE UNIQUE INDEX zendesk_retry_pkey ON public.zendesk_retry USING btree (tenant, kind, source_id)
+CREATE UNIQUE INDEX zendesk_sync_pkey ON public.zendesk_sync USING btree (tenant, stream)
+-- sequences
+admin_audit_log_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=admin_audit_log.id
+admin_jobs_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=admin_jobs.id
+ask_messages_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=ask_messages.id
+eval_label_runs_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=eval_label_runs.id
+eval_question_triage_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=eval_question_triage.id
+eval_question_triage_runs_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=eval_question_triage_runs.id
+eval_questions_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=eval_questions.id
+eval_runs_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=eval_runs.id
+event_chunks_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=event_chunks.id
+event_document_extract_parts_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=event_document_extract_parts.id
+event_documents_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=event_documents.id
+event_images_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=event_images.id
+events_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=events.id
+prompt_release_activations_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=prompt_release_activations.id
+prompt_releases_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=prompt_releases.id
+retrieve_log_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=retrieve_log.id
+session_owner_privacy_audit_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=session_owner_privacy_audit.id
+session_privacy_audit_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=session_privacy_audit.id
+session_push_blobs_id_seq bigint start=1 increment=1 min=1 max=9223372036854775807 cache=1 cycle=f last=none owned_by=session_push_blobs.id
+slack_ingest_blacklist_id_seq integer start=1 increment=1 min=1 max=2147483647 cache=1 cycle=f last=none owned_by=slack_ingest_blacklist.id
+-- functions
+CREATE OR REPLACE FUNCTION public.enqueue_qdrant_point_delete()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    INSERT INTO qdrant_delete_queue (point_id)
+    VALUES (OLD.id)
+    ON CONFLICT (point_id) DO NOTHING;
+    RETURN OLD;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.eval_reject_split_manifest_mutation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RAISE EXCEPTION 'eval golden-set split manifests are immutable';
+END
+$function$
+
+CREATE OR REPLACE FUNCTION public.eval_reject_split_reassignment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF OLD.eval_split IS NOT NULL AND NEW.eval_split IS DISTINCT FROM OLD.eval_split THEN
+        RAISE EXCEPTION 'eval question split assignments are immutable';
+    END IF;
+    RETURN NEW;
+END
+$function$
+
+CREATE OR REPLACE FUNCTION public.notify_slack_public_scopes()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP <> 'UPDATE' THEN
+        PERFORM pg_notify('diderot_slack_public_scopes', '');
+    ELSIF ROW(OLD.channel_id, OLD.name, OLD.is_private)
+          IS DISTINCT FROM ROW(NEW.channel_id, NEW.name, NEW.is_private) THEN
+        PERFORM pg_notify('diderot_slack_public_scopes', '');
+    END IF;
+    RETURN NULL;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.reject_legacy_ask_prompt_mutation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RAISE EXCEPTION 'legacy Ask prompt history is immutable';
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.reject_legacy_session_archive_mutation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RAISE EXCEPTION 'legacy session supersession history is immutable';
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.reject_prompt_release_mutation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RAISE EXCEPTION 'prompt release history is immutable';
+END;
+$function$
+
+-- triggers
+CREATE TRIGGER eval_golden_set_splits_immutable BEFORE DELETE OR UPDATE ON public.eval_golden_set_splits FOR EACH ROW EXECUTE FUNCTION eval_reject_split_manifest_mutation() enabled=O
+CREATE TRIGGER eval_questions_split_immutable BEFORE UPDATE OF eval_split ON public.eval_questions FOR EACH ROW EXECUTE FUNCTION eval_reject_split_reassignment() enabled=O
+CREATE TRIGGER event_chunks_enqueue_qdrant_delete AFTER DELETE ON public.event_chunks FOR EACH ROW EXECUTE FUNCTION enqueue_qdrant_point_delete() enabled=O
+CREATE TRIGGER legacy_ask_prompts_immutable BEFORE DELETE OR UPDATE ON public.legacy_ask_prompts FOR EACH ROW EXECUTE FUNCTION reject_legacy_ask_prompt_mutation() enabled=O
+CREATE TRIGGER legacy_ask_session_prompts_immutable BEFORE DELETE OR UPDATE ON public.legacy_ask_session_prompts FOR EACH ROW EXECUTE FUNCTION reject_legacy_ask_prompt_mutation() enabled=O
+CREATE TRIGGER legacy_session_event_chunk_archive_immutable BEFORE DELETE OR UPDATE ON public.legacy_session_event_chunk_archive FOR EACH ROW EXECUTE FUNCTION reject_legacy_session_archive_mutation() enabled=O
+CREATE TRIGGER legacy_session_event_supersessions_immutable BEFORE DELETE OR UPDATE ON public.legacy_session_event_supersessions FOR EACH ROW EXECUTE FUNCTION reject_legacy_session_archive_mutation() enabled=O
+CREATE TRIGGER prompt_release_activations_immutable BEFORE DELETE OR UPDATE ON public.prompt_release_activations FOR EACH ROW EXECUTE FUNCTION reject_prompt_release_mutation() enabled=O
+CREATE TRIGGER prompt_release_entries_immutable BEFORE DELETE OR UPDATE ON public.prompt_release_entries FOR EACH ROW EXECUTE FUNCTION reject_prompt_release_mutation() enabled=O
+CREATE TRIGGER prompt_releases_immutable BEFORE DELETE OR UPDATE ON public.prompt_releases FOR EACH ROW EXECUTE FUNCTION reject_prompt_release_mutation() enabled=O
+CREATE TRIGGER slack_public_scopes_changed AFTER INSERT OR DELETE OR UPDATE ON public.slack_channel_info FOR EACH ROW EXECUTE FUNCTION notify_slack_public_scopes() enabled=O
+-- views
+-- policies
+-- comments
+column activity_ts of table slack_thread_sync: Generated thread activity recency (Slack ts, fixed-width text so lexicographic==numeric). COALESCE(latest_reply, thread_ts) is the later of the root and Slack's reported latest reply. Pure source data, never a processing timestamp.
+column ask_enabled of table slack_channel_config: When false (default), maybeRouteAsk silently drops @-mentions in this channel. Operator opts a channel in via `diderot slack channels config allow-ask <id>`.
+column backfill_requested_at of table linear_sync: Non-null while the leader worker is consuming durable Linear issue pages for an operator replay.
+column backfill_requested_at of table notion_sync: Non-null while the leader worker is consuming durable Notion search pages for an operator replay.
+column cache_read_tokens of table ask_messages: Bedrock Converse Usage.CacheReadInputTokens (prompt-cache hits) for the turn.
+column cache_write_tokens of table ask_messages: Reserved for a future provider-neutral source. Ask Responses rows leave this NULL; Agent Gateway is authoritative.
+column channel_id of table slack_ingest_blacklist: Stable Slack channel identity used for all blacklist matching.
+column channel_name of table slack_ingest_blacklist: Informational channel name captured when the entry was added; renames do not change identity.
+column cursor of table slack_channel_sync: Saved pagination cursor mid-sweep. NULL when idle. Persisted every page so restarts resume cleanly.
+column done_at of table slack_thread_sync: NULL while not-yet-walked or actively re-opened. Set to now() at successful walk completion. The discovery upsert resets this to NULL on re-discovery (parent showed up with new replies).
+column heartbeat_at of table admin_jobs: Last proof that the process executing this job was alive; a new start may fail an expired active row before claiming the kind.
+column in_progress_at of table slack_channel_sync: Wall clock at start (or last heartbeat) of the in-flight sweep. NULL when idle. Heartbeats every page; stale-recovery threshold is sized to "longest plausible single page," not "longest plausible total sweep."
+column index_failure_count of table session_ingest_candidates: Consecutive failed index attempts for index_failure_revision.
+column index_failure_revision of table session_ingest_candidates: Revision the index_* failure state describes; ignored once the observed head moves past it.
+column index_last_error of table session_ingest_candidates: Bounded diagnostic from the latest failed index attempt.
+column index_quarantined_at of table session_ingest_candidates: Set only for a permanent failure of an immutable revision (e.g. over the byte cap); transient failures never quarantine. Cleared manually or by a new revision.
+column index_retry_at of table session_ingest_candidates: Earliest time a transiently failed revision is selectable again (capped exponential backoff).
+column ingest_enabled of table slack_channel_sync: Per-row effective gate. Worker pick query filters this out. Distinct from slack_ingest_blacklist (cross-cutting policy table); reconcile reconciles the two.
+column initial_model_id of table ask_sessions: Configured inference model for the first recorded turn; NULL for historical sessions.
+column initial_scopes of table ask_sessions: Allowed corpus scopes of the first recorded turn, written with surface. NULL for sessions that predate it. A Slack turn may continue a pagerduty session only when its own scopes contain all of these.
+column input_tokens of table ask_messages: Bedrock Converse Usage.InputTokens for the turn. NULL on user-role rows or pre-migration assistant rows.
+column integration_id of table notion_sync: Notion /users/me bot ID for the credential that established last_discovery_at.
+column judged_content_hash of table eval_judgments: Body-only events.content_hash captured when the judgment was written.
+column judged_eval_content_hash of table eval_judgments: Title+body events.eval_content_hash captured when known; NULL for historical rows whose title identity cannot be reconstructed.
+column last_deep_sweep_at of table slack_channel_sync: Wall clock at successful completion of the most recent deep sweep (oldest floor at now-7d instead of the normal overlap). NULL = never deep-swept. When NULL or older than the deep-sweep cadence (24h), the next claim runs that channel as a deep sweep so old thread roots with new replies re-surface for the gated thread-root harvest.
+column last_discovery_at of table notion_sync: Best-effort data-source Search watermark; never an ingestion completeness boundary.
+column last_synced_at of table slack_channel_sync: Wall clock at successful completion of the most recent sweep, NULL = never swept. Live socket-mode events priority-bump this via LEAST(last_synced_at, now() - overlap).
+column latest_reply of table slack_thread_sync: Pending value: parent latest_reply (Slack ts) observed by the sweep that enqueued/re-opened this row. text for lossless lexicographic comparison (Slack ts is fixed-width 10.6 until year 2286). Set on insert + re-open; left alone while a walk is in flight.
+column message of table ask_messages: Validated Eino AgenticMessage JSON; no legacy Bedrock content envelope.
+column message_schema_version of table ask_messages: Version of the bounded Eino AgenticMessage JSON persisted in message.
+column oldest_ts of table slack_channel_sync: Unix-seconds float of the originating oldest_ts bound for the in-flight sweep, set alongside cursor every page. NULL when no sweep is mid-flight or the sweep was started without an oldest bound (full re-fetch). Preserves Slack history semantics across crash + resume.
+column output_tokens of table ask_messages: Bedrock Converse Usage.OutputTokens for the turn. NULL on user-role rows or pre-migration assistant rows.
+column owner_canonical of table session_ingest_candidates: Canonical owner identity used only for verified self-service owner joins.
+column privacy_owner_only of table session_ingest_candidates: Explicit owner self-service override for this session; NULL uses deployment policy.
+column prompt_release_id of table ask_sessions: Atomic prompt release pinned by the first model turn and reused by every continuation and delegated child.
+column stale_after_seconds of table admin_jobs: Executor-owned lease duration used to classify and recover an active row whose heartbeat stops.
+column surface of table ask_sessions: Ingress surface of the first recorded turn: http, slack, scheduled, or unknown for unmatched historical rows. NULL only before a new session records its first turn.
+column title of table ask_sessions: Display title for this Diderot Ask only. NULL displays its UUID.
+column title of table session_ingest_summaries: Short model-generated display title for the summary bound by title_input_digest.
+column title_attempted_at of table ask_sessions: Claimed once after a successful answer; failures do not retry.
+column title_input_digest of table session_ingest_summaries: Summary input_digest for which title was generated; mismatches are never displayed.
+column title_model of table ask_sessions: Generator model id, or deterministic:fallback when retries were exhausted.
+column visibility_scope of table session_ingest_candidates: Durable corpus audience: internal, or owner:<canonical owner> for owner-only agent sessions.
+column walked_latest_reply of table slack_thread_sync: Confirmed value: promoted from latest_reply at markDone. The enqueue gate re-opens a completed row only when the freshly-observed parent latest_reply > walked_latest_reply. Conservative — promoted from the enqueue-time pending value, so a mid-walk reply triggers one redundant (NoChange) re-walk rather than being lost.
+column worker_token of table slack_channel_sync: Random uuid assigned at claim time. Every state-mutating UPDATE in the worker carries a worker_token = $token guard.
+column worker_token of table slack_thread_sync: Random uuid assigned at claim time. The discovery upsert NULLs this on re-open to invalidate any in-flight worker — without that, a worker mid-walk would still satisfy markDone's worker_token guard and write done_at=now(), erasing the re-walk request and losing the new replies forever.
+table admin_jobs: Durable, attributable progress and outcome ledger for long-running administrator work.
+table ask_inference_calls: Per-request model latency, usage, and served-tier telemetry for root and observability-child calls.
+table ask_runs: One durable execution trace per Ask user turn.
+table ask_tool_calls: Per-call tool latency and outcome telemetry for root and observability-child calls.
+table legacy_ask_prompts: Recovered immutable Ask-only prompt versions used before atomic Git-authored catalog releases.
+table legacy_ask_session_prompts: Recovered per-session Ask prompt provenance from the retired ask_sessions.initial_prompt_id column.
+table linear_sync: Singleton state row for the linear ingest worker. Watermarks, visibility sweep timestamps, and backfill lease.
+table notion_discovered_resources: Best-effort Notion Search discoveries for coverage auditing only; rows are never ingested without a managed-root path.
+table notion_roots: Authoritative Notion corpus roots. Resource type is explicit when known; migrated bare UUIDs remain auto-probed.
+table notion_sync: Singleton state row for the notion ingest worker. last_search_at and last_reconcile_at advance per loop tick; backfill_started_at is a 10-minute lease taken by the CLI to pause loops during a backfill run.
+table slack_channel_sync: Continuous-worker state for slack ingest. One row per known channel. last_synced_at NULL = never swept (highest priority). cursor + in_progress_at + worker_token form the in-flight sweep state; worker uses worker_token guard on every state-mutating UPDATE to detect stolen claims. ingest_enabled is the per-row effective gate; slack_ingest_blacklist is the cross-cutting policy table.
+table slack_ingest_blacklist: Explicit do-not-ingest override list. Bot membership normally drives ingest; this is the small exceptions list.
+table slack_thread_sync: Pass-2 (conversations.replies) queue. Pass-1 history sweep upserts thread roots here on discovery; a sibling worker drains using the same global limiter. Re-discovery upserts re-open completed rows (new replies since last walk) and invalidate any in-flight worker_token to prevent the dead walker from erasing the re-walk request.
+-- rows
+connector_settings {"enabled": false, "secrets": {}, "version": 1, "settings": {"state": "setup", "ORG_NAME": "", "ORG_DESCRIPTION": "", "bootstrap_admin_enabled": true}, "connector": "org", "last_test": null, "updated_by": "diderot:migration"}
+linear_sync {"id": 1, "backfill_cursor": null, "sync_runs_total": 0, "backfill_project": null, "backfill_project_id": null, "reconcile_runs_total": 0, "visibility_runs_total": 0}
+notion_sync {"id": 1, "integration_id": null, "backfill_cursor": null, "search_runs_total": 0, "discovery_runs_total": 0, "reconcile_runs_total": 0}
+session_ingest_control {"id": true, "summarization_enabled": false}
+session_ingest_cursor {"id": true, "change_seq": 0, "policy_hash": ""}

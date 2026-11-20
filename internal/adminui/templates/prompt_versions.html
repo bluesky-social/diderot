@@ -1,0 +1,30 @@
+{{define "content"}}
+{{template "page-header" (header "Prompts" "The instructions Diderot gives its models. Changes collect in a draft and go live together.")}}
+{{template "prompt-tabs" "versions"}}
+
+<section class="section" aria-labelledby="versions-heading">
+  <div class="section-header">
+    <h2 id="versions-heading">Version history</h2>
+    <p>Each time the live prompts changed. Open a version to see what it changed, or to make it live again.</p>
+  </div>
+  {{if .Versions}}
+  <div class="table-wrap">
+    <table class="table table-stack">
+      <thead><tr><th scope="col">Version</th><th scope="col">What changed</th><th scope="col" class="prompt-changed">Went live</th></tr></thead>
+      <tbody>
+      {{range .Versions}}
+        <tr>
+          <th scope="row"><a class="row-link" href="/admin/prompts/versions/{{.ReleaseID}}">Version {{.ReleaseID}}</a>{{if .Live}} {{badge "good" "live"}}{{end}}{{if .Again}}<span class="sub">Made live again</span>{{end}}</th>
+          <td>{{if .First}}{{if .Example}}The example prompts Diderot ships{{else}}Every prompt: the first version{{end}}{{else if .Changes}}{{.Changes}}{{else}}<span class="muted">—</span>{{end}}{{with .Note}}<span class="prompt-about">“{{.}}”</span>{{end}}</td>
+          <td data-label="Went live">{{logtime .At}}<span class="sub">{{actor .By}}</span></td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{if .Pages.More}}{{template "pagination" .Pages}}{{end}}
+  {{else}}
+  <div class="empty"><h3>No versions yet</h3><p>Each time a draft is made live, the version appears here.</p></div>
+  {{end}}
+</section>
+{{end}}

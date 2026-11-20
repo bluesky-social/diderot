@@ -1,0 +1,12 @@
+[Unit]
+Description=Ship coding-agent sessions to Diderot
+
+[Service]
+ExecStart="/usr/local/bin/diderot" sessions run
+StandardOutput=append:/home/ada/.local/state/diderot/sessions.log
+StandardError=append:/home/ada/.local/state/diderot/sessions.log
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

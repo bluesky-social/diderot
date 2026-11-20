@@ -1,0 +1,25 @@
+/bin/
+# Root-level compiled binary from `go build -o diderot ./cmd/diderot`
+# or a stray `go build ./cmd/...`. Anchored to root so it doesn't
+# touch the cmd/diderot/ package dir or the PATH shim.
+/diderot
+*.test
+*.out
+# pgregory.net/rapid writes a reproduction file here on a local property
+# test failure (e.g. internal/connector/slack's sanitize_prop_test.go);
+# it's a debugging aid for whoever hit the failure, not a fixture to commit.
+testdata/rapid/
+.env
+.env.*
+!.env.quickstart.example
+.claude-*
+.claude/
+compose.quickstart.override.yaml
+# The quickstart's backup files (docs/quickstart.md); the keys archive holds
+# secrets.
+/diderot.dump
+/diderot-keys.tar
+# GoReleaser output (goreleaser release --snapshot).
+/dist/
+# Generated at release: the third-party licences GoReleaser packs.
+/build/

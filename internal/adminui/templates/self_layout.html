@@ -1,0 +1,33 @@
+{{define "self_layout"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · Diderot</title>
+  <link rel="icon" href="/auth/favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <link rel="apple-touch-icon" href="/auth/apple-touch-icon.png">
+  <link rel="stylesheet" href="/sessions/static/admin.css">
+  <link rel="stylesheet" href="/sessions/static/sessions.css">
+  <script src="/sessions/static/admin.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a class="brand" href="{{if .SessionsLink}}/sessions{{else}}/{{end}}">
+        {{mark}}
+        <span class="brand-name">Diderot</span>
+      </a>
+      {{if .SessionsLink}}<nav class="app-nav" aria-label="Main"><a href="/sessions"{{if eq .SessionsLink "current"}} aria-current="page"{{end}}>My sessions</a></nav>{{end}}
+      <div class="account">
+        <span class="account-name" title="{{.Principal.Email}}">{{actor .Principal.Email}}</span>
+        {{if .SignOutURL}}{{if .SignOutToken}}<form method="post" action="{{.SignOutURL}}"><input type="hidden" name="csrf_token" value="{{.SignOutToken}}"><button class="button-link" type="submit">Sign out</button></form>{{else}}<a href="{{.SignOutURL}}">Sign out</a>{{end}}{{end}}
+      </div>
+    </div>
+  </header>
+  <main class="page">{{template "content" .}}</main>
+  <footer class="app-footer"><span>Diderot {{.Version}}</span></footer>
+</body>
+</html>
+{{end}}

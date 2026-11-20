@@ -1,0 +1,77 @@
+{{define "content"}}
+{{template "page-header" (header "Prompts" "The instructions Diderot gives its models. Changes collect in a draft and go live together.")}}
+{{template "prompt-tabs" "draft"}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+{{if .Changes}}
+<section class="section" id="changes" aria-labelledby="changes-heading">
+  <div class="section-header">
+    <h2 id="changes-heading">Draft</h2>
+    <p>{{if eq (len .Changes) 1}}One prompt differs{{else}}{{len .Changes}} prompts differ{{end}} from the live <a href="/admin/prompts/versions/{{.LiveReleaseID}}">version {{.LiveReleaseID}}</a>. Every administrator sees and edits this same draft.</p>
+  </div>
+  <ul class="prompt-changes">
+    {{range .Changes}}
+    <li>
+      <details class="disclosure"{{if or .Open .OutOfDate .Problem}} open{{end}}>
+        <summary><strong>{{.Name}}</strong> <span class="muted">{{if .New}}new, {{else if .Removed}}removed, {{end}}{{.Diff.Summary}}</span>{{if .OutOfDate}} {{badge "attention" "outdated"}}{{end}}{{if .Problem}} {{badge "bad" "refused"}}{{end}}</summary>
+        {{if .OutOfDate}}<div class="notice notice-attention"><p>The live text changed after this change was written, so the draft cannot go live yet. <a href="/admin/prompts/{{.Key}}#draft">Open it</a>, check the change against the live text, and save it again or discard it.</p></div>{{end}}
+        {{with .Problem}}<div class="notice notice-bad"><p>This text cannot go live. {{.}}</p></div>{{end}}
+        {{template "prompt-diff" .Diff}}
+        {{if not .Removed}}
+        <details class="disclosure"><summary>Show it as the model receives it, with the variables filled in</summary><pre class="prompt-text">{{.Rendered}}</pre></details>
+        {{end}}
+        <p><a href="/admin/prompts/{{.Key}}">Open {{.Name}}</a> <span class="id">{{.Key}}</span> <span class="muted">· saved {{time .UpdatedAt}} by {{actor .UpdatedBy}}</span></p>
+      </details>
+    </li>
+    {{end}}
+  </ul>
+</section>
+
+<section class="section" id="publish" aria-labelledby="publish-heading">
+  <div class="section-header"><h2 id="publish-heading">Make it live</h2></div>
+  <div class="panel stack">
+    <p>Making the draft live stores it as one new version in place of version {{.LiveReleaseID}}. New conversations use it at once; conversations already under way keep the version they started with. Version {{.LiveReleaseID}} stays in the version history, where you can make it live again.</p>
+    {{with .Summaries}}
+    <div class="notice notice-attention">
+      <p><strong>This changes how agent sessions are summarized.</strong> Nothing is redone at once: {{if .MapChanged}}each session is summarized again from the start, every part of it, the next time it changes, instead of only its new part.{{else}}each session’s summary is written again from the summaries of all its parts the next time it changes, instead of being updated from its new part only.{{end}}</p>
+      <p>In the last {{.Days}} days, {{count .Sessions}} {{if eq .Sessions 1}}session was{{else}}sessions were{{end}} summarized. Summarizing them again that way takes about {{count .Calls}} model calls reading about {{count .Tokens}} tokens{{with .Cost}}, about {{.}} at the published price of the session summary models{{end}}, besides the prompts themselves. Expect roughly that over the next {{.Days}} days.</p>
+    </div>
+    {{end}}
+    {{if .Files}}<p class="muted">Images and scanned pages already read keep their descriptions; only new ones use the changed text.</p>{{end}}
+    {{if .CanPublish}}
+    <form class="stack" method="post" action="/admin/prompts/draft/publish">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="expected_release_id" value="{{.LiveReleaseID}}">
+      <input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
+      <div class="field prompt-note">
+        <label for="publish-note">What changed, and why <span class="optional">(optional)</span></label>
+        <input id="publish-note" name="note" maxlength="1000" aria-describedby="publish-note-help">
+        <p class="help" id="publish-note-help">Shown in the version history, so others know why the prompts changed.</p>
+      </div>
+      <div class="form-actions"><button class="button button-primary" type="submit">Make the draft live</button></div>
+    </form>
+    {{else}}
+    <div class="notice notice-bad" role="alert"><p>The draft cannot go live yet. {{with .Problem}}{{.}}{{else}}{{if .OutOfDate}}{{if eq .OutOfDate 1}}One change was{{else}}{{.OutOfDate}} changes were{{end}} written against live text that has changed since.{{end}}{{if .Problems}} {{if eq .Problems 1}}One text uses{{else}}{{.Problems}} texts use{{end}} something Diderot refuses.{{end}} Fix them above.{{end}}</p></div>
+    {{end}}
+  </div>
+</section>
+
+<section class="section" id="discard" aria-labelledby="discard-heading">
+  <div class="section-header"><h2 id="discard-heading">Discard the draft</h2></div>
+  <form class="panel stack" method="post" action="/admin/prompts/draft/discard">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
+    <p>Discarding drops every change above, including other administrators’ changes. The live prompts stay as they are.</p>
+    <label class="check"><input type="checkbox" name="confirm" value="discard" required> <span>Discard every change in the draft</span></label>
+    <div class="form-actions"><button class="button button-danger" type="submit">Discard the draft</button></div>
+  </form>
+</section>
+{{else}}
+<div class="empty">
+  <h3>The draft is empty</h3>
+  <p>Open a prompt and save a change, or put the <a href="/admin/prompts/shipped">shipped text</a> of some prompts in the draft. Changes collect here until they are made live together.</p>
+</div>
+{{end}}
+{{end}}

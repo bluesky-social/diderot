@@ -1,0 +1,54 @@
+# gitleaks configuration. gitleaks reads it from the scan root, so it applies
+# to the scrub workflow's tree scan and to the org security workflow's scan of
+# new commits. It keeps every default rule and exempts only known false
+# positives, each pinned to its file, its rule, and the shape of its match.
+#
+# A global allowlist's `paths` skip the whole file before any rule runs, even
+# with condition = "AND". Entries that should exempt one match, not a file,
+# therefore name `targetRules`, which makes them per-finding rule allowlists.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Atlas migration checksums"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)internal/migrations/sql/atlas\.sum$''']
+regexTarget = "line"
+# (?m): the line target can carry its newline, which a bare $ won't match.
+regexes = ['''(?m)^(?:\S+\.sql )?h1:[A-Za-z0-9+/]{43}=$''']
+
+[[allowlists]]
+description = "Synthetic admin UI fixture: SelectionKey is base64 of a client name and a placeholder session ID"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)internal/adminui/testdata/ui-dev\.json$''']
+# The exact values: each fixture line is a whole session object, so a
+# line-level match would also exempt any other key on that line.
+regexes = [
+  '''^Y29kZXgAMDE5OTA5MDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAx$''',
+  '''^Y2xhdWRlLWNvZGUAMDE5OTA5MDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAy$''',
+  '''^Y29kZXgAMDE5OTA5MDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAz$''',
+]
+
+[[allowlists]]
+description = "Redactor audit test: base64 of the literal 'sensitive-password' in a synthetic Kubernetes Secret"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)internal/attachments/files/redact_audit_test\.go$''']
+regexes = ['''^c2Vuc2l0aXZlLXBhc3N3b3Jk$''']
+
+[[allowlists]]
+description = "Connector settings tests: a synthetic secret the tests prove never reaches output"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)internal/settings/connector_test\.go$''']
+regexes = ['''^tok-SECRET-123$''']
+
+# Whole-file skip: a generated dump of gitleaks' own default rules and
+# allowlists (the redactor's audit golden file), regenerated whenever the
+# vendored gitleaks module moves.
+[[allowlists]]
+description = "Generated gitleaks default-config golden file"
+paths = ['''(?:^|/)internal/attachments/files/testdata/gitleaks-default-audit\.json$''']

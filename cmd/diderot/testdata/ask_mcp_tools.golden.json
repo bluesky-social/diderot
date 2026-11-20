@@ -1,0 +1,1073 @@
+{
+  "root_mcp_tools": [],
+  "investigate_tool": {
+    "name": "investigate_observability",
+    "description": "Hand a question about live telemetry to a separate investigator that has read-only Sentry and Grafana, Prometheus, Loki, Tempo, and Pyroscope tools. Use it for questions about Sentry issues and events or metrics, logs, traces, profiles, alerts, dashboards, and panels, which cannot be answered from memory or from discussion in the corpus. The investigator works for up to a few minutes and returns one report: what it observed, what it infers, and what it could not establish. The report may list the artifact IDs of Grafana panels it rendered; name those IDs in the final artifacts field when the images belong with your answer. It can run in the same round as corpus tools. If it fails, the error says so: answer from the evidence you have, or delegate a narrower request. A report cut short by the time limit says what it did not get to under Remaining uncertainty.",
+    "parameters": {
+      "properties": {
+        "request": {
+          "minLength": 1,
+          "description": "The investigation to carry out, written to stand alone: the investigator sees nothing of this conversation. Name the service and the symptom, give every relevant URL, ID, dashboard, namespace, route or error string exactly, give the time window, and say what a useful answer would contain.",
+          "type": "string"
+        },
+        "time_window_utc": {
+          "properties": {
+            "from": {
+              "description": "Start of the window, inclusive: an RFC 3339 UTC time or a relative expression such as now-6h.",
+              "type": "string"
+            },
+            "to": {
+              "description": "End of the window, inclusive: an RFC 3339 UTC time or now.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "description": "The UTC window to investigate, when the asker gave one. When they gave none, leave it unset and say in request what period matters.",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    }
+  },
+  "pagerduty_investigator_ready": true,
+  "connect_requests": {
+    "gateway": [
+      {
+        "http_method": "POST",
+        "path": "/mcp",
+        "rpc_method": "server/discover",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent",
+          "X-Auth-Request-User"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Bearer agw-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28",
+          "X-Auth-Request-User": "svc:diderot"
+        }
+      },
+      {
+        "http_method": "POST",
+        "path": "/mcp",
+        "rpc_method": "tools/list",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent",
+          "X-Auth-Request-User"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Bearer agw-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28",
+          "X-Auth-Request-User": "svc:diderot"
+        }
+      },
+      {
+        "http_method": "POST",
+        "path": "/mcp",
+        "rpc_method": "tools/list",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent",
+          "X-Auth-Request-User"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Bearer agw-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28",
+          "X-Auth-Request-User": "svc:diderot"
+        }
+      }
+    ],
+    "sentry": [
+      {
+        "http_method": "POST",
+        "path": "/mcp/example-org/web",
+        "query": "skills=inspect",
+        "rpc_method": "server/discover",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Sentry-Bearer sentry-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28"
+        }
+      },
+      {
+        "http_method": "POST",
+        "path": "/mcp/example-org/web",
+        "query": "skills=inspect",
+        "rpc_method": "tools/list",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Sentry-Bearer sentry-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28"
+        }
+      },
+      {
+        "http_method": "POST",
+        "path": "/mcp/example-org/web",
+        "query": "skills=inspect",
+        "rpc_method": "tools/list",
+        "header_names": [
+          "Accept",
+          "Accept-Encoding",
+          "Authorization",
+          "Content-Length",
+          "Content-Type",
+          "Mcp-Method",
+          "Mcp-Protocol-Version",
+          "User-Agent"
+        ],
+        "headers": {
+          "Accept": "application/json, text/event-stream",
+          "Authorization": "Sentry-Bearer sentry-token",
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": "2026-07-28"
+        }
+      }
+    ]
+  },
+  "tool_calls": {
+    "grafana_query_prometheus": {
+      "output": "{\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"gateway\",\"version\":\"1\"}},\"content\":[{\"type\":\"text\",\"text\":\"{\\\"gateway_result_from\\\":\\\"grafana_query_prometheus\\\"}\"}],\"resultType\":\"complete\"}",
+      "requests": [
+        {
+          "http_method": "POST",
+          "path": "/mcp",
+          "rpc_method": "tools/call",
+          "params": {
+            "_meta": {
+              "io.modelcontextprotocol/clientCapabilities": {
+                "roots": {
+                  "listChanged": true
+                }
+              },
+              "io.modelcontextprotocol/clientInfo": {
+                "name": "diderot-ask",
+                "version": "1"
+              },
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+            },
+            "name": "grafana_query_prometheus",
+            "arguments": {
+              "query": "rate(errors[5m])"
+            }
+          },
+          "header_names": [
+            "Accept",
+            "Accept-Encoding",
+            "Authorization",
+            "Content-Length",
+            "Content-Type",
+            "Mcp-Method",
+            "Mcp-Name",
+            "Mcp-Protocol-Version",
+            "User-Agent",
+            "X-Auth-Request-User"
+          ],
+          "headers": {
+            "Accept": "application/json, text/event-stream",
+            "Authorization": "Bearer agw-token",
+            "Content-Type": "application/json",
+            "Mcp-Protocol-Version": "2026-07-28",
+            "X-Auth-Request-User": "svc:diderot"
+          }
+        }
+      ]
+    },
+    "search_issues": {
+      "output": "{\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"sentry\",\"version\":\"1\"}},\"content\":[{\"type\":\"text\",\"text\":\"sentry result from search_issues\"}],\"resultType\":\"complete\"}",
+      "requests": [
+        {
+          "http_method": "POST",
+          "path": "/mcp/example-org/web",
+          "query": "skills=inspect",
+          "rpc_method": "tools/call",
+          "params": {
+            "_meta": {
+              "io.modelcontextprotocol/clientCapabilities": {
+                "roots": {
+                  "listChanged": true
+                }
+              },
+              "io.modelcontextprotocol/clientInfo": {
+                "name": "diderot-ask",
+                "version": "1"
+              },
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+            },
+            "name": "search_issues",
+            "arguments": {
+              "query": "rate(errors[5m])"
+            }
+          },
+          "header_names": [
+            "Accept",
+            "Accept-Encoding",
+            "Authorization",
+            "Content-Length",
+            "Content-Type",
+            "Mcp-Method",
+            "Mcp-Name",
+            "Mcp-Protocol-Version",
+            "User-Agent"
+          ],
+          "headers": {
+            "Accept": "application/json, text/event-stream",
+            "Authorization": "Sentry-Bearer sentry-token",
+            "Content-Type": "application/json",
+            "Mcp-Protocol-Version": "2026-07-28"
+          }
+        }
+      ]
+    }
+  },
+  "child_instruction_prompt_keys": [
+    "ask.observability.role",
+    "ask.observability.discipline",
+    "ask.observability.sentry_discipline",
+    "ask.observability.grafana_discipline",
+    "ask.observability.grafana_report",
+    "ask.observability.workflow.incident",
+    "ask.observability.syntax.promql",
+    "ask.observability.syntax.logql",
+    "ask.observability.syntax.traceql",
+    "ask.observability.report"
+  ],
+  "child_model_request": {
+    "include": [
+      "reasoning.encrypted_content"
+    ],
+    "input": [
+      {
+        "content": "\u003cchild_instruction_prompt_keys\u003e",
+        "role": "system"
+      },
+      {
+        "content": "Why did the upload path start returning 500s?\n\nExplicit UTC time window: from \"now-1h\" to \"now\".",
+        "role": "user"
+      }
+    ],
+    "max_output_tokens": 32768,
+    "model": "gpt-6.1-sol:main",
+    "parallel_tool_calls": true,
+    "reasoning": {
+      "effort": "medium"
+    },
+    "service_tier": "fast",
+    "store": false,
+    "tools": [
+      {
+        "description": "Gateway tool grafana_alerting_rules_read.",
+        "name": "grafana_alerting_rules_read",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "enum": [
+                "list",
+                "get",
+                "versions",
+                null
+              ],
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "query": {
+              "description": "Query for grafana_alerting_rules_read.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_get_dashboard_panel_queries.",
+        "name": "grafana_get_dashboard_panel_queries",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_get_dashboard_panel_queries.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_get_dashboard_property.",
+        "name": "grafana_get_dashboard_property",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_get_dashboard_property.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_get_dashboard_summary.",
+        "name": "grafana_get_dashboard_summary",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_get_dashboard_summary.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_loki_label_names.",
+        "name": "grafana_list_loki_label_names",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_loki_label_names.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_loki_label_values.",
+        "name": "grafana_list_loki_label_values",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_loki_label_values.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_prometheus_label_names.",
+        "name": "grafana_list_prometheus_label_names",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_prometheus_label_names.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_prometheus_label_values.",
+        "name": "grafana_list_prometheus_label_values",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_prometheus_label_values.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_prometheus_metric_metadata.",
+        "name": "grafana_list_prometheus_metric_metadata",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_prometheus_metric_metadata.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_prometheus_metric_names.",
+        "name": "grafana_list_prometheus_metric_names",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_prometheus_metric_names.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_pyroscope_label_names.",
+        "name": "grafana_list_pyroscope_label_names",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_pyroscope_label_names.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_pyroscope_label_values.",
+        "name": "grafana_list_pyroscope_label_values",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_pyroscope_label_values.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_list_pyroscope_profile_types.",
+        "name": "grafana_list_pyroscope_profile_types",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_list_pyroscope_profile_types.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_loki_logs.",
+        "name": "grafana_query_loki_logs",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_loki_logs.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_loki_patterns.",
+        "name": "grafana_query_loki_patterns",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_loki_patterns.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_loki_stats.",
+        "name": "grafana_query_loki_stats",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_loki_stats.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_prometheus.",
+        "name": "grafana_query_prometheus",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_prometheus.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_prometheus_histogram.",
+        "name": "grafana_query_prometheus_histogram",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_prometheus_histogram.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_query_pyroscope.",
+        "name": "grafana_query_pyroscope",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_query_pyroscope.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_search_dashboards.",
+        "name": "grafana_search_dashboards",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for grafana_search_dashboards.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_docs-traceql.",
+        "name": "tempo_docs-traceql",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_docs-traceql.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_get-attribute-names.",
+        "name": "tempo_get-attribute-names",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_get-attribute-names.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_get-attribute-values.",
+        "name": "tempo_get-attribute-values",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_get-attribute-values.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_get-trace.",
+        "name": "tempo_get-trace",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_get-trace.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_traceql-metrics-instant.",
+        "name": "tempo_traceql-metrics-instant",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_traceql-metrics-instant.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_traceql-metrics-range.",
+        "name": "tempo_traceql-metrics-range",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_traceql-metrics-range.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool tempo_traceql-search.",
+        "name": "tempo_traceql-search",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "description": "Query for tempo_traceql-search.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Gateway tool grafana_get_panel_image. Width, height, scale, and timeout are server-controlled. The result includes an artifact_id; select it in the final artifacts field only when it belongs with the final answer.",
+        "name": "grafana_get_panel_image",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "dashboardUid": {
+              "description": "Stored Grafana dashboard UID.",
+              "type": "string"
+            },
+            "panelId": {
+              "description": "Panel ID. Omit only to render the full dashboard.",
+              "type": "integer"
+            },
+            "theme": {
+              "enum": [
+                "dark",
+                "light"
+              ],
+              "type": "string"
+            },
+            "timeRange": {
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "type": "object"
+            },
+            "variables": {
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "dashboardUid",
+            "timeRange"
+          ],
+          "type": "object"
+        },
+        "strict": false,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool get_sentry_resource.",
+        "name": "get_sentry_resource",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_errors.",
+        "name": "search_errors",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_issues.",
+        "name": "search_issues",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_logs.",
+        "name": "search_logs",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_metrics.",
+        "name": "search_metrics",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_profiles.",
+        "name": "search_profiles",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_replays.",
+        "name": "search_replays",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      },
+      {
+        "description": "Sentry tool search_traces.",
+        "name": "search_traces",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "naturalLanguageQuery": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "naturalLanguageQuery"
+          ],
+          "type": "object"
+        },
+        "strict": true,
+        "type": "function"
+      }
+    ]
+  },
+  "child_report": "hi",
+  "child_mcp_requests": 0
+}

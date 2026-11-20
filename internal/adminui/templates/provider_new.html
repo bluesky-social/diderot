@@ -1,0 +1,63 @@
+{{define "content"}}
+{{template "page-header" (header "Add a model provider" "Where Diderot sends model requests: a provider's API, a gateway, or a server you run." (crumb "Models" "/admin/settings/models#providers"))}}
+
+{{template "error" .Error}}
+
+<section class="section" aria-labelledby="new-heading">
+  <div class="section-header"><h2 id="new-heading" class="visually-hidden">New provider</h2></div>
+  <form class="form" method="post" action="/admin/settings/providers">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <fieldset class="stack">
+      <legend>Kind</legend>
+      {{$kind := .Kind}}
+      {{range .Kinds}}
+      <label class="check"><input type="radio" name="kind" value="{{.Value}}"{{if eq .Value $kind}} checked{{end}}> <span>{{.Label}}</span><span class="help">{{if eq .Value "anthropic"}}Anthropic's API. It serves Claude models, but no embeddings.{{else}}OpenAI's API, or anything that speaks it: a gateway or proxy (LiteLLM, OpenRouter, an agent gateway), Gemini's OpenAI-compatible API, or a local server (Ollama, vLLM, LM Studio, text-embeddings-inference).{{end}}</span></label>
+      {{end}}
+    </fieldset>
+    <div class="field">
+      <label for="provider-name">Name</label>
+      <input id="provider-name" name="name" value="{{.Name}}" required pattern="[a-z][a-z0-9_]{0,39}" placeholder="openai" autocomplete="off" aria-describedby="provider-name-help">
+      <p class="help" id="provider-name-help">Lowercase letters, digits or _. Pages and logs use it, and it can't be changed later.</p>
+    </div>
+    <div class="field">
+      <label for="provider-base-url">Base URL</label>
+      <input id="provider-base-url" name="base_url" value="{{.BaseURL}}" required placeholder="https://api.openai.com/v1" autocomplete="off" aria-describedby="provider-base-url-help"{{with index .FieldErrors "base_url"}} aria-invalid="true"{{end}}>
+      <p class="help" id="provider-base-url-help">The address requests go to, with any <code>/v1</code>: <code>https://api.openai.com/v1</code>, <code>https://api.anthropic.com</code>, your gateway's. It can't be changed later: a new address is a new provider.</p>
+      {{with index .FieldErrors "base_url"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    <div class="field">
+      <label for="secret-key">API key</label>
+      <input id="secret-key" type="password" name="secret.key" autocomplete="off" aria-describedby="secret-key-help">
+      <p class="help" id="secret-key-help">Stored encrypted. To keep the key in your secret store instead, leave this empty and set <code>DIDEROT_PROVIDER_<em>NAME</em>_KEY</code> (the name in capitals) in the deployment.</p>
+    </div>
+    <label class="check"><input type="checkbox" name="no_key" value="true"{{if .NoKey}} checked{{end}}> <span>It takes no API key</span><span class="help">For an OpenAI-compatible server that needs none, such as a local model server or an embedder beside Diderot.</span></label>
+    {{with index .FieldErrors "no_key"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    <details class="disclosure"{{if .Headers}} open{{end}}>
+      <summary>Extra request headers</summary>
+      <div class="field">
+        <label for="provider-headers">Extra request headers</label>
+        <textarea id="provider-headers" name="headers" class="mono" placeholder="X-Team: search" aria-describedby="provider-headers-help"{{with index .FieldErrors "headers"}} aria-invalid="true"{{end}}>{{.Headers}}</textarea>
+        <p class="help" id="provider-headers-help">One per line, as <code>Name: value</code>, sent with every request to this provider. Every administrator can read these.</p>
+        {{with index .FieldErrors "headers"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="provider-secret-headers">Secret request headers</label>
+        <textarea id="provider-secret-headers" name="secret.secret_headers" class="mono" autocomplete="off" placeholder="X-Api-Token: the token" aria-describedby="provider-secret-headers-help"></textarea>
+        <p class="help" id="provider-secret-headers-help">One per line, as <code>Name: value</code>. Stored encrypted and never shown again, like the key.</p>
+      {{with index .FieldErrors "secret_headers"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+    </details>
+    <div class="field">
+      <label for="provider-models">Models offered <span class="optional">(optional)</span></label>
+      <textarea id="provider-models" name="models" placeholder="One model ID per line" aria-describedby="provider-models-help"{{with index .FieldErrors "models"}} aria-invalid="true"{{end}}>{{.Offered}}</textarea>
+      <p class="help" id="provider-models-help">Leave it empty to offer every model the provider lists. A provider without a model list, such as a local embedding server, needs its models entered here.</p>
+      {{with index .FieldErrors "models"}}<p class="error" role="alert">{{.}}</p>{{end}}
+    </div>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">Add and turn on</button>
+      <a href="/admin/settings/models#providers">Cancel</a>
+      <p class="help">Diderot lists the provider's models first, and turns it on when that works.</p>
+    </div>
+  </form>
+</section>
+{{end}}

@@ -1,0 +1,192 @@
+# Self-contained Diderot for evaluating it on your own data: the server built
+# from this checkout, Postgres, Qdrant, and a local CPU embedder. Models are
+# chosen in the admin UI: add a model provider there and give each job its
+# model. Walkthrough: docs/quickstart.md.
+#
+#   docker compose -f compose.quickstart.yaml up -d --wait
+#   open http://localhost:9091/admin   # sign in as admin / admin, follow the checklist
+#
+# .env names this file in COMPOSE_FILE, which is why a bare `docker compose`
+# works. It is separate from compose.yaml (the development databases for
+# `just up` / `just test`) so the two stacks never share containers, ports,
+# or volumes.
+name: diderot-quickstart
+
+services:
+  diderot:
+    build:
+      context: .
+    command: [serve]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      # The server reads the token and key files at startup; restart it
+      # when new values rewrite them.
+      init:
+        condition: service_completed_successfully
+        restart: true
+    # Loopback only: the API answers anyone holding the token, and nothing
+    # here terminates TLS. Put a TLS proxy in front before exposing it.
+    # Metrics and pprof (port 9094) stay unpublished, inside the network.
+    ports:
+      - "127.0.0.1:${DIDEROT_QUICKSTART_PORT:-9091}:9091"
+    volumes:
+      - keys:/etc/diderot/keys:ro
+      # Diderot's own documentation, for the Markdown folder connector.
+      - ./docs:/srv/docs:ro
+    environment:
+      # Not Kubernetes: elect the leader through a Postgres advisory lock.
+      DIDEROT_DEPLOYMENT: standalone
+      DIDEROT_LEADER_BACKEND: postgres
+      DIDEROT_DB_URL: postgres://diderot:diderot@postgres:5432/diderot?sslmode=disable
+      DIDEROT_QDRANT_ADDR: qdrant:6334
+      DIDEROT_PUBLIC_URL: http://localhost:${DIDEROT_QUICKSTART_PORT:-9091}
+
+      # One static bearer token (init hashes it into tokens.yaml). Its
+      # identity is in both groups below: administrator and self-service.
+      DIDEROT_AUTH_MODE: static
+      DIDEROT_AUTH_STATIC_TOKENS_FILE: /etc/diderot/keys/tokens.yaml
+      DIDEROT_ADMIN_GROUPS: diderot-admins
+      DIDEROT_SELF_SERVICE_GROUPS: diderot-users
+      # Seals browser sessions: the bootstrap admin (admin / admin) and
+      # signing in to /admin with the token.
+      DIDEROT_BROWSER_SESSION_KEYS_FILE: /etc/diderot/keys/browser-session-keys
+      # Encrypts the connector secrets pasted at /admin/connectors before
+      # they are stored in the database.
+      DIDEROT_CONFIG_KEYS_FILE: /etc/diderot/keys/config-keys
+
+      # Models are settings: add a provider and choose each job's model at
+      # /admin/settings/models. The embedder service below is a provider
+      # to add there for local embeddings.
+      DIDEROT_ASK_ENABLED: "true"
+      # Once Ask has a model, /readyz stays 503 until one tiny real inference
+      # succeeds, then re-checks on this interval (each check is a billed
+      # request).
+      DIDEROT_ASK_READINESS_INTERVAL: ${DIDEROT_ASK_READINESS_INTERVAL:-5m}
+      # Sources and tools are set up at /admin/connectors, their tokens
+      # pasted there. Enabling "Markdown folder" indexes the folder mounted
+      # here; replace the docs mount above to index your own.
+      DIDEROT_MARKDOWN_DIR: /srv/docs
+    healthcheck:
+      # The image is distroless; the binary probes itself.
+      test: ["CMD", "/usr/local/bin/diderot", "probe", "readyz"]
+      interval: 15s
+      timeout: 5s
+      start_period: 2m
+      start_interval: 2s
+
+  # Writes the server's keys and token file into the keys volume before each
+  # start. A key or token set in .env is used as given; one left unset is
+  # generated on the first start and kept in the volume after that. The
+  # server's files are readable only by its user (nonroot, 65532); a
+  # generated API token is kept for `docker compose run --rm init cat
+  # /keys/api-token`, and the server reads only its SHA-256.
+  init:
+    image: busybox:1.38.0@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+    environment:
+      TOKEN: ${DIDEROT_QUICKSTART_TOKEN:-}
+      EMAIL: ${DIDEROT_QUICKSTART_EMAIL:-admin@example.com}
+      BROWSER_SESSION_KEYS: ${DIDEROT_BROWSER_SESSION_KEYS:-}
+      CONFIG_KEYS: ${DIDEROT_CONFIG_KEYS:-}
+    command:
+      - sh
+      - -euc
+      - |
+        cd /keys
+        umask 077
+        # keep FILE VALUE: write VALUE, or else a new key unless FILE has one.
+        keep() {
+          if [ -n "$$2" ]; then
+            printf '%s\n' "$$2" > "$$1"
+          elif [ ! -s "$$1" ]; then
+            head -c 32 /dev/urandom | base64 > "$$1"
+          fi
+        }
+        keep browser-session-keys "$$BROWSER_SESSION_KEYS"
+        keep config-keys "$$CONFIG_KEYS"
+        if [ -n "$$TOKEN" ]; then
+          if [ "$${#TOKEN}" -lt 32 ]; then
+            echo "DIDEROT_QUICKSTART_TOKEN must be at least 32 characters (openssl rand -hex 32)" >&2
+            exit 1
+          fi
+          rm -f api-token
+        else
+          if [ ! -s api-token ]; then
+            od -An -N32 -tx1 /dev/urandom | tr -d ' \n' > api-token
+          fi
+          TOKEN=$$(cat api-token)
+          echo "Print the API token (for MCP clients and the API, or to sign in to /admin with it): docker compose run --rm init cat /keys/api-token"
+        fi
+        digest=$$(printf %s "$$TOKEN" | sha256sum | cut -d ' ' -f 1)
+        printf 'tokens:\n  - sha256: %s\n    email: "%s"\n    groups: [diderot-admins, diderot-users]\n' \
+          "$$digest" "$$EMAIL" > tokens.yaml
+        chown 65532:65532 browser-session-keys config-keys tokens.yaml
+    volumes:
+      - keys:/keys
+
+  postgres:
+    image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: diderot
+      POSTGRES_PASSWORD: diderot
+      POSTGRES_DB: diderot
+    volumes:
+      # Postgres 18 keeps its data in a major-version subdirectory.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "diderot", "-d", "diderot"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.2@sha256:d277592721d2e3b73f9b797b53cf05e6a5bb2134f6d13fdbda4ca51782afbcac
+    restart: unless-stopped
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - qdrant:/qdrant/storage
+    healthcheck:
+      # No curl in the image; ask the HTTP port's /readyz over bash's /dev/tcp.
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/6333 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q ' 200 ' <&3
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Hugging Face text-embeddings-inference on CPU, for embeddings that stay on
+  # this machine: add it on the Models page as a provider at
+  # http://embedder/v1 (any key) offering the model below. The first start
+  # downloads the model (about 1.3 GB for the default) into the
+  # embedder-cache volume; it needs about 3 GB of memory.
+  embedder:
+    build:
+      context: quickstart/embedder
+    restart: unless-stopped
+    command:
+      - --model-id=${DIDEROT_QUICKSTART_EMBED_MODEL:-mixedbread-ai/mxbai-embed-large-v1}
+      - --revision=${DIDEROT_QUICKSTART_EMBED_REVISION:-b33106f585b9ce46904ad7443a3b52b7a63e231c}
+      # Diderot chunks by characters, so a chunk can exceed the model's token
+      # limit (512 for the default). TEI 1.9 truncates by default; pin it.
+      - --auto-truncate=true
+    volumes:
+      - embedder-cache:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15m
+      start_interval: 5s
+
+volumes:
+  keys:
+  pgdata:
+  qdrant:
+  embedder-cache:

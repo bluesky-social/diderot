@@ -1,0 +1,62 @@
+version: 2
+
+# The release binaries: diderot for people's machines, the client commands
+# (setup, doctor, ask) alone, built from the module's root package. The
+# server and its maintenance commands are in the container image.
+
+before:
+  hooks:
+    # The licences of everything compiled into the binary, which those
+    # licences require shipping with it. segmentio/asm is MIT-0, which asks
+    # for no notice and which go-licenses cannot classify.
+    - rm -rf build/third-party
+    - go run github.com/google/go-licenses/v2@v2.0.1 save . --save_path=build/third-party --ignore github.com/bluesky-social/diderot --ignore github.com/segmentio/asm
+
+builds:
+  - id: diderot
+    main: .
+    binary: diderot
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      # The tag, as the image's build passes it, so both report one version;
+      # a snapshot reports its own version, which its archives are named for.
+      - -X main.Version=v{{ .Version }}
+
+archives:
+  - id: diderot
+    ids:
+      - diderot
+    name_template: "diderot_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    files:
+      - README.md
+      - LICENSE-*
+      - src: build/third-party/**/*
+        dst: third-party
+        strip_parent: false
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: true
+
+release:
+  draft: false
+  prerelease: auto
+  # release-please creates the tag and the GitHub release when its PR merges;
+  # this run (the goreleaser job in release-please.yml, dispatched with the
+  # tag) adds the archives and checksums to that release instead of creating
+  # one.
+  mode: keep-existing

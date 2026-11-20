@@ -1,0 +1,10 @@
+POST /v1/messages
+Accept-Encoding: gzip
+Anthropic-Version: 2023-06-01
+Authorization: Bearer golden-key
+Content-Length: 1196
+Content-Type: application/json
+User-Agent: Go-http-client/1.1
+X-Provider-Extra: one
+
+{"max_tokens":1024,"messages":[{"content":[{"text":"\u003cchunk index=\"2\" of=\"5\"\u003e\n{\"role\":\"user\",\"content\":\"fix \u003cthe\u003e bug \u0026 \\\"ship\\\" it\"}\n{\"role\":\"assistant\",\"content\":\"done — ✓\"}\n\n\u003c/chunk\u003e","type":"text"}],"role":"user"}],"model":"claude-haiku-4-5","system":[{"text":"Summarize this part of the session.\nSecond line, with \"quotes\" and \u003cangle\u003e \u0026 ampersand.","cache_control":{"type":"ephemeral"},"type":"text"}],"tool_choice":{"name":"record_chunk_summary","disable_parallel_tool_use":true,"type":"tool"},"tools":[{"input_schema":{"type":"object","required":["evidence","summary"],"properties":{"evidence":{"description":"3 to 5 verbatim strings from the chunk: file paths, commands, error messages, user directives. Do not paraphrase.","items":{"type":"string"},"maxItems":5,"minItems":3,"type":"array"},"summary":{"description":"A 600–900 character summary of this chunk only. Lead with what the user was trying to do; name at least 2 concrete proper nouns; note decisions or pivots.","type":"string"}}},"name":"record_chunk_summary","description":"Record the chunk summary. Call this exactly once, then stop."}]}

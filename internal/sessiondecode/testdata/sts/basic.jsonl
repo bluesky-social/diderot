@@ -1,0 +1,7 @@
+{"type":"session","harness":"my-agent","id":"abc123","name":"what time is it","extra_metadata":{"ignored":true}}
+{"type":"message","message":{"role":"system","content":"You tell the time."}}
+{"type":"message","message":{"role":"user","content":"what time is it?","timestamp":1793534400000}}
+{"type":"message","message":{"role":"assistant","content":"","reasoningContent":"I should call the clock.","model":"synthetic-model","toolCalls":[{"id":"t1","function":{"name":"get_time","arguments":"{}"}}],"timestamp":1793534401000}}
+{"type":"message","message":{"role":"tool","toolCallId":"t1","content":"2026-11-01T15:00:00Z"}}
+{"type":"message","message":{"role":"assistant","content":"it is 15:00 UTC","model":"synthetic-model","timestamp":1793534402500}}
+{"type":"future_kind","payload":{"x":1}}

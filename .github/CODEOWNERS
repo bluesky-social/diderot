@@ -1,0 +1,26 @@
+# Code owners. With "Require review from Code Owners" on main, every change
+# needs an approval from an owner of each path it touches.
+#
+# The last matching pattern wins, so a stricter rule below replaces the
+# default owners for its paths rather than adding to them. An owner must be a
+# user or a visible team with write access to this repository; a rule whose
+# owners are all invalid is dropped, leaving its paths unowned. Check
+# `gh api repos/bluesky-social/diderot/codeowners/errors` after any edit.
+
+# Everything: any Bluesky platform engineer.
+*                               @sarahmaeve @bluesky-social/platform
+
+# What CI runs with our secrets and what decides the scrub gate.
+/.github/                       @sarahmaeve
+/.gitleaks.toml                 @sarahmaeve
+
+# What ships: release automation, the image build, dependency policy.
+/.goreleaser.yaml               @sarahmaeve
+/release-please-config.json     @sarahmaeve
+/Dockerfile                     @sarahmaeve
+/renovate.json                  @sarahmaeve
+
+# Who may do what, and schema changes that apply on boot.
+/internal/auth/                 @sarahmaeve
+/internal/authorization/        @sarahmaeve
+/internal/migrations/           @sarahmaeve

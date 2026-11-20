@@ -1,0 +1,84 @@
+{{define "content"}}
+{{template "page-header" (header "Connectors" "What Diderot indexes, the tools Ask can use, and the work Diderot does on its own.")}}
+
+{{template "setup-progress" .Setup}}
+
+{{with .Sources}}
+<section class="section" aria-labelledby="sources-heading">
+  <div class="section-header"><h2 id="sources-heading">Sources</h2><p>Where Diderot finds what Ask searches. Turn on at least one.</p></div>
+  <div class="table-wrap">
+    <table class="table table-stack connector-table">
+      <thead><tr><th scope="col">Source</th><th scope="col">State</th><th scope="col">Newest item</th></tr></thead>
+      <tbody>
+      {{range .}}
+        <tr>
+          {{template "connector-name" .}}
+          {{template "connector-state" .}}
+          {{template "source-newest" .}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+
+{{with .Tools}}
+<section class="section" aria-labelledby="tools-heading">
+  <div class="section-header"><h2 id="tools-heading">Tools</h2><p>What Ask can use besides what Diderot indexes.</p></div>
+  <div class="table-wrap">
+    <table class="table table-stack connector-table">
+      <thead><tr><th scope="col">Tool</th><th scope="col">State</th></tr></thead>
+      <tbody>
+      {{range .}}<tr>{{template "connector-name" .}}{{template "connector-state" .}}</tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+
+{{if .ConnectionsShown}}
+<section class="section" id="connections" aria-labelledby="connections-heading">
+  <div class="section-header">
+    <h2 id="connections-heading">Tool connections</h2>
+    <p>MCP servers you run, such as Grafana or Sentry, whose tools Ask or its observability investigator can call.</p>
+    {{if .Connections}}<div class="section-actions"><a class="button" href="/admin/connections/new">Add a connection</a></div>{{end}}
+  </div>
+  {{if .Connections}}
+  <div class="table-wrap">
+    <table class="table table-stack connector-table">
+      <thead><tr><th scope="col">Connection</th><th scope="col">State</th></tr></thead>
+      <tbody>
+      {{range .Connections}}
+        <tr>
+          <th scope="row"><a class="row-link" href="/admin/connections/{{.Name}}">{{.Name}}</a><span class="sub">{{.Kind}}{{with .Address}} · {{.}}{{end}}</span></th>
+          {{template "source-state" .}}
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="empty"><h3>No tool connections yet</h3><p>Connect Grafana, Sentry or another MCP server, and Ask can look at live systems while it answers.</p><a class="button button-primary" href="/admin/connections/new">Add a connection</a></div>
+  {{end}}
+</section>
+{{end}}
+
+{{with .Automations}}
+<section class="section" aria-labelledby="automations-heading">
+  <div class="section-header"><h2 id="automations-heading">Automations</h2><p>Work Diderot does on its own when something happens.</p></div>
+  <div class="table-wrap">
+    <table class="table table-stack connector-table">
+      <thead><tr><th scope="col">Automation</th><th scope="col">State</th></tr></thead>
+      <tbody>
+      {{range .}}<tr>{{template "connector-name" .}}{{template "connector-state" .}}</tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+{{end}}
+
+{{define "connector-name"}}<th scope="row"><a class="row-link" href="/admin/connectors/{{.Name}}">{{.Title}}</a>{{with .Summary}}<span class="sub">{{.}}</span>{{end}}</th>{{end}}
+
+{{define "connector-state"}}{{template "source-state" .}}{{end}}

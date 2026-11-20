@@ -1,0 +1,106 @@
+{{define "content"}}
+{{if .Attention}}
+{{template "page-header" (header "Overview" "")}}
+<section class="panel panel-attention" aria-labelledby="attention-heading">
+  <h2 id="attention-heading">Needs attention</h2>
+  <ul class="attention-list">
+    {{range .Attention}}<li><span>{{.Text}}</span>{{if .Href}} <a href="{{.Href}}">{{.LinkText}}</a>{{end}}</li>{{end}}
+  </ul>
+</section>
+{{else}}
+{{template "page-header" (header "Overview" "Nothing needs your attention right now.")}}
+{{end}}
+
+<section class="section" aria-labelledby="ask-heading">
+  <div class="section-header">
+    <h2 id="ask-heading">Ask activity</h2>
+  </div>
+  {{template "tabs" .WindowTabs}}
+  {{if .Ask.Questions}}
+  <div class="stats">
+    <div class="stat"><span class="stat-label">Questions</span><span class="stat-value">{{count .Ask.Questions}}</span><span class="stat-note">{{.Window.Label}}</span></div>
+    <div class="stat"><span class="stat-label">Conversations</span><span class="stat-value">{{count .Ask.Conversations}}</span><span class="stat-note">{{.Ask.PerConversation}} questions each on average</span></div>
+    <a class="stat" href="#failures-heading"><span class="stat-label">Failed</span><span class="stat-value">{{count .Ask.Failed}}</span><span class="stat-note">{{.Ask.FailedShare}}% of questions{{with .Ask.Incomplete}}, and {{count .}} incomplete{{end}}</span></a>
+    <div class="stat"><span class="stat-label">Time to answer</span><span class="stat-value">{{with .Ask.MedianAnswer}}{{duration .}}{{else}}—{{end}}</span><span class="stat-note">{{if .Ask.SlowAnswer}}Median; the slowest 5% over {{duration .Ask.SlowAnswer}}{{else if .Ask.MedianAnswer}}Median{{else}}No answers yet{{end}}</span></div>
+  </div>
+  {{template "chart" .Chart}}
+  {{else}}
+  <div class="empty"><h3>No questions {{.Window.During}}</h3><p>Questions asked of Diderot in Slack, through the API or MCP, and by scheduled reports show here.</p></div>
+  {{end}}
+  {{with .Feedback}}<p class="overview-feedback">Ratings of the answers given {{.During}}: <strong>{{count .Helpful}} helpful</strong>, <strong>{{count .NotHelpful}} not helpful</strong>. <a href="{{.Href}}">{{if .NotHelpful}}Read the {{if eq .NotHelpful 1}}one{{else}}ones{{end}} rated not helpful{{else}}Feedback{{end}}</a></p>{{end}}
+</section>
+
+{{if .Recent}}
+<div class="overview-columns">
+  <section class="section" aria-labelledby="recent-heading">
+    <div class="section-header">
+      <h2 id="recent-heading">Recent conversations</h2>
+      <span class="section-actions"><a href="/admin/ask/sessions">All conversations</a></span>
+    </div>
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead><tr><th scope="col">Conversation</th><th scope="col">Last question</th></tr></thead>
+        <tbody>
+        {{range .Recent}}
+          <tr>
+            <th scope="row"><a class="row-link" href="/admin/ask/sessions/{{.ID}}">{{or .Title "Untitled conversation"}}</a><span class="sub">{{badge .Tone .State}} {{if .Owner}}{{actor .Owner}} · {{end}}{{.Surface}}</span></th>
+            <td class="nowrap">{{time .At}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="failures-heading">
+    <div class="section-header">
+      <h2 id="failures-heading">Recent failures</h2>
+      {{if .Failures}}<span class="section-actions"><a href="{{.FailedURL}}">All failed</a><a href="{{.IncompleteURL}}">All incomplete</a></span>{{end}}
+    </div>
+    {{if .Failures}}
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead><tr><th scope="col">Conversation</th><th scope="col">Asked</th></tr></thead>
+        <tbody>
+        {{range .Failures}}
+          <tr>
+            <th scope="row"><a class="row-link" href="/admin/ask/sessions/{{.ID}}">{{or .Title "Untitled conversation"}}</a><span class="sub">{{badge .Tone .State}} {{.Reason}}</span></th>
+            <td class="nowrap">{{time .At}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+    <div class="empty"><h3>No failures</h3><p>No conversation begun {{.Window.During}} ended on a failed or incomplete answer.</p></div>
+    {{end}}
+  </section>
+</div>
+{{end}}
+
+<section class="section" aria-labelledby="sources-heading">
+  <div class="section-header">
+    <h2 id="sources-heading">Sources</h2>
+    <span class="section-actions"><a href="/admin/connectors">Connectors</a></span>
+  </div>
+  {{if .Sources}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th scope="col">Source</th><th scope="col" class="num">Items</th><th scope="col">Newest item</th></tr></thead>
+      <tbody>
+      {{range .Sources}}
+        <tr>
+          <th scope="row">{{if .Href}}<a class="row-link" href="{{.Href}}">{{.Title}}</a>{{else}}<span class="mono">{{.Title}}</span>{{end}} {{badge .Tone .State}}{{with .Detail}}<span class="sub">{{.}}</span>{{end}}</th>
+          <td class="num">{{count .Items}}</td>
+          <td class="nowrap">{{time .Newest}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted"><small>Items counted {{time .CountedAt}}.</small></p>
+  {{else}}
+  <div class="empty"><h3>No source is on</h3><p>Diderot answers from the sources it indexes: Slack, Notion, Linear, and others. Turn one on to start.</p><a class="button button-primary" href="/admin/connectors">Set up a source</a></div>
+  {{end}}
+</section>
+{{end}}

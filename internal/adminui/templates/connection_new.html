@@ -1,0 +1,29 @@
+{{define "content"}}
+{{template "page-header" (header "Add a tool connection" "Give Ask the tools of an MCP server you run, such as Grafana or Sentry." (crumb "Connectors" "/admin/connectors#connections"))}}
+
+{{template "error" .Error}}
+
+<section class="section" aria-labelledby="new-heading">
+  <div class="section-header"><h2 id="new-heading" class="visually-hidden">New connection</h2></div>
+  <form class="form" method="post" action="/admin/connections">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <fieldset class="stack">
+      <legend>Kind</legend>
+      {{$kind := .Kind}}
+      {{range .Kinds}}
+      <label class="check"><input type="radio" name="kind" value="{{.Value}}"{{if eq .Value $kind}} checked{{end}}> <span>{{.Label}}</span><span class="help">{{if eq .Value "grafana"}}Grafana and Tempo: metrics, logs, traces, profiles, dashboards and alerts, for the observability investigator.{{else if eq .Value "sentry"}}Sentry's hosted MCP server, read-only, for one project's issues and events.{{else}}Any other MCP server, such as a deployment history or ticket system, for Ask, the investigator, or both.{{end}}</span></label>
+      {{end}}
+    </fieldset>
+    <div class="field">
+      <label for="connection-name">Name</label>
+      <input id="connection-name" name="name" value="{{.Name}}" required pattern="[a-z][a-z0-9_]{0,39}" placeholder="grafana" autocomplete="off" aria-describedby="connection-name-help">
+      <p class="help" id="connection-name-help">Lowercase letters, digits or _. Diderot's logs and Ask's progress lines use it, and it can't be changed later.</p>
+    </div>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">Add connection</button>
+      <a href="/admin/connectors#connections">Cancel</a>
+      <p class="help">The connection starts off. Its page asks for the address and credential next.</p>
+    </div>
+  </form>
+</section>
+{{end}}

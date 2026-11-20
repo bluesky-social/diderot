@@ -1,0 +1,290 @@
+{{define "content"}}
+{{template "page-header" (header "Models" "The model providers Diderot uses, which model does each job, and how much work Ask may do for one question. Changes apply as soon as you save.")}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{template "setup-progress" .Setup}}
+
+{{with .Models.Attention}}
+<section class="panel panel-attention" aria-labelledby="attention-heading">
+  <h2 id="attention-heading" class="visually-hidden">Needs attention</h2>
+  <ul class="stack">{{range .}}<li>{{.}}</li>{{end}}</ul>
+</section>
+{{end}}
+
+<section class="section" id="providers" aria-labelledby="providers-heading">
+  <div class="section-header">
+    <h2 id="providers-heading">Providers</h2>
+    <div class="section-actions"><a class="button button-small" href="/admin/settings/providers/new">Add a provider</a></div>
+    <p>Where Diderot sends its model requests, with the key each takes. Diderot lists each provider's models, and every job chooses from them.</p>
+  </div>
+  {{if .Providers}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th scope="col">Provider</th><th scope="col">Kind</th><th scope="col">Address</th><th scope="col">Models offered</th><th scope="col">State</th></tr></thead>
+      <tbody>
+      {{range .Providers}}
+        <tr>
+          <th scope="row"><a href="{{.Href}}">{{.Name}}</a></th>
+          <td>{{.Kind}}</td>
+          <td class="mono">{{.Address}}</td>
+          <td>{{.Models}}{{if .NoListing}} <span class="sub">entered by hand</span>{{end}}</td>
+          <td>{{badge .State.Tone .State.Word}}{{with .State.Reason}} <span class="sub">{{.}}</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="empty"><h3>No provider yet</h3><p>Add the provider whose API key you have, such as OpenAI or Anthropic, or the gateway or local server your models run behind. Its models then appear in every list below.</p><p><a class="button button-primary" href="/admin/settings/providers/new">Add a provider</a></p></div>
+  {{end}}
+</section>
+
+<section class="section" id="embedding" aria-labelledby="embedding-heading">
+  <div class="section-header">
+    <h2 id="embedding-heading">Embeddings</h2>
+    <p>The model that turns every indexed passage, and every question, into the vectors search compares. Search, and Ask, which searches, start once it is chosen; what sources index before then waits for it.</p>
+  </div>
+  {{with .Models.Embedding}}
+  <dl class="kv">
+    <div><dt>Model</dt><dd><code>{{.Model}}</code> from {{.Provider}}</dd></div>
+    <div><dt>Dimensions</dt><dd>{{.Dimensions}}</dd></div>
+    <div><dt>Collection</dt><dd><code>{{.Collection}}</code></dd></div>
+  </dl>
+  {{end}}
+  {{with .Models.Filling}}
+  <div class="notice notice-attention">
+    <p><strong>Changing to <code>{{.Model}}</code> from {{.Provider}}.</strong> Every passage is being embedded with it into the collection <code>{{.Collection}}</code>: {{count $.Models.FillingDone}} of {{count $.Models.FillingTotal}} so far. {{if $.Models.Embedding}}Search keeps using <code>{{$.Models.Embedding.Model}}</code>, without the passages indexed since the change began, and moves to the new model by itself once every passage is in.{{else}}Search starts by itself once every passage is in.{{end}}</p>
+  </div>
+  {{end}}
+  <form class="form" method="post" action="/admin/settings/models/embedding">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.Models.Version}}">
+    {{if .Models.EmbeddingOptions}}
+    <div class="field">
+      <label for="embedding-model">{{if .Models.Embedding}}Change the embedding model{{else}}Embedding model{{end}}</label>
+      <select id="embedding-model" name="embedding" aria-describedby="embedding-help">
+        {{$ref := .EmbeddingRef}}
+        {{if not $ref}}<option value="" selected>Choose a model</option>{{end}}
+        {{range $.OptionGroups .Models.EmbeddingOptions}}<optgroup label="{{.Provider}}">{{range .Options}}<option value="{{.Ref}}"{{if eq .Ref $ref}} selected{{end}}>{{.ID}}{{with .Name}} ({{.}}){{end}}{{with .Dimensions}} ({{.}} dimensions){{end}}{{if .Retires}} (retires {{.Retires}}){{else if .Deprecated}} (deprecated){{end}}</option>{{end}}</optgroup>{{end}}
+      </select>
+      {{with .Models.EmbeddingAttention}}<p class="error" role="alert">{{.}}</p>{{end}}
+      <p class="help" id="embedding-help">Choosing sends the model one passage to learn its vectors' size, then creates a collection for them in the vector store.{{if .Models.Embedding}} A different model embeds every passage again, into a collection of its own: search keeps using the present model until that is finished.{{end}}</p>
+    </div>
+    {{if and (not .Models.Embedding) .Models.EmbeddedChunks}}
+    <details class="disclosure"{{if .Adopt}} open{{end}}>
+      <summary>Keep an existing collection</summary>
+      <div class="field">
+        <label for="embedding-adopt">Collection</label>
+        <input id="embedding-adopt" name="adopt" value="{{.Adopt}}" autocomplete="off" aria-describedby="embedding-adopt-help">
+        <p class="help" id="embedding-adopt-help">{{count .Models.EmbeddedChunks}} indexed passages have vectors already. If they are in a vector store collection made with the model you choose, enter its name to keep them; otherwise every passage is embedded again.</p>
+      </div>
+    </details>
+    {{end}}
+    {{if .Reembed}}
+    <label class="check"><input type="checkbox" name="confirm" value="reembed" required> <span>Embed every passage again with this model</span><span class="help">{{if .Models.Embedding}}Search keeps using the present model, without the passages indexed meanwhile, and moves to the new one once every passage is embedded. The old collection is kept; the operator may delete it from the vector store afterwards.{{else}}{{count .Models.EmbeddedChunks}} passages already have vectors somewhere. If you know the collection they are in, name it under Keep an existing collection instead, and search works at once. Otherwise search stays off until every passage is embedded again.{{end}}</span></label>
+    {{end}}
+    <div class="form-actions"><button class="button{{if not .Models.Embedding}} button-primary{{end}}" type="submit">{{if .Models.Embedding}}Change the embedding model{{else}}Use this model{{end}}</button></div>
+    {{else}}
+    <p class="help">Add a provider that serves embeddings to choose one.</p>
+    {{end}}
+  </form>
+</section>
+
+<section class="section" id="jobs" aria-labelledby="jobs-heading">
+  <div class="section-header"><h2 id="jobs-heading">Model for each job</h2><p>Saving a model for a job first sends it that job's own small request, and saves nothing if the model refuses it.</p></div>
+  <form method="post" action="/admin/settings/models">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.Models.Version}}">
+    <div class="settings">
+      {{range .Available}}
+      <div class="setting">
+        <div class="setting-about">
+          <h3 id="role-{{.Key}}-title">{{.Title}}</h3>
+          <p>{{.Description}}</p>
+        </div>
+        <div class="setting-control">
+          <div class="field">
+            <label for="role-{{.Key}}">Model<span class="visually-hidden"> for {{.Title}}</span></label>
+            <select id="role-{{.Key}}" name="role.{{.Key}}">
+              {{$saved := .Saved}}
+              <option value=""{{if not $saved}} selected{{end}}>Off: no model</option>
+              {{range $.OptionGroups .Options}}<optgroup label="{{.Provider}}">{{range .Options}}<option value="{{.Ref}}"{{if eq .Ref $saved}} selected{{end}}>{{.ID}}{{if .Tested}} (tested){{end}}{{if .Retires}} (retires {{.Retires}}){{else if .Deprecated}} (deprecated){{end}}</option>{{end}}</optgroup>{{end}}
+            </select>
+            {{with $.Price .}}<p class="help">{{.}}</p>{{end}}
+            {{with index $.Spend .Key}}<p class="help">{{.}}</p>{{end}}
+            {{if .Warning}}<p class="error" role="alert">{{.Warning}}</p>{{end}}
+            {{if .Attention}}<p class="error" role="alert">{{.Attention}}</p>{{end}}
+            {{with .Note}}<p class="help">{{.}}</p>{{end}}
+          </div>
+          {{if eq .Key "ask"}}
+          <div class="field-row">
+            <div class="field">
+              <label for="ask-reasoning-effort">Reasoning effort</label>
+              <select id="ask-reasoning-effort" name="ask_reasoning_effort" aria-describedby="ask-reasoning-effort-help">
+                <option value=""{{if not $.Models.AskReasoningEffort}} selected{{end}}>Model default</option>
+                {{range $.Efforts}}<option value="{{.}}"{{if eq . $.Models.AskReasoningEffort}} selected{{end}}>{{.}}</option>{{end}}
+              </select>
+              {{with $.Models.AskReasoningEffortWarning}}<p class="error" role="alert">{{.}}</p>{{end}}
+              <p class="help" id="ask-reasoning-effort-help">How hard the model thinks before each step. Saving tests that the model takes it.</p>
+            </div>
+            <div class="field">
+              <label for="ask-max-tool-turns">Maximum tool turns</label>
+              <input id="ask-max-tool-turns" name="ask_max_tool_turns" type="number" min="1" max="{{$.MaxToolTurns}}" value="{{$.Models.AskMaxToolTurns}}" required aria-describedby="ask-max-tool-turns-help">
+              <p class="help" id="ask-max-tool-turns-help">Rounds of searching and reading Ask may do for one question before it must answer, from 1 to {{$.MaxToolTurns}}.</p>
+            </div>
+          </div>
+          {{with $.Limits}}
+          <details class="disclosure" id="ask-limits"{{if .Open}} open{{end}}>
+            <summary>Speed, length and time limits</summary>
+            <div class="field-row">
+              <div class="field">
+                <label for="ask-service-tier">Service tier</label>
+                <select id="ask-service-tier" name="ask_service_tier" aria-describedby="ask-service-tier-help">
+                  <option value=""{{if not .ServiceTier}} selected{{end}}>Not set: the provider decides</option>
+                  {{$tier := .ServiceTier}}{{range $.ServiceTiers}}<option value="{{.}}"{{if eq . $tier}} selected{{end}}>{{.}}</option>{{end}}
+                </select>
+                <p class="help" id="ask-service-tier-help">The speed tier asked of the provider with every request, for a model that takes one. A faster tier answers sooner and is billed at the provider's higher rate. Saving tests that the model takes it.</p>
+              </div>
+              <div class="field">
+                <label for="ask-max-output-tokens">Longest reply, in tokens</label>
+                <input id="ask-max-output-tokens" name="ask_max_output_tokens" type="number" min="{{$.MinOutputTokens}}" max="{{$.MaxOutputTokens}}" value="{{.MaxOutputTokens}}" required aria-describedby="ask-max-output-tokens-help">
+                <p class="help" id="ask-max-output-tokens-help">The most the model may write in one step, its reasoning included. Too few cuts answers off part way; more lets one step cost more.</p>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="ask-model-timeout">Time limit for one model request</label>
+                <input id="ask-model-timeout" name="ask_model_timeout" value="{{.ModelTimeout}}" required autocomplete="off" aria-describedby="ask-model-timeout-help">
+                <p class="help" id="ask-model-timeout-help">How long Ask waits for the model to finish one step, such as 5 minutes. Too short fails steps that need long thought; too long leaves a stuck request holding the question up.</p>
+              </div>
+              <div class="field">
+                <label for="ask-turn-deadline">Time limit for one question</label>
+                <input id="ask-turn-deadline" name="ask_turn_deadline" value="{{.TurnDeadline}}" required autocomplete="off" aria-describedby="ask-turn-deadline-help">
+                <p class="help" id="ask-turn-deadline-help">How long Ask may work on one question in all, such as 10 minutes. When it runs out the person is told the model timed out, and to try again. Slack and Discord stop a question at 15 minutes whatever is set here.</p>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="ask-investigator-deadline">Investigation time</label>
+                <input id="ask-investigator-deadline" name="ask_investigator_deadline" value="{{.InvestigatorDeadline}}" required autocomplete="off" aria-describedby="ask-investigator-deadline-help">
+                <p class="help" id="ask-investigator-deadline-help">How long the investigator Ask hands live-telemetry questions to may research before it is told to stop and report. It runs only with a <a href="/admin/connectors">tool connection</a> given to the investigator.</p>
+              </div>
+              <div class="field">
+                <label for="ask-investigator-grace">Time to write the investigation report</label>
+                <input id="ask-investigator-grace" name="ask_investigator_grace" value="{{.InvestigatorGrace}}" required autocomplete="off" aria-describedby="ask-investigator-grace-help">
+                <p class="help" id="ask-investigator-grace-help">How long the investigator then has to finish the tool call it is in and write its report. If that runs out too, Ask answers without the report.</p>
+              </div>
+            </div>
+            <p class="help">Each time is a length such as 90 seconds or 5 minutes, from 10 seconds to 1 day. A change applies to the next question, on every server, within a minute.</p>
+          </details>
+          {{end}}
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+      <div class="settings-footer">
+        <button class="button button-primary" type="submit">Save models</button>
+        <p class="help">Saving a different model restarts background work. A question being answered at that moment may need to be asked again.</p>
+      </div>
+    </div>
+  </form>
+</section>
+
+{{with .Models.Available}}
+<section class="section" id="entries" aria-labelledby="entries-heading">
+  <div class="section-header">
+    <h2 id="entries-heading">What Diderot knows about each model</h2>
+    <p>Each fact comes from the first of these that says: what an administrator set on the model's page, the provider's own list, the published catalog, and last the job's test. Open a model to see where each of its facts came from, to correct one, or to say which catalog entry describes it.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Answers on</th><th scope="col">Passed the test for</th></tr></thead>
+      <tbody>
+      {{range .}}
+        <tr>
+          <th scope="row"><a class="mono" href="/admin/settings/models/model?ref={{.Ref}}">{{.ID}}</a></th>
+          <td>{{.Provider}}</td>
+          <td>{{range $i, $p := .Protocols}}{{if $i}}, {{end}}{{$p}}{{end}}</td>
+          <td>{{$.TestedFor .}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+
+<section class="section" id="facts" aria-labelledby="facts-heading">
+  <div class="section-header">
+    <h2 id="facts-heading">Published model facts</h2>
+    <p>What a model takes (images, tools, a temperature, which reasoning efforts), its limits, its price, and when its provider retires it are published, so Diderot looks them up instead of trying requests to find out. It reads models.dev once a day, and LiteLLM's model list for the retirement dates and vector sizes models.dev lacks. The requests ask for the two lists and say nothing about this server.</p>
+  </div>
+  {{if .Models.Facts.Off}}
+  <p>{{badge "neutral" "off"}} Nothing is fetched. Facts come from each provider's own list and from each job's test, and no price or retirement date is known beyond what a provider lists.</p>
+  {{else}}
+  <p>{{badge "good" "on"}} {{if .Models.Facts.Models}}{{count .Models.Facts.Models}} models described.{{else}}Not read yet: the leader reads the lists within a minute of starting.{{end}}</p>
+  {{with .FactsLists}}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">List</th><th scope="col">Last read</th><th scope="col">Latest try</th></tr></thead>
+      <tbody>
+      {{range .}}<tr><th scope="row">{{.Name}}</th><td>{{if .FetchedAt.IsZero}}never{{else}}{{time .FetchedAt}}{{end}}</td><td>{{if .Error}}{{badge "bad" "failed"}} <span class="sub">{{.Error}}; the last copy is kept</span>{{else}}{{badge "good" "worked"}}{{end}}</td></tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  {{end}}
+  <form class="form" method="post" action="/admin/settings/models/facts">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.Models.Version}}">
+    {{if .Models.Facts.Off}}
+    <input type="hidden" name="published" value="on">
+    <div class="form-actions"><button class="button" type="submit">Turn published facts on</button></div>
+    {{else}}
+    <input type="hidden" name="published" value="off">
+    <div class="form-actions"><button class="button" type="submit">Turn published facts off</button><p class="help">For a server with no way out to the internet. The models already set up keep working as they are.</p></div>
+    {{end}}
+  </form>
+</section>
+
+{{with .Unavailable}}
+<section class="section" aria-labelledby="unavailable-heading">
+  <div class="section-header">
+    <h2 id="unavailable-heading">Jobs this deployment does not run</h2>
+    <p>These need a deployment setting before they can use a model.</p>
+  </div>
+  <dl class="kv">
+    {{range .}}<div><dt>{{range $i, $t := .Titles}}{{if $i}}<br>{{end}}{{$t}}{{end}}</dt><dd>{{.Reason}}</dd></div>{{end}}
+  </dl>
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="test-heading">
+  <div class="section-header">
+    <h2 id="test-heading">Test</h2>
+    <form class="section-actions" method="post" action="/admin/settings/actions/test-models">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="version" value="{{.OrgVersion}}">
+      <button class="button button-small" type="submit">Test models</button>
+    </form>
+    <p>Sends one small request to each saved model and to the embedding model. Saving models runs it too.</p>
+  </div>
+  {{with .Test}}
+  <p>{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{end}} Last tested {{time .At}} by {{actor .By}}.</p>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">Job</th><th scope="col">Model</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+      {{range .Roles}}
+        <tr><th scope="row">{{.Role}}</th><td><code>{{.Model}}</code></td><td>{{if .Passed}}{{badge "good" "passed"}}{{else}}{{badge "bad" "failed"}}{{with .Error}} <span class="sub">{{.}}</span>{{end}}{{end}}</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="empty"><h3>Not tested yet</h3><p>Choose the models above; saving them tests each one. Setup needs one passing test.</p></div>
+  {{end}}
+</section>
+{{end}}

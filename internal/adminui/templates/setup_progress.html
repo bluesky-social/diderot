@@ -1,0 +1,10 @@
+{{/* The way on from a setup step's own page while the install is in setup. Takes a *setupProgress; renders nothing once live. */}}
+{{define "setup-progress"}}{{with .}}
+<div class="notice{{if .StepDone}} notice-good{{else}} notice-attention{{end}}">
+  <p>{{if .StepDone}}This step of setup is done.{{else}}This step of setup is not done yet.{{end}} <span class="muted">{{.Done}} of {{.Total}} steps done.</span></p>
+  <div class="button-row">
+    <a class="button button-small" href="/admin/settings">Back to the checklist</a>
+    {{if .NextHref}}<a class="button button-small{{if .StepDone}} button-primary{{end}}" href="{{.NextHref}}">Next: {{.NextTitle}}</a>{{else if .StepDone}}<a class="button button-small button-primary" href="/admin/settings#go-live">Next: Go live</a>{{end}}
+  </div>
+</div>
+{{end}}{{end}}

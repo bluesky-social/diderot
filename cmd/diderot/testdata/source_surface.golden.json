@@ -1,0 +1,487 @@
+{
+  "ask_tools": [
+    {
+      "name": "retrieve",
+      "description": "Semantic search over the organization's corpus. Returns the passages that best match `question`, each with its source, actor, time and, when it has one, a url. Use it to find what was said, decided or done about a topic. To enumerate everything that matches a filter, or to read a Slack or Discord channel over a period, use `list`.\n\nThe search ranks by meaning, not by matching words, so describe what you are looking for in the words the content would use. Quotation marks, minus signs, boolean operators and filters written into `question` do nothing: restrict a search with `sources`, `actors` and the time parameters. With `sources` unset, or naming several, each source is ranked on its own and the best `top_k` of each come back, so a small source is not crowded out by a large one: begin with that. Name one source to get more from it. The nearest passages are always returned, however weak, so a hit is not proof of relevance: judge it by its text. An empty result means the filters excluded everything, most often an `actors` value that matches no one or a time bound: loosen them. It never shows that the thing does not exist.\n\nEach hit carries:\n- `event_id`: pass it to `expand` to read the full source.\n- `actor` is an object: `display` is the name to use in prose; `canonical` ({namespace,id}) is the person's identity across sources, and when its namespace is `email` its id is the value to pass back in an `actors` filter, copied exactly; `source_identity` ({namespace,id}) is the source's own id for the person; and `role` says what the person is to the item: message_author for slack and discord (the sharer, for a file or an image), session_owner for agent_session, last_editor for notion (who may not be the author), issue_creator for linear, and event_actor for zendesk (the ticket's requester, a comment's author or an article's author). `occurred_at` is when a slack or discord message was posted. A discord actor's canonical identity is the Discord account (namespace `discord_user`), never an email, so it does not match the same person in other sources. For notion and linear it is the last update, which does not date the events the text describes. For agent_session, a chunk result is dated by the last record of its stretch and a session-level result by the session's last activity.\n- `channel` (slack): the channel's name; a discord hit's `title` names its channel and thread. `has_thread` (slack, discord): what `expand` returns, the whole thread when true and the surrounding messages in the channel when false.\n- `granularity` (agent_session): `chunk` for a summary of one stretch of a session, `session` for a summary of a whole session. Expanding a chunk returns that stretch of the session itself, which is where exact commands and output are. Expanding a session-level hit returns the whole session when it is short and otherwise an outline of its stretches, each with an `event_id` to expand.\n- `content_kind`: present when the text is not the actor's own words. `image_caption` is a model's description of an image they shared. `document_text` is text extracted from a file they attached: `document` names the file, and `document_completeness: partial` means part of it is missing (`document_pages` and `document_pages_extracted` give the coverage). Attribute such text to the image or the file (\"contract.pdf, shared by Sam in #legal\"), not to the actor.\n\nBeside `hits`, `not_searched` lists the sources that no search of this turn has covered yet. It is absent when there are none. Nothing can be called absent from the corpus while it is there; a search with `sources` unset clears it.",
+      "parameters": {
+        "properties": {
+          "question": {
+            "description": "What to look for, as a descriptive phrase or sentence with the distinctive terms and enough context to tell it apart. A one-word query retrieves poorly.",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "enum": [
+                "slack",
+                "discord",
+                "agent_session",
+                "notion",
+                "linear",
+                "zendesk",
+                "markdown"
+              ],
+              "type": "string"
+            },
+            "description": "Limit the search to these sources. With none given, every source is searched, each ranked on its own. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes.",
+            "type": "array"
+          },
+          "actors": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Limit the search to events by these people. Give each as a full email address (the canonical id of one of their results, or, in Ask, asker.email from the context block): an email matches the same person in every source. The source's own id for a person (source_identity.id of one of their results) also matches, in that source only. A display name does not match here: use list to filter by an exact display name, or take the email from one of the person's results. A filter that matches no one returns no hits and no error.",
+            "type": "array"
+          },
+          "occurred_after": {
+            "format": "date-time",
+            "description": "RFC 3339 time. Only events from this time on. Bound a search by time only when the question names a period or needs recent material, because a bound hides older content that may still hold.",
+            "type": "string"
+          },
+          "occurred_before": {
+            "format": "date-time",
+            "description": "RFC 3339 time. Only events up to this time.",
+            "type": "string"
+          },
+          "top_k": {
+            "maximum": 50,
+            "minimum": 1,
+            "description": "How many passages to return. With one source named: that many from it, 20 by default. With several or none: that many from each source, 5 by default and 10 at most.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "list",
+      "description": "List every event that matches a set of filters, newest first, with no relevance ranking. Use it when the question is about a set and not a topic: what a person did in a period, every agent session on a day, each thread in a channel last week. To find the best matches for a topic, use `retrieve`.\n\nAt least one of `sources`, `actors`, `channels`, `occurred_after` or `occurred_before` is required. Each row is a whole event, not a passage, with its content cut to about 2,000 characters, or about 1,100 when a page holds 50 rows; `truncated` marks a cut row. For slack, discord, notion, linear and zendesk, `expand` returns the whole item. A cut agent-session summary cannot be completed that way (`expand` returns the session itself), so ask for 25 rows or fewer to get more of each summary. When more events match than fit in one response it carries `next_cursor`: pass that back as `cursor`, with the same filters, for the next page. A response that carries `next_cursor` is not the whole set. Narrow the filters before paging far.\n\nTo read a Slack or Discord channel, pass `channels` with a time range. Messages come newest first, up to 50 per call; a reply has `is_reply: true` and shares its root's `thread_id`. In a busy channel or over a long range, set `thread_roots_only` to get one row per conversation, then `expand` the threads that matter. This is also the way to find a message someone remembers by who posted it, where and roughly when, which `retrieve` cannot do.\n\nFor agent sessions, set `session_level_only` to get one row per session and not one per stretch of each session. `expand` on a session-level row returns the whole session when it is short and otherwise an outline of its stretches, each with an `event_id` to expand.\n\nIn each row, `actor` is an object: `display` is the name to use in prose; `canonical` ({namespace,id}) is the person's identity across sources, and when its namespace is `email` its id is the value to pass back in an `actors` filter, copied exactly; `source_identity` ({namespace,id}) is the source's own id for the person; and `role` says what the person is to the item: message_author for slack and discord (the sharer, for a file or an image), session_owner for agent_session, last_editor for notion (who may not be the author), issue_creator for linear, and event_actor for zendesk (the ticket's requester, a comment's author or an article's author). `occurred_at` is when a slack or discord message was posted. A discord actor's canonical identity is the Discord account (namespace `discord_user`), never an email, so it does not match the same person in other sources. For notion and linear it is the last update, which does not date the events the text describes. For agent_session, a chunk result is dated by the last record of its stretch and a session-level result by the session's last activity.",
+      "parameters": {
+        "properties": {
+          "sources": {
+            "items": {
+              "enum": [
+                "slack",
+                "discord",
+                "agent_session",
+                "notion",
+                "linear",
+                "zendesk",
+                "markdown"
+              ],
+              "type": "string"
+            },
+            "description": "Limit the list to these sources. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes.",
+            "type": "array"
+          },
+          "actors": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Limit the list to events by these people. Give each as a full email address (the canonical id of one of their results, or, in Ask, asker.email from the context block): an email matches the same person in every source. A display name matches only if it is exactly the name the source stores, so a first name alone usually matches nothing, and a filter that matches no one returns no rows and no error.",
+            "type": "array"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Limit the list to messages in these Slack or Discord channels. Each entry is a channel name (with or without '#'), a channel ID, or a link to the channel or one of its messages. A Discord channel includes its threads and forum posts. A channel that does not exist, or that the caller cannot read, is an error.",
+            "type": "array"
+          },
+          "occurred_after": {
+            "format": "date-time",
+            "description": "RFC 3339 time. Only events at or after it.",
+            "type": "string"
+          },
+          "occurred_before": {
+            "format": "date-time",
+            "description": "RFC 3339 time. Only events at or before it.",
+            "type": "string"
+          },
+          "top_k": {
+            "maximum": 50,
+            "minimum": 1,
+            "description": "How many events to return.",
+            "default": 25,
+            "type": "integer"
+          },
+          "thread_roots_only": {
+            "description": "For slack and discord: return only top-level messages (thread roots and messages with no thread), one row per conversation, leaving out replies.",
+            "default": false,
+            "type": "boolean"
+          },
+          "session_level_only": {
+            "description": "For agent_session: return one row per session (its whole-session summary), leaving out the rows for each stretch of a session.",
+            "default": false,
+            "type": "boolean"
+          },
+          "cursor": {
+            "description": "The next_cursor of the previous response, passed unchanged with the same filters, to get the next page. Leave it unset for the first page.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "expand",
+      "description": "Read the full source behind one result: pass the `event_id` of a `retrieve` or `list` hit. Use it when the answer depends on something the hit does not show: the rest of a thread, the exact text of a command or an error, a decision further down a page. What comes back depends on the source. For slack: the whole thread, or, for a message with no thread, the messages around it in the channel (up to 20 messages and 30 minutes either side), where a message that started a thread is marked with its reply count and an event_id you can expand in turn. For agent_session: the stretch of the session that a chunk hit summarizes, or, for a session-level hit, the whole session when it is short and otherwise an outline of its stretches, each with a summary and the `event_id` to expand to read that stretch. For notion: the whole page. For linear: the whole issue with its comments. For zendesk: the indexed ticket conversation or article, with the attachment content the asker may see. For discord: the whole thread or forum post, or, for a message outside a thread, the messages around it in its channel and the message it replies to. The result carries the same `actor` object as the hit, and `truncated` when the content was cut to fit. Files attached to the returned messages are listed under `attachments` with name, type, size in bytes and, for an image, its caption. Items the question named exactly (a Slack link, an issue key, a session ID) have already been fetched and are in the user's message, so do not expand to find those. When `supported` is false, `note` says why (the event cannot be read from here, or its source cannot be expanded right now): work from the hit you have, as you should when the call returns an error. Results can run to tens of kilobytes, so expand the hits that matter, not every hit.",
+      "parameters": {
+        "properties": {
+          "event_id": {
+            "description": "The event_id of a retrieve or list result.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_id"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "retrieve_labels": {
+    "agent_session": "Work session",
+    "legacy_source": "legacy_source",
+    "linear": "Linear",
+    "notion": "Notion",
+    "slack": "Slack",
+    "zendesk": "Zendesk"
+  },
+  "list_labels": {
+    "agent_session": "Work session",
+    "legacy_source": "legacy_source",
+    "linear": "Linear",
+    "notion": "Notion",
+    "slack": "Slack",
+    "zendesk": "Zendesk"
+  },
+  "expand_status": {
+    "agent_session": "Loaded source context from Work session",
+    "legacy_source": "Loaded source context from legacy_source",
+    "linear": "Loaded source context from Linear",
+    "notion": "Loaded source context from Notion",
+    "slack": "Loaded source context from Slack",
+    "zendesk": "Loaded source context from Zendesk"
+  },
+  "actors": [
+    {
+      "source": "slack",
+      "display": "Alex",
+      "canonical": "alex@example.com",
+      "source_id": "U1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "slack_user",
+          "id": "U1"
+        },
+        "role": "message_author"
+      }
+    },
+    {
+      "source": "slack",
+      "display": "Alex",
+      "canonical": "slack:U1",
+      "source_id": "U1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "slack_user",
+          "id": "U1"
+        },
+        "source_identity": {
+          "namespace": "slack_user",
+          "id": "U1"
+        },
+        "role": "message_author"
+      }
+    },
+    {
+      "source": "slack",
+      "display": "Deploy bot",
+      "canonical": "slack-bot:B1",
+      "source_id": "B1",
+      "actor": {
+        "display": "Deploy bot",
+        "canonical": {
+          "namespace": "slack_bot",
+          "id": "B1"
+        },
+        "source_identity": {
+          "namespace": "slack_bot",
+          "id": "B1"
+        },
+        "role": "message_author"
+      }
+    },
+    {
+      "source": "slack",
+      "display": "legacy",
+      "canonical": "",
+      "source_id": "",
+      "actor": {
+        "display": "legacy",
+        "canonical": {
+          "namespace": "",
+          "id": ""
+        },
+        "source_identity": {
+          "namespace": "",
+          "id": ""
+        },
+        "role": "message_author"
+      }
+    },
+    {
+      "source": "agent_session",
+      "display": "alex@example.com",
+      "canonical": "alex@example.com",
+      "source_id": "alex@example.com",
+      "actor": {
+        "display": "alex@example.com",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "agent_session",
+          "id": "alex@example.com"
+        },
+        "role": "session_owner"
+      }
+    },
+    {
+      "source": "agent_session",
+      "display": "worker",
+      "canonical": "svc:worker@example.com",
+      "source_id": "svc:worker@example.com",
+      "actor": {
+        "display": "worker",
+        "canonical": {
+          "namespace": "agent_session",
+          "id": "svc:worker@example.com"
+        },
+        "source_identity": {
+          "namespace": "agent_session",
+          "id": "svc:worker@example.com"
+        },
+        "role": "session_owner"
+      }
+    },
+    {
+      "source": "notion",
+      "display": "Alex",
+      "canonical": "alex@example.com",
+      "source_id": "N1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "notion_user",
+          "id": "N1"
+        },
+        "role": "last_editor"
+      }
+    },
+    {
+      "source": "notion",
+      "display": "Alex",
+      "canonical": "notion:N1",
+      "source_id": "N1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "notion_user",
+          "id": "N1"
+        },
+        "source_identity": {
+          "namespace": "notion_user",
+          "id": "N1"
+        },
+        "role": "last_editor"
+      }
+    },
+    {
+      "source": "notion",
+      "display": "Integration",
+      "canonical": "notion-bot:NB1",
+      "source_id": "NB1",
+      "actor": {
+        "display": "Integration",
+        "canonical": {
+          "namespace": "notion_bot",
+          "id": "NB1"
+        },
+        "source_identity": {
+          "namespace": "notion_bot",
+          "id": "NB1"
+        },
+        "role": "last_editor"
+      }
+    },
+    {
+      "source": "linear",
+      "display": "Alex",
+      "canonical": "alex@example.com",
+      "source_id": "L1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "linear_user",
+          "id": "L1"
+        },
+        "role": "issue_creator"
+      }
+    },
+    {
+      "source": "linear",
+      "display": "Alex",
+      "canonical": "linear:L1",
+      "source_id": "L1",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "linear_user",
+          "id": "L1"
+        },
+        "source_identity": {
+          "namespace": "linear_user",
+          "id": "L1"
+        },
+        "role": "issue_creator"
+      }
+    },
+    {
+      "source": "linear",
+      "display": "",
+      "canonical": "linear:unknown",
+      "source_id": "",
+      "actor": {
+        "display": "",
+        "canonical": {
+          "namespace": "",
+          "id": ""
+        },
+        "source_identity": {
+          "namespace": "",
+          "id": ""
+        },
+        "role": "issue_creator"
+      }
+    },
+    {
+      "source": "zendesk",
+      "display": "Agent",
+      "canonical": "Agent@example.com",
+      "source_id": "Z1",
+      "actor": {
+        "display": "Agent",
+        "canonical": {
+          "namespace": "email",
+          "id": "Agent@example.com"
+        },
+        "source_identity": {
+          "namespace": "zendesk_user",
+          "id": "Z1"
+        },
+        "role": "event_actor"
+      }
+    },
+    {
+      "source": "zendesk",
+      "display": "Requester",
+      "canonical": "zendesk:Z2",
+      "source_id": "Z2",
+      "actor": {
+        "display": "Requester",
+        "canonical": {
+          "namespace": "zendesk_user",
+          "id": "Z2"
+        },
+        "source_identity": {
+          "namespace": "zendesk_user",
+          "id": "Z2"
+        },
+        "role": "event_actor"
+      }
+    },
+    {
+      "source": "legacy_source",
+      "display": "alex@example.com",
+      "canonical": "alex@example.com",
+      "source_id": "alex@example.com",
+      "actor": {
+        "display": "alex@example.com",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "",
+          "id": ""
+        },
+        "role": "event_actor"
+      }
+    },
+    {
+      "source": "legacy_source",
+      "display": "opaque",
+      "canonical": "opaque-value",
+      "source_id": "X1",
+      "actor": {
+        "display": "opaque",
+        "canonical": {
+          "namespace": "legacy_source",
+          "id": "opaque-value"
+        },
+        "source_identity": {
+          "namespace": "",
+          "id": ""
+        },
+        "role": "event_actor"
+      }
+    }
+  ],
+  "source_connectors": [
+    "slack",
+    "discord",
+    "session_feed",
+    "notion",
+    "linear",
+    "zendesk",
+    "markdown"
+  ],
+  "tool_connectors": [
+    "tavily",
+    "sourcebot",
+    "pagerduty"
+  ],
+  "connector_titles": {
+    "discord": "Discord",
+    "example": "Example",
+    "linear": "Linear",
+    "markdown": "Markdown folder",
+    "notion": "Notion",
+    "pagerduty": "PagerDuty",
+    "session_feed": "Session feed",
+    "slack": "Slack",
+    "sourcebot": "Code search",
+    "tavily": "Web search",
+    "zendesk": "Zendesk"
+  },
+  "sources_prompt": "- `slack` — indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed.\n- `discord` — messages, threads and forum posts from the Discord server channels this deployment indexes.\n- `agent_session` — canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack.\n- `notion` — internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material.\n- `linear` — engineering issue tracker: tasks, bugs, projects, and their discussion threads.\n- `zendesk` — indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items.\n- `markdown` — Markdown documents from a folder this deployment indexes."
+}

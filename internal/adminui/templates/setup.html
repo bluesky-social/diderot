@@ -1,0 +1,121 @@
+{{define "content"}}
+{{if .Live}}
+{{template "page-header" (header "Setup checklist" "Diderot is live: everyone who can sign in can use Ask. A step that shows as not done here is a reminder, and stops nothing from working.")}}
+{{else}}
+{{template "page-header" (header "Setup checklist" "Until you go live, only administrators can use Ask. Work through the steps in order, then go live.")}}
+{{end}}
+{{with .SectionTabs}}{{template "tabs" .}}{{end}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="section" aria-labelledby="steps-heading">
+  <div class="section-header">
+    <h2 id="steps-heading">{{if .Live}}Required settings{{else}}Steps to go live{{end}}</h2>
+    <span class="section-actions muted">{{with .Remaining}}{{.}} left{{else}}All done{{end}}</span>
+  </div>
+  <ol class="steps">
+    {{range .Required}}
+    <li class="step{{if .Done}} step-done{{else if .Current}} step-current{{end}}" id="{{.ID}}">
+      <div class="step-main">
+        <div class="step-text">
+          <div class="step-title">
+            <h3>{{if eq .ID "bootstrap-admin"}}{{.Title}}{{else}}<a href="{{.Link}}">{{.Title}}</a>{{end}}</h3>
+            {{if .Done}}{{badge "good" "done"}}{{else if $.Live}}{{badge "attention" "needs attention"}}{{else if .Current}}{{badge "attention" "next"}}{{else}}{{badge "neutral" "to do"}}{{end}}
+          </div>
+          {{if not .Done}}<p>{{.Summary}}</p>{{end}}
+          <p>{{.Status}}{{if .By}} <span class="nowrap">By {{actor .By}}{{if .At}}, {{time .At}}{{end}}.</span>{{end}}</p>
+        </div>
+        {{if and (not .Done) (ne .ID "bootstrap-admin")}}
+        <div class="step-actions">
+          {{if eq .ID "prompts"}}
+          <form method="post" action="/admin/settings/actions/accept-example-prompts">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+            <input type="hidden" name="version" value="{{$.Checklist.Version}}">
+            <button class="button" type="submit">Use the example as-is</button>
+          </form>
+          {{end}}
+          <a class="button{{if .Current}} button-primary{{end}}" href="{{.Link}}">{{.Action}}</a>
+        </div>
+        {{end}}
+      </div>
+      {{if and (eq .ID "bootstrap-admin") (not .Done)}}
+      <div class="step-detail">
+        {{if $.SignedInAsBootstrap}}
+        <p><strong>First, sign in another way.</strong> You are signed in as the bootstrap admin now, and turning it off from another account is what proves an administrator can still get in.</p>
+        <ul>
+          {{if $.OIDCSignIn}}<li>Sign out, then choose <strong>Sign in with your identity provider</strong>.</li>{{end}}
+          {{if $.TokenSignIn}}<li>{{if $.OIDCSignIn}}Or sign{{else}}Sign{{end}} out, then sign in with an administrator's API token. The Docker Compose quickstart prints its token with:
+            <pre><code>docker compose run --rm init cat /keys/api-token</code></pre></li>{{end}}
+          {{if not (or $.OIDCSignIn $.TokenSignIn)}}<li>This deployment offers no other way to sign in yet. Set up an identity provider or an API token file (see the production guide), restart Diderot, and come back.</li>{{end}}
+        </ul>
+        <p><strong>Then turn the bootstrap admin off</strong> from this step. The button appears once you are signed in another way.</p>
+        {{else}}
+        <p>You are signed in another way, so the bootstrap admin can go. To bring it back later, run <code>diderot reset-admin</code> on the server.</p>
+        <form method="post" action="/admin/settings/actions/disable-bootstrap-admin">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="version" value="{{$.Checklist.Version}}">
+          <button class="button{{if .Current}} button-primary{{end}}" type="submit">Turn off the bootstrap admin</button>
+        </form>
+        {{end}}
+      </div>
+      {{end}}
+    </li>
+    {{end}}
+    {{if not .Live}}
+    <li class="step{{if .Checklist.Ready}} step-current{{end}}" id="go-live">
+      <div class="step-main">
+        <div class="step-text">
+          <div class="step-title"><h3>Go live</h3>{{if .Checklist.Ready}}{{badge "attention" "next"}}{{end}}</div>
+          {{if .Checklist.Ready}}
+          <p>Every step is done. Going live opens Ask to everyone who can sign in, as the <a href="/admin/settings/access">Access</a> page lists.</p>
+          {{else}}
+          <p>Opens Ask to everyone who can sign in. Available when the steps above are done.</p>
+          {{end}}
+        </div>
+        {{if .Checklist.Ready}}
+        <form class="step-actions" method="post" action="/admin/settings/actions/go-live">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <input type="hidden" name="version" value="{{.Checklist.Version}}">
+          <button class="button button-primary" type="submit">Go live</button>
+        </form>
+        {{end}}
+      </div>
+    </li>
+    {{end}}
+  </ol>
+</section>
+
+<section class="section" aria-labelledby="optional-heading">
+  <div class="section-header">
+    <h2 id="optional-heading">Optional features</h2>
+    <p>Nothing here is needed to go live.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th scope="col">Feature</th><th scope="col">What it does</th><th scope="col">State</th></tr></thead>
+      <tbody>
+      {{range .Optional}}
+        <tr id="{{.ID}}">
+          <th scope="row"><a href="{{.Link}}">{{.Title}}</a></th>
+          <td>{{.Summary}}</td>
+          <td>{{if .Done}}{{badge "good" "on"}}{{else}}{{badge "neutral" "off"}}{{end}}{{if and (or .Done .Setting) (ne .Status "On.")}}<span class="sub">{{.Status}}{{with .Setting}} <code>{{.}}</code>{{end}}</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{{if .Live}}
+<section class="section" aria-labelledby="live-heading">
+  <div class="section-header"><h2 id="live-heading">Go back to setup</h2></div>
+  <p class="muted">{{if .Checklist.WentLiveAt}}Diderot went live {{time .Checklist.WentLiveAt}}{{with .Checklist.WentLiveBy}}, opened by {{actor .}}{{end}}. {{end}}Going back to setup closes Ask to everyone but administrators until you go live again. Nothing is deleted.</p>
+  <form method="post" action="/admin/settings/actions/back-to-setup">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.Checklist.Version}}">
+    <button class="button button-danger" type="submit">Go back to setup</button>
+  </form>
+</section>
+{{end}}
+{{end}}

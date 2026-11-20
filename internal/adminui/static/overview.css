@@ -1,0 +1,6 @@
+/* Overview: recent conversations and recent failures side by side, and the
+   line about how people rated recent answers. */
+.overview-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--space-6) var(--space-5); }
+.overview-columns > .section + .section { margin-top: 0; }
+.overview-feedback { color: var(--dim); }
+.overview-feedback strong { color: var(--ink); font-weight: 500; }

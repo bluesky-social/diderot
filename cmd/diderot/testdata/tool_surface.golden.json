@@ -1,0 +1,394 @@
+{
+  "connectors": [
+    "slack",
+    "discord",
+    "session_feed",
+    "notion",
+    "linear",
+    "zendesk",
+    "markdown",
+    "tavily",
+    "sourcebot",
+    "pagerduty"
+  ],
+  "ask_tools": [
+    {
+      "name": "web_search",
+      "description": "Search the public web. Use it for what lies outside {{ORG_NAME}}: a project's documentation or current version, a vendor's limits or pricing, a public specification, the news. It knows nothing of {{ORG_NAME}}'s internal work, which the corpus tools cover. Returns results with a title, a url and a snippet; use web_fetch to read a page when the snippet is not enough.",
+      "parameters": {
+        "properties": {
+          "query": {
+            "description": "What to search for, in natural language, with the distinctive terms.",
+            "type": "string"
+          },
+          "max_results": {
+            "maximum": 20,
+            "minimum": 1,
+            "description": "How many results to return.",
+            "default": 5,
+            "type": "integer"
+          },
+          "topic": {
+            "enum": [
+              "general",
+              "news",
+              "finance"
+            ],
+            "description": "'general' for most questions, 'news' for current events, 'finance' for markets.",
+            "type": "string"
+          },
+          "time_range": {
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ],
+            "description": "Only results published within this period before today. Use it for recent events; for anything that may be older, leave it out.",
+            "type": "string"
+          },
+          "include_domains": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Only results from these domains, such as [\"docs.python.org\"]. Empty searches everywhere.",
+            "type": "array"
+          },
+          "exclude_domains": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Leave out results from these domains.",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "web_fetch",
+      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. With `query`, it returns only the passages of the page most relevant to the query, which is not the whole page: do not conclude that something is absent from a page you read that way. Without `query`, it returns the page from the top, with `truncated` set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
+      "parameters": {
+        "properties": {
+          "url": {
+            "description": "The URL to read, usually from a web_search result.",
+            "type": "string"
+          },
+          "query": {
+            "description": "What you are looking for on the page. With it, only the passages most relevant to it come back; leave it empty to get the page from the top.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "code_search",
+      "description": "Search the code of every repository in the code index. Use it for what the code says now: where something is defined, how a function works, which services read a configuration value, what produces an error message. The corpus tools cover what people said and decided; this covers what the code does. Each result is a file with its repo, path, and matching chunks with their line numbers and, when the index has one, a `url` to cite. Search for exact identifiers or distinctive strings, not descriptions, and narrow with repo:, file: or lang:. `total_matches` of 0 means no file has every term under these filters: drop a filter or a term once before concluding the code is not there. Use code_read when you need more of a file than the chunks show.",
+      "parameters": {
+        "properties": {
+          "query": {
+            "description": "Terms match file content literally, ignoring case, and every term must match. They are not regular expressions: /Load.*Thread/ and (a|b) find nothing. Put a phrase in double quotes. Write a lowercase 'or' between alternatives and group with parentheses: (retry or backoff) timeout. Filters: repo:\u003cregex\u003e on the repository's full name, which starts with its host and owner, so write repo:billing-api or repo:billing-api$ and never repo:^billing-api; file:\u003cregex\u003e on the path; lang:\u003clanguage\u003e; sym:\u003cname\u003e for a symbol's definition. A leading - excludes: -file:test. Example: repo:billing-api lang:go \"context deadline exceeded\".",
+            "type": "string"
+          },
+          "matches": {
+            "maximum": 50,
+            "minimum": 1,
+            "description": "The most matches to return.",
+            "default": 20,
+            "type": "integer"
+          },
+          "context_lines": {
+            "maximum": 10,
+            "minimum": 0,
+            "description": "Lines of context around each match.",
+            "default": 3,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "code_read",
+      "description": "Read the full content of ONE file from a repository in the code index (default branch, as of the last index). Use it when code_search chunks are not enough and you need the whole function, the imports or the surrounding logic. Pass repo and path exactly as a code_search result gives them. The result carries a `url` for the file, when the index has one, to cite, and `truncated` when a long file was cut. When the file is not in the index, `ok` is false: go back to the search results and do not guess another path. Files are large, so read the ones that matter.",
+      "parameters": {
+        "properties": {
+          "repo": {
+            "description": "The repo of a code_search result, exactly as given.",
+            "type": "string"
+          },
+          "path": {
+            "description": "The path of a code_search result, exactly as given.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo",
+          "path"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "configured_ask_tools": [
+    {
+      "name": "web_search",
+      "description": "Search the public web. Use it for what lies outside {{ORG_NAME}}: a project's documentation or current version, a vendor's limits or pricing, a public specification, the news. It knows nothing of {{ORG_NAME}}'s internal work, which the corpus tools cover. Returns results with a title, a url and a snippet; use web_fetch to read a page when the snippet is not enough.",
+      "parameters": {
+        "properties": {
+          "query": {
+            "description": "What to search for, in natural language, with the distinctive terms.",
+            "type": "string"
+          },
+          "max_results": {
+            "maximum": 20,
+            "minimum": 1,
+            "description": "How many results to return.",
+            "default": 5,
+            "type": "integer"
+          },
+          "topic": {
+            "enum": [
+              "general",
+              "news",
+              "finance"
+            ],
+            "description": "'general' for most questions, 'news' for current events, 'finance' for markets.",
+            "type": "string"
+          },
+          "time_range": {
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ],
+            "description": "Only results published within this period before today. Use it for recent events; for anything that may be older, leave it out.",
+            "type": "string"
+          },
+          "include_domains": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Only results from these domains, such as [\"docs.python.org\"]. Empty searches everywhere.",
+            "type": "array"
+          },
+          "exclude_domains": {
+            "items": {
+              "type": "string"
+            },
+            "description": "Leave out results from these domains.",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "web_fetch",
+      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. With `query`, it returns only the passages of the page most relevant to the query, which is not the whole page: do not conclude that something is absent from a page you read that way. Without `query`, it returns the page from the top, with `truncated` set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
+      "parameters": {
+        "properties": {
+          "url": {
+            "description": "The URL to read, usually from a web_search result.",
+            "type": "string"
+          },
+          "query": {
+            "description": "What you are looking for on the page. With it, only the passages most relevant to it come back; leave it empty to get the page from the top.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "code_search",
+      "description": "Search the code of every Example repository (public and private, indexed hourly). Use it for what the code says now: where something is defined, how a function works, which services read a configuration value, what produces an error message. The corpus tools cover what people said and decided; this covers what the code does. Each result is a file with its repo, path, and matching chunks with their line numbers and, when the index has one, a `url` to cite. Search for exact identifiers or distinctive strings, not descriptions, and narrow with repo:, file: or lang:. `total_matches` of 0 means no file has every term under these filters: drop a filter or a term once before concluding the code is not there. Use code_read when you need more of a file than the chunks show.",
+      "parameters": {
+        "properties": {
+          "query": {
+            "description": "Terms match file content literally, ignoring case, and every term must match. They are not regular expressions: /Load.*Thread/ and (a|b) find nothing. Put a phrase in double quotes. Write a lowercase 'or' between alternatives and group with parentheses: (retry or backoff) timeout. Filters: repo:\u003cregex\u003e on the repository's full name, which starts with its host and owner, so write repo:billing-api or repo:billing-api$ and never repo:^billing-api; file:\u003cregex\u003e on the path; lang:\u003clanguage\u003e; sym:\u003cname\u003e for a symbol's definition. A leading - excludes: -file:test. Example: repo:billing-api lang:go \"context deadline exceeded\".",
+            "type": "string"
+          },
+          "matches": {
+            "maximum": 50,
+            "minimum": 1,
+            "description": "The most matches to return.",
+            "default": 20,
+            "type": "integer"
+          },
+          "context_lines": {
+            "maximum": 10,
+            "minimum": 0,
+            "description": "Lines of context around each match.",
+            "default": 3,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "code_read",
+      "description": "Read the full content of ONE file from an Example repository (default branch, as of the last hourly index). Use it when code_search chunks are not enough and you need the whole function, the imports or the surrounding logic. Pass repo and path exactly as a code_search result gives them. The result carries a `url` for the file, when the index has one, to cite, and `truncated` when a long file was cut. When the file is not in the index, `ok` is false: go back to the search results and do not guess another path. Files are large, so read the ones that matter.",
+      "parameters": {
+        "properties": {
+          "repo": {
+            "description": "The repo of a code_search result, exactly as given.",
+            "type": "string"
+          },
+          "path": {
+            "description": "The path of a code_search result, exactly as given.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo",
+          "path"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "available": {
+    "code_read": [
+      false,
+      true
+    ],
+    "code_search": [
+      false,
+      true
+    ],
+    "web_fetch": [
+      false,
+      true
+    ],
+    "web_search": [
+      false,
+      true
+    ]
+  },
+  "fields": {
+    "pagerduty": [
+      {
+        "key": "api_token",
+        "label": "API token",
+        "help": "A PagerDuty REST API key that can write (Integrations, API Access Keys). Diderot reads incidents with it and adds its findings as notes.",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "key": "webhook_secrets",
+        "label": "Webhook signing secrets",
+        "help": "The signing secret PagerDuty shows when you add a webhook subscription for incident.triggered. Point the subscription at this server's PagerDuty webhook port (9093 unless the deployment moves it), path /webhooks/pagerduty. To rotate it, enter the new and the old secret separated by a comma.",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "key": "from_email",
+        "label": "Notes posted as",
+        "help": "The email of the PagerDuty user that Diderot's incident notes are posted as.",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "key": "slack_channel_id",
+        "label": "Alerts channel",
+        "help": "The Slack channel where PagerDuty posts alerts: its name, its ID, or a link to it. Diderot replies in each alert's thread there, so invite it to the channel.",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "key": "slack_channel_name",
+        "label": "Alerts channel name",
+        "help": "When set, Diderot replies only while the alerts channel has this name, so investigations can't go to a channel that was mistaken for it.",
+        "kind": "text"
+      },
+      {
+        "key": "allowed_scopes",
+        "label": "What investigations may read",
+        "help": "What an investigation may search, one per line, such as public, internal, or slack-channel:C0123456789. Everyone in the alerts channel sees its answer, so list only what all of them may read.",
+        "kind": "list",
+        "required": true
+      }
+    ],
+    "sourcebot": [
+      {
+        "key": "url",
+        "label": "Sourcebot URL",
+        "help": "The address of your Sourcebot, such as https://sourcebot.example.com.",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "key": "api_key",
+        "label": "API key",
+        "help": "A Sourcebot API key, from Settings, API keys in Sourcebot.",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "key": "repo_prefix",
+        "label": "Repository prefix",
+        "help": "The start that most repository names share, ending in /, such as github.com/example/. Ask shows names without it, which saves space in its answers. Leave empty to show full names.",
+        "kind": "text"
+      },
+      {
+        "key": "search_scope",
+        "label": "What the code index covers",
+        "help": "A phrase that tells Ask which code it can search. Ask reads it as \"Search the code of …\", so write, for example: every Example repository (public and private, indexed hourly). Leave empty for: every repository in the code index.",
+        "kind": "text"
+      },
+      {
+        "key": "read_scope",
+        "label": "Where a file is read from",
+        "help": "A phrase that tells Ask which version of a file it reads. Ask reads it as \"Read the full content of one file from …\", so write, for example: an Example repository (default branch, as of the last hourly index). Leave empty for: a repository in the code index (default branch, as of the last index).",
+        "kind": "text"
+      }
+    ],
+    "tavily": [
+      {
+        "key": "api_key",
+        "label": "API key",
+        "help": "Starts with tvly-. From your account at app.tavily.com. Ask's web searches are sent to Tavily with it.",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "key": "base_url",
+        "label": "API URL",
+        "help": "Leave empty for Tavily's API. Set it only to send requests through a proxy.",
+        "kind": "text"
+      }
+    ]
+  },
+  "defaults": {
+    "pagerduty": {
+      "allowed_scopes": [
+        "public",
+        "internal"
+      ]
+    },
+    "sourcebot": {},
+    "tavily": {}
+  }
+}

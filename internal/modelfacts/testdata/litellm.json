@@ -1,0 +1,417 @@
+{
+ "azure/apac/gpt-6.1-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2.4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/eu/gpt-5.4": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.75e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/eu/gpt-5.5"
+ },
+ "azure/eu/gpt-5.4-2026-03-05": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.75e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/eu/gpt-5.5"
+ },
+ "azure/eu/gpt-5.4-mini": {
+  "deprecation_date": "2027-09-21",
+  "input_cost_per_token": 8.25e-07,
+  "litellm_provider": "azure",
+  "mode": "chat",
+  "successor_model": "azure/eu/gpt-6.1-terra"
+ },
+ "azure/eu/gpt-5.6-sol": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 4.4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/eu/gpt-6-sol"
+ },
+ "azure/eu/gpt-6-astra": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 1.2e-05,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/eu/gpt-6-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2.4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/eu/gpt-6.1-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2.4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/eu/text-embedding-3-large": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 1.43e-07,
+  "litellm_provider": "azure",
+  "mode": "embedding"
+ },
+ "azure/eu/text-embedding-3-small": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 2.2e-08,
+  "litellm_provider": "azure",
+  "mode": "embedding"
+ },
+ "azure/gpt-5.4": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.5e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-5.5"
+ },
+ "azure/gpt-5.4-2026-03-05": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.5e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-5.5"
+ },
+ "azure/gpt-5.4-mini": {
+  "deprecation_date": "2027-09-21",
+  "input_cost_per_token": 7.5e-07,
+  "litellm_provider": "azure",
+  "max_input_tokens": 272000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-6.1-terra"
+ },
+ "azure/gpt-5.4-mini-2026-03-17": {
+  "deprecation_date": "2027-09-21",
+  "input_cost_per_token": 7.5e-07,
+  "litellm_provider": "azure",
+  "max_input_tokens": 272000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-6.1-terra"
+ },
+ "azure/gpt-5.6-sol": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-6-sol"
+ },
+ "azure/gpt-5.6-sol-2026-07-09": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/gpt-6-sol"
+ },
+ "azure/gpt-6-astra": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 1e-05,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/gpt-6-astra-2026-09-03": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 1e-05,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/gpt-6-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/gpt-6-sol-2026-09-22": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/gpt-6.1-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/gpt-6.1-sol-2026-09-29": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/text-embedding-3-large": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 1.43e-07,
+  "litellm_provider": "azure",
+  "max_input_tokens": 8192,
+  "mode": "embedding"
+ },
+ "azure/text-embedding-3-small": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 2.2e-08,
+  "litellm_provider": "azure",
+  "max_input_tokens": 8192,
+  "mode": "embedding"
+ },
+ "azure/us/gpt-5.4": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.75e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/us/gpt-5.5"
+ },
+ "azure/us/gpt-5.4-2026-03-05": {
+  "deprecation_date": "2027-09-02",
+  "input_cost_per_token": 2.75e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/us/gpt-5.5"
+ },
+ "azure/us/gpt-5.4-mini": {
+  "deprecation_date": "2027-09-21",
+  "input_cost_per_token": 8.25e-07,
+  "litellm_provider": "azure",
+  "mode": "chat",
+  "successor_model": "azure/us/gpt-6.1-terra"
+ },
+ "azure/us/gpt-5.6-sol": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 4.4e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat",
+  "successor_model": "azure/us/gpt-6-sol"
+ },
+ "azure/us/gpt-6-astra": {
+  "deprecation_date": "2028-01-11",
+  "input_cost_per_token": 1.1e-05,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/us/gpt-6-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2.2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/us/gpt-6.1-sol": {
+  "deprecation_date": "2028-03-11",
+  "input_cost_per_token": 2.2e-06,
+  "litellm_provider": "azure",
+  "max_input_tokens": 922000,
+  "mode": "chat"
+ },
+ "azure/us/text-embedding-3-large": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 1.43e-07,
+  "litellm_provider": "azure",
+  "mode": "embedding"
+ },
+ "azure/us/text-embedding-3-small": {
+  "deprecation_date": "2028-02-09",
+  "input_cost_per_token": 2.2e-08,
+  "litellm_provider": "azure",
+  "mode": "embedding"
+ },
+ "claude-opus-5": {
+  "input_cost_per_token": 5e-06,
+  "litellm_provider": "anthropic",
+  "max_input_tokens": 1000000,
+  "mode": "chat"
+ },
+ "fireworks_ai/accounts/fireworks/models/gpt-oss-120b": {
+  "deprecation_date": "2026-11-07",
+  "input_cost_per_token": 1.5e-07,
+  "litellm_provider": "fireworks_ai",
+  "max_input_tokens": 131072,
+  "mode": "chat"
+ },
+ "fireworks_ai/gpt-oss-120b": {
+  "deprecation_date": "2026-11-07",
+  "input_cost_per_token": 1.5e-07,
+  "litellm_provider": "fireworks_ai",
+  "max_input_tokens": 131072,
+  "mode": "chat"
+ },
+ "gemini-3.6-flash": {
+  "deprecation_date": "2026-11-19",
+  "input_cost_per_token": 7.5e-07,
+  "litellm_provider": "vertex_ai-language-models",
+  "max_input_tokens": 1048576,
+  "mode": "chat",
+  "successor_model": "gemini-3.8-flash"
+ },
+ "gemini-embedding-001": {
+  "deprecation_date": "2028-05-20",
+  "input_cost_per_token": 1.5e-07,
+  "litellm_provider": "vertex_ai-embedding-models",
+  "max_input_tokens": 2048,
+  "mode": "embedding",
+  "output_vector_size": 3072,
+  "successor_model": "gemini-embedding-2"
+ },
+ "gemini/gemini-embedding-001": {
+  "deprecation_date": "2028-05-14",
+  "input_cost_per_token": 1.5e-07,
+  "litellm_provider": "gemini",
+  "max_input_tokens": 2048,
+  "mode": "embedding",
+  "output_vector_size": 3072,
+  "successor_model": "gemini/gemini-embedding-2"
+ },
+ "sample_spec": {
+  "code_interpreter_cost_per_session": 0.0,
+  "computer_use_input_cost_per_1k_tokens": 0.0,
+  "computer_use_output_cost_per_1k_tokens": 0.0,
+  "deprecation_date": "date when the model becomes deprecated in the format YYYY-MM-DD",
+  "file_search_cost_per_1k_calls": 0.0,
+  "file_search_cost_per_gb_per_day": 0.0,
+  "input_cost_per_audio_token": 0.0,
+  "input_cost_per_token": 0.0,
+  "litellm_provider": "one of https://docs.litellm.ai/docs/providers",
+  "max_input_tokens": "max input tokens, if the provider specifies it",
+  "max_output_tokens": "max output tokens, if the provider specifies it",
+  "mode": "one of: chat, embedding, completion, image_generation, audio_transcription, audio_speech, image_generation, moderation, rerank, search",
+  "output_cost_per_reasoning_token": 0.0,
+  "output_cost_per_token": 0.0,
+  "output_cost_per_video_clip": {
+   "5s": {
+    "720p": 0.0
+   }
+  },
+  "search_context_cost_per_query": {
+   "search_context_size_high": 0.0,
+   "search_context_size_low": 0.0,
+   "search_context_size_medium": 0.0
+  },
+  "supported_regions": [
+   "global",
+   "us-west-2",
+   "eu-west-1",
+   "ap-southeast-1",
+   "ap-northeast-1"
+  ],
+  "supports_audio_input": true,
+  "supports_audio_output": true,
+  "supports_function_calling": true,
+  "supports_parallel_function_calling": true,
+  "supports_prompt_caching": true,
+  "supports_reasoning": true,
+  "supports_response_schema": true,
+  "supports_system_messages": true,
+  "supports_vision": true,
+  "supports_web_search": true,
+  "vector_store_cost_per_gb_per_day": 0.0
+ },
+ "text-embedding-3-large": {
+  "input_cost_per_token": 1.3e-07,
+  "litellm_provider": "openai",
+  "max_input_tokens": 8191,
+  "mode": "embedding",
+  "output_vector_size": 3072
+ },
+ "text-embedding-3-small": {
+  "input_cost_per_token": 2e-08,
+  "litellm_provider": "openai",
+  "max_input_tokens": 8191,
+  "mode": "embedding",
+  "output_vector_size": 1536
+ },
+ "vertex_ai/claude-haiku-4-5": {
+  "deprecation_date": "2026-10-15",
+  "input_cost_per_token": 1e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 200000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-haiku-5-5"
+ },
+ "vertex_ai/claude-haiku-4-5@20251001": {
+  "deprecation_date": "2026-10-15",
+  "input_cost_per_token": 1e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 200000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-haiku-5-5"
+ },
+ "vertex_ai/claude-opus-4-6": {
+  "deprecation_date": "2027-02-05",
+  "input_cost_per_token": 5e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-opus-5-5"
+ },
+ "vertex_ai/claude-opus-4-6@default": {
+  "deprecation_date": "2027-02-05",
+  "input_cost_per_token": 5e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-opus-5-5@default"
+ },
+ "vertex_ai/claude-opus-5": {
+  "deprecation_date": "2027-01-24",
+  "input_cost_per_token": 5e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-opus-5-5"
+ },
+ "vertex_ai/claude-opus-5@default": {
+  "deprecation_date": "2027-01-24",
+  "input_cost_per_token": 5e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-opus-5-5@default"
+ },
+ "vertex_ai/claude-sonnet-5": {
+  "deprecation_date": "2026-12-24",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-sonnet-5-5"
+ },
+ "vertex_ai/claude-sonnet-5@default": {
+  "deprecation_date": "2026-12-24",
+  "input_cost_per_token": 2e-06,
+  "litellm_provider": "vertex_ai-anthropic_models",
+  "max_input_tokens": 1000000,
+  "mode": "chat",
+  "successor_model": "vertex_ai/claude-sonnet-5-5@default"
+ },
+ "vertex_ai/gemini-3.6-flash": {
+  "deprecation_date": "2026-11-19",
+  "input_cost_per_token": 7.5e-07,
+  "litellm_provider": "vertex_ai",
+  "max_input_tokens": 1048576,
+  "mode": "chat",
+  "successor_model": "vertex_ai/gemini-3.8-flash"
+ }
+}

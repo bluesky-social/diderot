@@ -1,0 +1,121 @@
+{
+  "schema_version": "diderot.session-fixture.v1",
+  "captured_at": "2026-08-31T22:00:00Z",
+  "source_revisions": {
+    "diderot": "synthetic-v1"
+  },
+  "allowed_personas": [
+    "alice@example.invalid",
+    "bob@example.invalid"
+  ],
+  "sessions": [
+    {
+      "session_id": "11111111-1111-4111-8111-111111111111",
+      "owner": "alice@example.invalid",
+      "client": "codex",
+      "harness": "codex",
+      "owner_kind": "human",
+      "session_role": "primary",
+      "origin_app": "codex",
+      "revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "rewrite_epoch": 1,
+      "complete": true,
+      "started_at": "2026-08-30T18:00:00Z",
+      "updated_at": "2026-08-30T18:08:00Z",
+      "change_seq": 40,
+      "record_count": 2,
+      "user_turn_count": 1,
+      "content_bytes": 323,
+      "title": "Implement local privacy controls",
+      "privacy": "owner_only",
+      "document": {
+        "path": "documents/11111111-1111-4111-8111-111111111111.ndjson.gz",
+        "media_type": "application/vnd.bsky.session+ndjson;version=1",
+        "revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stored_sha256": "3f6c8e25d4e0532d387b57060c10deda45da3c5a049111821646dc4f4efe69e0",
+        "uncompressed_sha256": "2589b5cee8a017e3a4ecc869e632473c04858d82d4685f804527193ae297eead"
+      }
+    },
+    {
+      "session_id": "22222222-2222-4222-8222-222222222222",
+      "owner": "alice@example.invalid",
+      "client": "pi",
+      "harness": "pi",
+      "owner_kind": "human",
+      "session_role": "primary",
+      "origin_app": "pi",
+      "revision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rewrite_epoch": 1,
+      "complete": false,
+      "started_at": "2026-08-29T20:00:00Z",
+      "updated_at": "2026-08-29T20:01:00Z",
+      "change_seq": 30,
+      "record_count": 1,
+      "user_turn_count": 1,
+      "content_bytes": 150,
+      "title": "Investigate a truncated Pi projection",
+      "privacy": "team",
+      "document": {
+        "path": "documents/22222222-2222-4222-8222-222222222222.ndjson.gz",
+        "media_type": "application/vnd.bsky.session+ndjson;version=1",
+        "revision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stored_sha256": "1477ba9175afda760caf01e81d8bbcbc6f40b92a6870c5fe75a6efc79d773150",
+        "uncompressed_sha256": "9e65ad1adbd517e0627a830b5468b46782bbc2c415a14d491513e82f84dbe1ba"
+      }
+    },
+    {
+      "session_id": "33333333-3333-4333-8333-333333333333",
+      "owner": "bob@example.invalid",
+      "client": "claude-code",
+      "harness": "claude-code",
+      "owner_kind": "human",
+      "session_role": "primary",
+      "origin_app": "claude-code",
+      "revision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "rewrite_epoch": 1,
+      "complete": true,
+      "started_at": "2026-08-28T16:00:00Z",
+      "updated_at": "2026-08-28T16:15:00Z",
+      "change_seq": 20,
+      "record_count": 2,
+      "user_turn_count": 1,
+      "content_bytes": 315,
+      "title": "Review session fixture validation",
+      "privacy": "team",
+      "document": {
+        "path": "documents/33333333-3333-4333-8333-333333333333.ndjson.gz",
+        "media_type": "application/vnd.bsky.session+ndjson;version=1",
+        "revision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "stored_sha256": "1599dd3c8cdfe897476fb071be7762c5f2852965d116e1243a692c3fa4974d73",
+        "uncompressed_sha256": "61248f5aae516475e2561f6dd306afaf4a271e8291dfdb8456abcf1ba0a44e6b"
+      }
+    },
+    {
+      "session_id": "44444444-4444-4444-8444-444444444444",
+      "owner": "bob@example.invalid",
+      "client": "pi",
+      "harness": "pi",
+      "owner_kind": "human",
+      "session_role": "primary",
+      "origin_app": "pi",
+      "revision": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "rewrite_epoch": 1,
+      "complete": true,
+      "started_at": "2026-08-27T14:00:00Z",
+      "updated_at": "2026-08-27T14:12:00Z",
+      "change_seq": 10,
+      "record_count": 2,
+      "user_turn_count": 1,
+      "content_bytes": 287,
+      "title": "Verify older session ordering",
+      "privacy": "owner_only",
+      "document": {
+        "path": "documents/44444444-4444-4444-8444-444444444444.ndjson.gz",
+        "media_type": "application/vnd.bsky.session+ndjson;version=1",
+        "revision": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "stored_sha256": "244289821d86494be705f0bbfc4e53c0bfbeb2e41d2b36c973c49650a75976e3",
+        "uncompressed_sha256": "30b004dfecdd1f7e884d2f6e7a103487df926e930b84d5f6f260be1f80ecd76f"
+      }
+    }
+  ]
+}

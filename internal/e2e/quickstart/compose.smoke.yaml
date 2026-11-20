@@ -1,0 +1,53 @@
+# Override for compose.quickstart.yaml used by scripts/quickstart-smoke.sh: the
+# same stack, with a deterministic stub model provider in place of a real one
+# and of the embedder, so the smoke needs no secrets or network. The smoke
+# adds the stub as a provider and chooses its models in the admin UI.
+# Relative paths resolve against the repository root (the first file's
+# directory). Every value that could carry a developer's credential from the
+# environment or a .env file is pinned here.
+services:
+  stub:
+    build:
+      context: .
+      dockerfile: internal/e2e/quickstart/stub/Dockerfile
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/stub", "-healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      start_interval: 1s
+
+  # The real embedder is replaced by the stub; keep it from starting.
+  embedder:
+    profiles: [real-embedder]
+
+  # The smoke takes the generated token and keys, as a fresh .env does.
+  init:
+    environment:
+      TOKEN: ""
+      EMAIL: admin@example.com
+      BROWSER_SESSION_KEYS: ""
+      CONFIG_KEYS: ""
+
+  postgres:
+    # The smoke writes its fixture through the event sink (see smoke_test.go).
+    ports:
+      - "127.0.0.1::5432"
+
+  diderot:
+    ports: !override
+      - "127.0.0.1::9091"
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      stub:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    environment:
+      # The browser sign-in accepts a form posted from this origin; the
+      # smoke test names it (smoke_test.go, publicOrigin).
+      DIDEROT_PUBLIC_URL: http://localhost:9091
+      DIDEROT_ASK_READINESS_INTERVAL: 5s

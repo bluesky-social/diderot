@@ -1,0 +1,183 @@
+{{define "content"}}
+{{$c := .Channel}}
+{{$header := ((header $c.Label "" (crumb "Connectors" "/admin/connectors") (crumb "Slack" "/admin/connectors/slack") (crumb "Channels" "/admin/connectors/slack/channels")).WithBadge $c.State.Tone $c.State.Word).WithMeta $c}}
+{{if .SlackURL}}{{$header = $header.WithActions .}}{{end}}
+{{template "page-header" $header}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+{{if not .SlackOn}}<div class="notice notice-attention"><p>Slack is off. Turn it on to change channels.</p><a href="/admin/connectors/slack">Slack settings</a></div>{{end}}
+{{with $c.LastError}}<div class="notice notice-bad" role="alert"><p>Diderot can't read this channel. Slack said: {{.}}</p></div>{{end}}
+
+<div class="stats">
+  <div class="stat"><span class="stat-label">Messages indexed</span><span class="stat-value">{{count $c.Messages}}</span></div>
+  <div class="stat"><span class="stat-label">Documents</span><span class="stat-value">{{count $c.Documents}}</span></div>
+  <div class="stat"><span class="stat-label">Images</span><span class="stat-value">{{count $c.Images}}</span></div>
+  <div class="stat"><span class="stat-label">Ask conversations</span><span class="stat-value">{{count $c.AskSessions}}</span></div>
+  <div class="stat"><span class="stat-label">Last read</span><span class="stat-value">{{if not $c.Member}}<span class="muted">—</span>{{else if $c.Reading}}now{{else}}{{time $c.LastSync}}{{end}}</span></div>
+</div>
+
+<section class="section" aria-labelledby="channel-settings-heading">
+  <div class="section-header"><h2 id="channel-settings-heading">Settings for this channel</h2></div>
+  <div class="settings">
+    <div class="setting">
+      <div class="setting-about"><h3>Ask</h3><p>Diderot answers when someone mentions it in this channel.</p></div>
+      <div class="setting-control">
+        <div class="cluster">
+          {{if $c.AskEnabled}}{{badge "good" "on"}}{{else}}{{badge "neutral" "off"}}{{end}}
+          {{if .SlackOn}}{{template "channel-switch" ($.Switch "ask")}}{{end}}
+        </div>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-about"><h3>Index documents</h3><p>Diderot reads the PDF, Word and Excel files posted here, so Ask can search them. Turning it on also reads the files already posted.</p></div>
+      <div class="setting-control">
+        <div class="cluster">
+          {{if $c.DocsEnabled}}{{badge "good" "on"}}{{else}}{{badge "neutral" "off"}}{{end}}
+          {{if .SlackOn}}{{template "channel-switch" ($.Switch "documents")}}{{end}}
+        </div>
+        {{if .DocumentsOff}}<p class="help">Slack's Index documents setting is off, so no channel's documents are read. <a href="/admin/connectors/slack">Turn it on in Slack settings</a>.</p>{{end}}
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-about"><h3>Ask for people outside your organization</h3><p>Lets guests and members of other organizations in a shared channel ask here. They may see answers drawn from anything Ask can search.</p></div>
+      <div class="setting-control">
+        <div class="cluster">
+          {{if $c.AllowExternal}}{{badge "good" "allowed"}}{{else}}{{badge "neutral" "not allowed"}}{{end}}
+          {{if and .SlackOn $c.AllowExternal}}{{template "channel-switch" ($.Switch "external")}}{{end}}
+        </div>
+        {{if and .SlackOn (not $c.AllowExternal)}}
+        <form class="stack" method="post" action="/admin/connectors/slack/channels/{{$c.ID}}/config">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <input type="hidden" name="field" value="external">
+          <input type="hidden" name="enabled" value="true">
+          <label class="check"><input type="checkbox" name="confirm" value="external" required> <span>Let people outside my organization ask here</span></label>
+          <div><button class="button button-small" type="submit">Allow</button></div>
+        </form>
+        {{end}}
+        <p class="help">{{if $c.External}}People from other organizations are in this channel now.{{else}}No one from another organization is in this channel now.{{end}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="membership-heading">
+  <div class="section-header"><h2 id="membership-heading">Membership</h2></div>
+  <div class="panel">
+    {{if $c.Blocked}}
+      <p>Blocked channels are not read, whether or not the bot is in them.</p>
+    {{else if $c.Archived}}
+      <p>Archived channels can't be read or joined.</p>
+    {{else if $c.Member}}
+      <p>The bot is in this channel, so Diderot reads everything posted in it.</p>
+    {{else if $c.Left}}
+      <p>The bot left this channel or was removed, so Diderot reads nothing new in it. What it already indexed stays searchable. Once the bot is back in the channel, Diderot picks up where it stopped within a few minutes.</p>
+    {{else}}
+      <p>The bot is not in this channel, so nothing in it is indexed.</p>
+    {{end}}
+    {{if and .SlackOn (not $c.Archived)}}
+    {{if .UserTokenSet}}
+    <div class="button-row">
+      {{if or $c.Member $c.Blocked}}{{template "channel-action" ($.Action "membership" "joined" "false" "Remove the bot")}}{{end}}
+      {{if not (or $c.Member $c.Blocked)}}{{template "channel-action" ($.Action "membership" "joined" "true" "Invite the bot")}}{{end}}
+    </div>
+    {{end}}
+    {{if not .UserTokenSet}}<p class="help">Inviting and removing the bot need a Slack user token. <a href="/admin/connectors/slack">Add one in Slack settings</a>.</p>{{end}}
+    {{end}}
+  </div>
+</section>
+
+{{if or $c.Member $c.Messages $c.Images .ImageReplay}}
+<section class="section" aria-labelledby="maintenance-heading">
+  <div class="section-header"><h2 id="maintenance-heading">Maintenance</h2><p>For when search seems to be missing something from this channel.</p></div>
+  <div class="settings">
+    {{if $c.Member}}
+    <div class="setting">
+      <div class="setting-about"><h3>Read the message history again</h3><p>Reads every message in the channel from Slack again, and picks up any Diderot missed. A busy channel can take a while; messages show up in search as they are read.</p></div>
+      <div class="setting-control">{{if .SlackOn}}<div>{{template "channel-action" ($.Action "backfill" "kind" "messages" "Read history again")}}</div>{{end}}</div>
+    </div>
+    <div class="setting">
+      <div class="setting-about"><h3>Read the documents again</h3><p>Reads every PDF, Word and Excel file posted in the channel again.</p></div>
+      <div class="setting-control">
+        {{if not $c.DocsEnabled}}<p class="help">Available while Index documents is on.</p>{{else if .SlackOn}}<div>{{template "channel-action" ($.Action "backfill" "kind" "documents" "Read documents again")}}</div>{{end}}
+      </div>
+    </div>
+    {{end}}
+    <div class="setting"{{with .ImageReplay}}{{if .Running}} data-reload-while-running{{end}}{{end}}>
+      <div class="setting-about"><h3>Rebuild image descriptions</h3><p>Deletes the descriptions of the images posted here and writes new ones. Until an image's new description is written, search can't find it by what it shows.</p></div>
+      <div class="setting-control">
+        {{with .ImageReplay}}
+        <p class="cluster">{{badge .Tone .Word}} <span>{{if .Running}}Started {{time .RequestedAt}} by {{actor .RequestedBy}}.{{else}}Last rebuilt {{time .RequestedAt}} by {{actor .RequestedBy}}{{if .FinishedAt}}, in {{duration .Took}}{{end}}.{{end}}</span></p>
+        {{if .Progress.Scanned}}<p class="help">Messages checked: {{count .Progress.Scanned}}. Images rebuilt: {{count .Progress.Reconciled}}.{{if .Progress.Errors}} Could not be read: {{count .Progress.Errors}}.{{end}}</p>{{end}}
+        {{with .Error}}<p class="error">{{.}}</p>{{end}}
+        {{end}}
+        {{if and .ImageReplay .ImageReplay.Running}}
+        {{else if .ImageReplayElsewhere}}
+        <p class="help">Another channel's image descriptions are being rebuilt. One rebuild runs at a time.</p>
+        {{else}}
+        <form class="stack" method="post" action="/admin/connectors/slack/channels/{{$c.ID}}/backfill">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <input type="hidden" name="kind" value="images">
+          <label class="check"><input type="checkbox" name="confirm" value="images" required> <span>Replace this channel's image descriptions</span></label>
+          <div><button class="button button-small button-danger" type="submit">Rebuild descriptions</button></div>
+        </form>
+        {{end}}
+      </div>
+    </div>
+  </div>
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="block-heading">
+  {{if $c.Blocked}}
+  <div class="section-header"><h2 id="block-heading">Blocked</h2></div>
+  <div class="panel">
+    <p>Blocked{{with $c.BlockedAt}} {{time .}}{{end}}{{with $c.BlockedBy}} by {{actor .}}{{end}}.</p>
+    {{with $c.BlockReason}}<p><strong>Why:</strong> {{.}}</p>{{end}}
+    <p class="muted">Diderot reads nothing new in it while it is blocked. After you unblock it, Diderot starts reading it again within a few minutes, if the bot is in it.</p>
+    {{if .SlackOn}}<div>{{template "channel-action" ($.Action "blacklist" "enabled" "false" "Unblock")}}</div>{{end}}
+  </div>
+  {{else}}
+  <div class="section-header"><h2 id="block-heading">Block this channel</h2><p>Diderot stops reading the channel, even while the bot is in it. What it already indexed stays searchable.</p></div>
+  {{if .SlackOn}}
+  <form class="form" method="post" action="/admin/connectors/slack/channels/{{$c.ID}}/blacklist">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="enabled" value="true">
+    <div class="field"><label for="block-reason">Why</label><input id="block-reason" name="reason" required maxlength="500" placeholder="Holds legal discussions" aria-describedby="block-reason-help"><p class="help" id="block-reason-help">Other administrators see this.</p></div>
+    <div class="form-actions"><button class="button button-danger" type="submit">Block this channel</button></div>
+  </form>
+  {{end}}
+  {{end}}
+</section>
+
+<section class="section" aria-labelledby="details-heading">
+  <div class="section-header"><h2 id="details-heading">Details</h2></div>
+  <dl class="kv">
+    <div><dt>Visibility</dt><dd>{{if $c.Private}}Private channel{{else}}Public channel{{end}}</dd></div>
+    {{with $c.ExternalMembers}}<div><dt>People from other organizations</dt><dd>{{range $i, $p := .}}{{if $i}}, {{end}}{{if $p.Name}}{{$p.Name}} <span class="id">{{$p.ID}}</span>{{else}}<span class="id">{{$p.ID}}</span>{{end}}{{end}}</dd></div>{{end}}
+    {{with $c.UpdatedBy}}<div><dt>Settings last changed</dt><dd>by {{actor .}}{{with $c.UpdatedAt}}, {{time .}}{{end}}</dd></div>{{end}}
+    <div><dt>Channel ID</dt><dd><span class="id">{{$c.ID}}</span></dd></div>
+  </dl>
+</section>
+{{end}}
+
+{{define "header-meta"}}<span>{{if .Private}}Private{{else}}Public{{end}} channel{{if .External}}, shared with other organizations{{end}}</span><span>{{.State.Text}}</span>{{end}}
+
+{{define "header-actions"}}<a class="button" href="{{.SlackURL}}" target="_blank" rel="noreferrer">Open in Slack</a>{{end}}
+
+{{define "channel-switch"}}
+<form method="post" action="/admin/connectors/slack/channels/{{.ID}}/config">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="field" value="{{.Field}}">
+  <input type="hidden" name="enabled" value="{{.Value}}">
+  <button class="button button-small" type="submit">{{.Label}}</button>
+</form>
+{{end}}
+
+{{define "channel-action"}}
+<form method="post" action="/admin/connectors/slack/channels/{{.ID}}/{{.Path}}">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="{{.Field}}" value="{{.Value}}">
+  <button class="button button-small" type="submit">{{.Label}}</button>
+</form>
+{{end}}

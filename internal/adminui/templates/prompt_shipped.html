@@ -1,0 +1,42 @@
+{{define "content"}}
+{{template "page-header" (header "Prompts" "The instructions Diderot gives its models. Changes collect in a draft and go live together.")}}
+{{template "prompt-tabs" "shipped"}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+<section class="section" aria-labelledby="shipped-heading">
+  <div class="section-header">
+    <h2 id="shipped-heading">Shipped text</h2>
+    <p>Diderot {{with .Version}}{{.}} {{end}}ships a text for each prompt, written for any organization. Your prompts keep their own text until you take the shipped text into the draft, so after an upgrade you can adopt improvements prompt by prompt. The organization note never ships, so it is not listed.</p>
+  </div>
+  {{if .Items}}
+  <form class="stack" method="post" action="/admin/prompts/shipped">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <p class="muted">{{if eq (len .Items) 1}}One prompt differs{{else}}{{len .Items}} prompts differ{{end}} from the shipped text, counting the draft’s changes{{if .Same}}; {{.Same}} already {{if eq .Same 1}}has{{else}}have{{end}} it{{end}}.</p>
+    <ul class="prompt-changes">
+      {{range .Items}}
+      <li id="shipped-{{.Key}}">
+        <input type="hidden" name="item" value="{{.Key}}">
+        <input type="hidden" name="draft_sha256.{{.Key}}" value="{{.DraftSHA256}}">
+        <input type="hidden" name="live_sha256.{{.Key}}" value="{{.LiveSHA256}}">
+        <input type="hidden" name="shipped_sha256.{{.Key}}" value="{{.ShippedSHA256}}">
+        <label class="check"><input type="checkbox" name="take" value="{{.Key}}"> <span><strong>{{.Name}}</strong> <span class="id">{{.Key}}</span>{{if .InDraft}} {{badge "attention" "draft"}}{{end}}</span>
+          <span class="help">{{if eq .State "new"}}New in this version: your prompts do not have it.{{else if eq .State "unused"}}This version no longer uses it. Taking the shipped text removes it.{{else}}{{.Diff.Summary}} to match the shipped text{{if .InDraft}}, counting the draft’s change{{end}}.{{end}}</span></label>
+        {{if ne .State "unused"}}
+        <details class="disclosure"{{if .Open}} open{{end}}><summary>What taking it changes</summary>{{template "prompt-diff" .Diff}}</details>
+        {{end}}
+      </li>
+      {{end}}
+    </ul>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit" name="scope" value="ticked">Take the ticked prompts</button>
+      <button class="button" type="submit" name="scope" value="all">Take all {{len .Items}}</button>
+    </div>
+    <p class="help">Taking puts the shipped text in the draft. Nothing goes live from here: the draft shows every change before you make it live.</p>
+  </form>
+  {{else}}
+  <div class="empty"><h3>Every prompt has the shipped text</h3><p>Counting the draft’s changes, your prompts match the text this version of Diderot ships.</p></div>
+  {{end}}
+</section>
+{{end}}

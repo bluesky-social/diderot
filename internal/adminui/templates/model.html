@@ -1,0 +1,162 @@
+{{define "content"}}
+{{template "page-header" (header .Entry.ID (printf "A model of %s, as Diderot calls it." .Entry.Provider) (crumb "Models" "/admin/settings/models#entries"))}}
+
+{{template "error" .Error}}
+{{template "notice" .Notice}}
+
+{{with .Detail.Ending}}
+<section class="panel panel-attention" aria-labelledby="ending-heading">
+  <h2 id="ending-heading" class="visually-hidden">Needs attention</h2>
+  <p>{{.}}{{if $.Jobs}} It is used for {{range $i, $j := $.Jobs}}{{if $i}}, {{end}}{{$j}}{{end}}.{{end}}</p>
+</section>
+{{end}}
+
+<section class="section" aria-labelledby="found-heading">
+  <div class="section-header">
+    <h2 id="found-heading">What Diderot knows about it</h2>
+    <p>Where sources disagree, the first of these wins: what an administrator set on this page, the provider's own list, the published catalog, and last what a job's test found. A test only fills in what nothing else says, and never changes the rest.</p>
+  </div>
+  <dl class="kv">
+    <div><dt>Passed the test for</dt><dd>{{range $i, $t := .TestedFor}}{{if $i}}, {{end}}{{$t}}{{else}}no job yet{{end}}</dd></div>
+    <div><dt>Used by</dt><dd>{{range $i, $j := .Jobs}}{{if $i}}, {{end}}{{$j}}{{else}}no job{{end}}</dd></div>
+  </dl>
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th scope="col">What requests are built from</th><th scope="col">In use</th><th scope="col">Where it came from</th><th scope="col">Published now</th></tr></thead>
+      <tbody>
+      {{range .Detail.Facts}}
+        <tr>
+          <th scope="row">{{.Label}}</th>
+          <td>{{.Value}}</td>
+          <td>{{.Source}}</td>
+          <td>{{if .Published}}{{.Published}} <span class="sub">{{.PublishedBy}}</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{with .Detail.Info}}
+  <dl class="kv">
+    {{range .}}<div><dt>{{.Label}}</dt><dd>{{.Value}}{{with .Source}} <span class="sub">{{.}}</span>{{end}}</dd></div>{{end}}
+  </dl>
+  {{end}}
+  {{if .Detail.Differs}}
+  <form class="form" method="post" action="/admin/settings/models/model/published">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.ModelsVersion}}">
+    <input type="hidden" name="ref" value="{{.Ref}}">
+    <p class="help">What is published differs from what Diderot sends, in the rows with a value under Published now. Nothing changes by itself: requests follow what is In use until you say otherwise.</p>
+    {{if and .PublishedChanges (not .Stops)}}
+    <div class="notice notice-attention">
+      <p><strong>Using the published facts changes{{if .Jobs}} what {{range $i, $j := .Jobs}}{{if $i}}, {{end}}{{$j}}{{end}} {{if eq (len .Jobs) 1}}sends{{else}}send{{end}}{{end}}:</strong></p>
+      <ul class="stack">{{range .PublishedChanges}}<li>{{.Text}}</li>{{end}}</ul>
+      <label class="check"><input type="checkbox" name="confirm" value="change" required> <span>Use them</span></label>
+    </div>
+    {{end}}
+    <div class="form-actions"><button class="button" type="submit">Use the published facts</button></div>
+  </form>
+  {{end}}
+</section>
+
+<section class="section" id="match" aria-labelledby="match-heading">
+  <div class="section-header">
+    <h2 id="match-heading">Published catalog entry</h2>
+    <p>The entry of the published catalog (models.dev, with LiteLLM's list for retirement dates and vector sizes) that describes this model: its price, limits and retirement come from there, and its facts when it was first given a job. It changes what these pages show, never a request.</p>
+  </div>
+  {{if .Detail.Off}}
+  <p>Published model facts are turned off on the Models page.</p>
+  {{else if .Detail.NoCatalog}}
+  <p>No published catalog has been read yet. The leader reads it within a minute of starting, and once a day after.</p>
+  {{else}}
+  <dl class="kv">
+    <div><dt>Matched to</dt><dd>{{if .Detail.Match.Ref}}<code>{{.Detail.Match.Ref}}</code>{{with .Detail.Match.Name}} <span class="sub">{{.}}</span>{{end}}{{else if .Detail.Match.Cleared}}nothing, as an administrator set{{else}}nothing: no entry is certainly this model{{end}}</dd></div>
+    {{with .Detail.Match.How}}<div><dt>Why</dt><dd>{{.}}</dd></div>{{end}}
+  </dl>
+  <form class="form" method="post" action="/admin/settings/models/model/match">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.ModelsVersion}}">
+    <input type="hidden" name="ref" value="{{.Ref}}">
+    <fieldset class="stack">
+      <legend>Which entry describes it</legend>
+      {{$pin := .Detail.Match.Pin}}
+      <label class="check"><input type="radio" name="match" value=""{{if not $pin}} checked{{end}}> <span>Match it automatically</span><span class="help">Only an entry whose ID is exactly this model's, at the provider that serves it or at its maker, is used without asking.</span></label>
+      {{range .Detail.Match.Suggestions}}
+      <label class="check"><input type="radio" name="match" value="{{.Ref}}"{{if eq .Ref $pin}} checked{{end}}> <span><code>{{.Ref}}</code></span><span class="help">{{.Name}}. A suggestion: its ID is close to this model's, not the same.</span></label>
+      {{end}}
+      <label class="check"><input type="radio" name="match" value="none"{{if eq $pin "none"}} checked{{end}}> <span>No entry describes it</span></label>
+      <label class="check"><input type="radio" name="match" value="other"{{if .OtherPin}} checked{{end}}> <span>Another entry</span></label>
+      <div class="field">
+        <label for="match-other">Entry, as provider/id</label>
+        <input id="match-other" name="match_other" class="mono" value="{{.OtherPin}}" placeholder="openai/gpt-4o" autocomplete="off" aria-describedby="match-other-help">
+        <p class="help" id="match-other-help">The catalog's name for the provider, a slash, and its ID for the model, as models.dev lists them.</p>
+      </div>
+    </fieldset>
+    <div class="form-actions"><button class="button" type="submit">Save the match</button></div>
+  </form>
+  {{end}}
+</section>
+
+<section class="section" aria-labelledby="settings-heading">
+  <div class="section-header"><h2 id="settings-heading">How Diderot calls it</h2><p>Correct one when the model behaves otherwise, or set what nothing publishes. What you save here is yours: no test and no published list changes it afterwards.</p></div>
+  <form class="form" method="post" action="/admin/settings/models/model">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.ModelsVersion}}">
+    <input type="hidden" name="ref" value="{{.Ref}}">
+    <fieldset class="stack">
+      <legend>Reasoning efforts it accepts</legend>
+      <p class="help">Ask offers these, and titles use <code>low</code> when it is ticked. None ticked sends no effort.</p>
+      <div class="cluster">{{range .Efforts}}<label class="check"><input type="checkbox" name="effort" value="{{.}}"{{if $.AcceptsEffort .}} checked{{end}}> <span>{{.}}</span></label>{{end}}</div>
+    </fieldset>
+    <label class="check"><input type="checkbox" name="images" value="true"{{if .Entry.Images}} checked{{end}}> <span>Accepts images</span><span class="help">Image captions and document extraction send images.</span></label>
+    <label class="check"><input type="checkbox" name="service_tier" value="true"{{if .Entry.ServiceTier}} checked{{end}}> <span>Takes a service tier</span><span class="help">On the Responses protocol only.</span></label>
+    <div class="field">
+      <label for="prompt-cache-retention">Prompt cache retention</label>
+      <select id="prompt-cache-retention" name="prompt_cache_retention">{{$retention := .Entry.PromptCacheRetention}}<option value=""{{if not $retention}} selected{{end}}>Not sent</option>{{range .Retentions}}<option value="{{.}}"{{if eq . $retention}} selected{{end}}>{{.}}</option>{{end}}</select>
+    </div>
+    <fieldset class="stack">
+      <legend>Chat requests</legend>
+      <label class="check"><input type="checkbox" name="max_completion_tokens" value="true"{{if .MaxCompletionTokens}} checked{{end}}> <span>Send the output limit as <code>max_completion_tokens</code></span><span class="help">OpenAI's reasoning models refuse <code>max_tokens</code>.</span></label>
+      <label class="check"><input type="checkbox" name="omit_temperature" value="true"{{if .Entry.ChatOmitTemperature}} checked{{end}}> <span>Send no temperature</span><span class="help">For models that refuse the zero temperature captions send.</span></label>
+      <div class="field">
+        <label for="chat-effort">Reasoning effort chat jobs ask for</label>
+        <select id="chat-effort" name="chat_effort" aria-describedby="chat-effort-help">{{$chat := .Entry.ChatReasoningEffort}}<option value=""{{if not $chat}} selected{{end}}>Not sent</option>{{range .Efforts}}<option value="{{.}}"{{if eq . $chat}} selected{{end}}>{{.}}</option>{{end}}</select>
+        <p class="help" id="chat-effort-help">Captions, document extraction, thread summaries, and session summaries on chat want an answer and no reasoning: this is sent as <code>reasoning_effort</code>, the least the model offers. A model that reasons anyway needs the allowance below.</p>
+      </div>
+      <div class="field">
+        <label for="allowance">Reasoning token allowance</label>
+        <input id="allowance" name="allowance" inputmode="numeric" value="{{.Entry.ChatReasoningTokenAllowance}}" aria-describedby="allowance-help"{{with index .FieldErrors "allowance"}} aria-invalid="true"{{end}}>
+        <p class="help" id="allowance-help">Added to each chat job's output limit, for a model whose limit also counts its reasoning.</p>
+        {{with index .FieldErrors "allowance"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="extra-body">Extra request fields</label>
+        <textarea id="extra-body" name="extra_body" class="mono" placeholder="{}" aria-describedby="extra-body-help"{{with index .FieldErrors "extra_body"}} aria-invalid="true"{{end}}>{{.ExtraBody}}</textarea>
+        <p class="help" id="extra-body-help">A JSON object added to every chat request for this model, such as a thinking budget.</p>
+        {{with index .FieldErrors "extra_body"}}<p class="error" role="alert">{{.}}</p>{{end}}
+      </div>
+    </fieldset>
+    {{if and .Changes (not .Stops)}}
+    <div class="notice notice-attention">
+      <p><strong>This changes what {{range $i, $j := .Jobs}}{{if $i}}, {{end}}{{$j}}{{end}} {{if eq (len .Jobs) 1}}sends{{else}}send{{end}}, from the next request:</strong></p>
+      <ul class="stack">{{range .Changes}}<li>{{.Text}}</li>{{end}}</ul>
+      <label class="check"><input type="checkbox" name="confirm" value="change" required> <span>Save these changes</span><span class="help">Background work that uses the model restarts, and a question being answered by it at that moment may need to be asked again.</span></label>
+    </div>
+    {{end}}
+    {{with .Stops}}<div class="notice notice-bad" role="alert">{{range .}}<p>{{.}}</p>{{end}}</div>{{end}}
+    <div class="form-actions"><button class="button button-primary" type="submit">Save</button></div>
+  </form>
+</section>
+
+{{if not .Jobs}}
+<section class="section" aria-labelledby="remove-heading">
+  <div class="section-header"><h2 id="remove-heading">Remove</h2></div>
+  <form class="form" method="post" action="/admin/settings/models/model/remove">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="version" value="{{.ModelsVersion}}">
+    <input type="hidden" name="ref" value="{{.Ref}}">
+    <p class="help">No job uses it. Choosing it for a job later tests it again.</p>
+    <div class="form-actions"><button class="button button-danger" type="submit">Remove</button></div>
+  </form>
+</section>
+{{end}}
+{{end}}
