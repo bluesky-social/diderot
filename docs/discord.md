@@ -115,10 +115,10 @@ engine (`internal/askchat`):
 
 - **Mention** the bot in a channel where Ask is on. It reacts 👀, starts a
   thread from your question, and answers there; ✅ replaces 👀 once the
-  answer is in. Mention it again in the thread to follow up: the thread is
+  answer is in. Mention it again in the thread to follow up. The thread is
   the conversation, and what was said in it since the last answer is passed
   along (only where everyone who can see the channel can read its history).
-  In a thread or forum post, it answers in place.
+  When you mention it in a thread or forum post, it answers in place.
 - **Direct message** the bot, when **Answer direct messages** is on. The
   DM is one conversation.
 - **`/ask question:…`** in a channel posts the question and answers in a
@@ -128,14 +128,14 @@ engine (`internal/askchat`):
   command, which Discord accepts for 15 minutes, so a private question has
   13 minutes to finish.
 - **Summarize thread** and **Summarize thread privately**, in a message's
-  **Apps** menu: summarizes the thread the message is in (or the one it
+  **Apps** menu, summarize the thread the message is in (or the one it
   started) with the thread-summary model, for the channel or only for you.
   Pinned messages, and messages with a 📌 reaction, become action items.
 
 While it works the thread shows **Working on it…** with a **Stop** button
 and the bot typing. **Stop** ends the turn; nothing more is posted and the
 placeholder says **Stopped.** If Diderot restarts mid-answer, the leader
-takes the placeholder down and says the answer was interrupted.
+replica takes the placeholder down and says the answer was interrupted.
 
 Answers are split into messages under Discord's 2,000-character limit,
 never ping anyone (`@everyone` included), and don't unfurl links. Grafana
@@ -145,23 +145,24 @@ answer to rate it; ratings appear with Slack's on the feedback page.
 ### Who an answer may read
 
 Discord gives a bot no email, so a Discord user has no Diderot identity.
-An answer therefore reads only what its audience can read in Discord,
-from the server's roles and the channels' permission overwrites, read from
-Discord at each question (a failed read grants nothing):
+An answer therefore reads only what its audience can read in Discord.
+Diderot works that out from the server's roles and the channels' permission
+overwrites, which it reads from Discord at each question (a failed read
+grants nothing):
 
 - **An answer in a channel or thread** is read by everyone who can see the
-  channel, so it uses public content, the server's chosen channels that
-  every member can read (`@everyone` may view them and read their history,
-  and no overwrite denies either), and the channel itself when it is chosen
-  and everyone who can view it can read its history. Never more because of
-  who asked, and never a policy scope: a private channel's contents never
-  reach a public channel. In a [trusted server](#trusted-servers) it also
-  uses `internal`.
+  channel. It uses public content (what anyone on the internet could read),
+  the server's chosen channels that every member can read (`@everyone` may
+  view them and read their history, and no overwrite denies either), and
+  the channel itself when it is chosen and everyone who can view it can
+  read its history. It never uses more because of who asked, and never a
+  policy scope, so a private channel's contents never reach a public
+  channel. In a [trusted server](#trusted-servers) it also uses `internal`.
 - **A DM, a private `/ask`, or a private summary** is read by its asker
-  only, so it uses public content and the chosen channels, in the servers
-  where Ask is on, that the asker can view and read the history of; and
-  `internal` when the asker is a member of a trusted server. Only members
-  of such a server get answers.
+  only. It uses public content and the chosen channels, in the servers
+  where Ask is on, that the asker can view and read the history of. It
+  also uses `internal` when the asker is a member of a trusted server
+  where Ask is on. Only members of a server where Ask is on get answers.
 - A conversation continues only while its audience's access is unchanged:
   when a channel opens or closes, or the asker's roles change, the next
   question starts a new conversation, so no one can ask the model to repeat
@@ -183,19 +184,20 @@ of the server can then ask about that content, so trust a server only if
 membership is limited to your people.
 
 - An answer in a trusted server's channel or thread uses `internal` on top
-  of what its audience can read, because only members see it. Not in an
-  announcement channel (its posts can be published to the servers that
-  follow it), and not while the server can be read without joining (it is
-  in the server directory, or previews are on): such answers stay as in an
-  untrusted server.
+  of what its audience can read, because only members see it. It does not
+  do so in an announcement channel (its posts can be published to the
+  servers that follow it), or while the server can be read without joining
+  (it is in the server directory, or previews are on). Answers there stay
+  as in an untrusted server.
 - A DM, a private `/ask` or a private summary uses `internal` when its
   asker is a member of a trusted server where Ask is on, read at each
   question. A guest (invited to one voice channel) or a member still in
   Membership Screening doesn't count, and a membership in an untrusted
   server never does.
 - Policy scopes (`corpus:<name>`) are never used.
-- Trusting a server, or no longer, starts new conversations: a thread or DM
-  that continues afterwards does so with the new access, in a new session.
+- Trusting a server, or ending that trust, starts new conversations: a
+  thread or DM that continues afterwards does so with the new access, in a
+  new session.
 - Bots and bridges in a trusted server that relay its messages elsewhere
   take its answers with them; remove them, or don't trust the server.
 
