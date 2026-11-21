@@ -79,5 +79,27 @@ func codexProviderCmd() *cobra.Command {
 	cmd.Flags().IntVar(&cfg.MaxConcurrent, "max-concurrent", 2, "Maximum simultaneous Codex inference requests")
 	_ = cmd.MarkFlagRequired("token-file")
 	_ = cmd.MarkFlagRequired("auth-file")
+	cmd.AddCommand(codexLoginCmd())
+	return cmd
+}
+
+func codexLoginCmd() *cobra.Command {
+	var authFile string
+	cmd := &cobra.Command{
+		Use:   "login",
+		Short: "Sign into the Codex provider with a ChatGPT device code",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+			defer cancel()
+			if err := codexprovider.DeviceLogin(ctx, authFile, cmd.OutOrStdout()); err != nil {
+				return err
+			}
+			cmd.Println("Codex sign-in complete.")
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&authFile, "auth-file", "", "Path to the provider's dedicated Codex auth.json")
+	_ = cmd.MarkFlagRequired("auth-file")
 	return cmd
 }

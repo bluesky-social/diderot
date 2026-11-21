@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	codexTokenURL = "https://auth.openai.com/oauth/token"
+	codexTokenURL = codexAuthOrigin + "/oauth/token"
 	codexClientID = "app_EMoamEEZ73f0CkXaXp7hrann"
 )
 
@@ -134,19 +134,26 @@ func (s *credentialStore) refresh(ctx context.Context, refresh string, auth, tok
 	tokens["account_id"], _ = json.Marshal(credential.account)
 	auth["tokens"], _ = json.Marshal(tokens)
 	auth["last_refresh"], _ = json.Marshal(time.Now().UTC())
-	if err := json.NewEncoder(temp).Encode(auth); err != nil {
-		return accessCredential{}, authFailure("could not write the refreshed ChatGPT credentials")
-	}
-	if err := temp.Sync(); err != nil {
-		return accessCredential{}, authFailure("could not sync the refreshed ChatGPT credentials")
-	}
-	if err := temp.Close(); err != nil {
-		return accessCredential{}, authFailure("could not close the refreshed ChatGPT credentials")
-	}
-	if err := os.Rename(temp.Name(), s.path); err != nil {
-		return accessCredential{}, authFailure("could not replace the ChatGPT auth file")
+	if err := saveAuthFile(temp, s.path, auth); err != nil {
+		return accessCredential{}, err
 	}
 	return credential, nil
+}
+
+func saveAuthFile(temp *os.File, path string, auth map[string]json.RawMessage) error {
+	if err := json.NewEncoder(temp).Encode(auth); err != nil {
+		return authFailure("could not write the ChatGPT auth file")
+	}
+	if err := temp.Sync(); err != nil {
+		return authFailure("could not sync the ChatGPT auth file")
+	}
+	if err := temp.Close(); err != nil {
+		return authFailure("could not close the ChatGPT auth file")
+	}
+	if err := os.Rename(temp.Name(), path); err != nil {
+		return authFailure("could not replace the ChatGPT auth file")
+	}
+	return nil
 }
 
 func jsonString(raw json.RawMessage) string {

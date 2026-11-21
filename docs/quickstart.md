@@ -372,18 +372,21 @@ passage again, into a collection of its own.
 
 ### Signed-in Codex
 
-Run the server binary's optional `codex-provider` command with a dedicated
-Codex ChatGPT `auth.json`. You can initialize the file with a one-time
-ChatGPT sign-in in a separate Codex home. Keep the file and its directory
-private and writable by one adapter process, which refreshes and rotates
-the OAuth credentials. The adapter uses the ChatGPT Codex backend
-directly over HTTPS.
+Sign the server's Codex adapter in to ChatGPT using a device code. Open the
+displayed link in your browser and enter the one-time code. The adapter
+writes the credentials to its dedicated auth file and refreshes them in
+place. Keep the directory private and writable by the adapter.
 
 ```sh
+diderot codex-provider login --auth-file /path/to/dedicated/codex/auth.json
 (umask 077; openssl rand -hex 32 > codex-provider.token)
 diderot codex-provider \
   --auth-file /path/to/dedicated/codex/auth.json --token-file codex-provider.token
 ```
+
+ChatGPT may require you to enable device code login in account security
+settings first. In Kubernetes, run the login command in the adapter's
+container so it can write to the credentials volume directly.
 
 In **Models → Inference providers**, add an **OpenAI-compatible** provider
 with base URL `http://127.0.0.1:9460/v1` for a standalone server on the
