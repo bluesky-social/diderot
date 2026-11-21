@@ -218,7 +218,7 @@ func TestPushBindingConflicts(t *testing.T) {
 // sessions' owners, as the candidate row always was.
 func TestPushFormatsExcludeTheFeedFormat(t *testing.T) {
 	got := strings.Join(PushFormats().Formats(), ",")
-	if got != "atif-json,claude-code-jsonl,codex-rollout-jsonl,copilot-cli-events-jsonl,hf-sts-jsonl,polytoken-jsonl" {
+	if got != "atif-json,claude-code-jsonl,codex-rollout-jsonl,copilot-cli-events-jsonl,gemini-cli-session-jsonl,hf-sts-jsonl,polytoken-jsonl" {
 		t.Fatalf("push formats = %s", got)
 	}
 }

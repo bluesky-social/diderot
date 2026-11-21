@@ -232,7 +232,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 		return state.save(s.StatePath)
 	}
 
-	document, err := convert(harness, file)
+	sessionID, document, err := convert(harness, file)
 	var unreadable *os.PathError
 	switch {
 	case errors.As(err, &unreadable):
@@ -243,6 +243,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 	case err != nil:
 		return skip(err.Error())
 	}
+	next.SessionID, outcome.SessionID = sessionID, sessionID
 	sum := sha256.Sum256(document)
 	next.SHA256 = hex.EncodeToString(sum[:])
 	if previous != nil && previous.Revision != "" && previous.SHA256 == next.SHA256 {
@@ -252,7 +253,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 		return nil
 	}
 
-	revision, err := s.Put(ctx, file.sessionID, document, next.Revision)
+	revision, err := s.Put(ctx, sessionID, document, next.Revision)
 	var rejected *RejectedError
 	switch {
 	case errors.As(err, &rejected):
@@ -275,29 +276,35 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 }
 
 // convert reads a session file and converts it to the ATIF document that is
-// sent. A last line still being written (one with no newline yet) is left
-// for the pass that sees it whole.
-func convert(harness Harness, file sessionFile) ([]byte, error) {
+// sent, and returns the ID the session is pushed under with it
+// (Harness.sessionID). A last line still being written (one with no newline
+// yet) is left for the pass that sees it whole.
+func convert(harness Harness, file sessionFile) (string, []byte, error) {
 	f, err := os.Open(file.real)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	defer func() { _ = f.Close() }()
 	// The read is bounded, not the size the listing saw: the harness may
 	// have written a great deal since.
 	data, err := io.ReadAll(io.LimitReader(f, maxSourceBytes+1))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	if int64(len(data)) > maxSourceBytes {
-		return nil, fmt.Errorf("the file is larger than %d bytes", maxSourceBytes)
+		return "", nil, fmt.Errorf("the file is larger than %d bytes", maxSourceBytes)
 	}
 	data = data[:bytes.LastIndexByte(data, '\n')+1]
 	doc, records, err := sessiondecode.DecodeAll(harness.Decoder, data)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return sessiondecode.EncodeATIF(file.sessionID, doc, records)
+	sessionID, err := harness.sessionID(file.sessionID, doc.SessionID)
+	if err != nil {
+		return "", nil, err
+	}
+	document, err := sessiondecode.EncodeATIF(sessionID, doc, records)
+	return sessionID, document, err
 }
 
 // Poll intervals of the background service.

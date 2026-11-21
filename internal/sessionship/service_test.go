@@ -158,6 +158,7 @@ func TestDetect(t *testing.T) {
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
 	t.Setenv("CODEX_HOME", "")
 	t.Setenv("COPILOT_HOME", "")
+	t.Setenv("GEMINI_CLI_HOME", "")
 	t.Setenv("POLYTOKEN_DATA_PATH", "")
 	t.Setenv("XDG_DATA_HOME", "")
 	found, err := Detect()
@@ -167,6 +168,7 @@ func TestDetect(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".claude", "projects"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".codex", "sessions"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".copilot", "session-state"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".gemini", "tmp"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".local", "share", "polytoken", "sessions"), 0o755))
 	found, err = Detect()
 	require.NoError(t, err)
@@ -174,22 +176,27 @@ func TestDetect(t *testing.T) {
 		{Harness: "claude-code", Dir: filepath.Join(home, ".claude", "projects")},
 		{Harness: "codex", Dir: filepath.Join(home, ".codex", "sessions")},
 		{Harness: "copilot-cli", Dir: filepath.Join(home, ".copilot", "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(home, ".gemini", "tmp")},
 		{Harness: "polytoken", Dir: filepath.Join(home, ".local", "share", "polytoken")},
 	}, found)
 
-	// Each harness's own override moves its directory.
+	// Each harness's own override moves its directory. GEMINI_CLI_HOME
+	// stands in for the home directory, so .gemini is beneath it.
 	elsewhere := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, "sessions"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, "session-state"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, ".gemini", "tmp"), 0o755))
 	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(elsewhere, "no-claude-here"))
 	t.Setenv("CODEX_HOME", elsewhere)
 	t.Setenv("COPILOT_HOME", elsewhere)
+	t.Setenv("GEMINI_CLI_HOME", elsewhere)
 	t.Setenv("XDG_DATA_HOME", filepath.Join(elsewhere, "no-data-here"))
 	found, err = Detect()
 	require.NoError(t, err)
 	assert.Equal(t, []Source{
 		{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")},
 		{Harness: "copilot-cli", Dir: filepath.Join(elsewhere, "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(elsewhere, ".gemini", "tmp")},
 	}, found)
 
 	// Polytoken's own override names its data directory itself.
@@ -200,6 +207,7 @@ func TestDetect(t *testing.T) {
 	assert.Equal(t, []Source{
 		{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")},
 		{Harness: "copilot-cli", Dir: filepath.Join(elsewhere, "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(elsewhere, ".gemini", "tmp")},
 		{Harness: "polytoken", Dir: data},
 	}, found)
 

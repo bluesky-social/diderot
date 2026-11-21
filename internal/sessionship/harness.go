@@ -28,7 +28,9 @@ type Harness struct {
 	// environment override.
 	Dirs func(home string) []string
 	// File matches a session file's slash-separated path relative to its
-	// source directory and captures the harness's own session ID.
+	// source directory and captures the harness's own session ID, or the
+	// start of it when the session declares the whole ID
+	// (sessiondecode.Document.SessionID).
 	File *regexp.Regexp
 	// HashID is set for a harness whose own session IDs are not UUIDs, which
 	// the push route requires: the session is pushed under a name-based UUID
@@ -44,12 +46,21 @@ const uuidPattern = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 // gives every such session a new ID on the server.
 var hashIDNamespace = uuid.MustParse("28015b4e-8083-4614-8b26-bfa81fb58087")
 
-// sessionID is the ID a session is pushed under, from the ID File captured.
-func (h Harness) sessionID(captured string) string {
-	if !h.HashID {
-		return captured
+// sessionID is the ID a session is pushed under: the harness's own ID, which
+// is the one File captured or the whole one the session declares, as HashID
+// says.
+func (h Harness) sessionID(captured, declared string) (string, error) {
+	own := captured
+	if declared != "" {
+		if !strings.HasPrefix(declared, captured) {
+			return "", fmt.Errorf("the file's name does not match the session ID %q it declares", declared)
+		}
+		own = declared
 	}
-	return uuid.NewSHA1(hashIDNamespace, []byte(h.Name+"/"+captured)).String()
+	if !h.HashID {
+		return own, nil
+	}
+	return uuid.NewSHA1(hashIDNamespace, []byte(h.Name+"/"+own)).String(), nil
 }
 
 // Harnesses is every harness sessions are shipped from. Adding one is an
@@ -82,6 +93,17 @@ var Harnesses = []Harness{
 		// not sent.
 		File:    regexp.MustCompile(`^(` + uuidPattern + `)/events\.jsonl$`),
 		Decoder: sessiondecode.CopilotCLI{},
+	},
+	{
+		Name: "gemini-cli",
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("GEMINI_CLI_HOME", home), ".gemini", "tmp")}
+		},
+		// A project's own sessions, <project>/chats/session-<started>-<the
+		// session ID's first eight characters>.jsonl; a subagent's transcript
+		// is <project>/chats/<parent session ID>/<session ID>.jsonl.
+		File:    regexp.MustCompile(`(?:^|/)session-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-(?:\d+-)?([0-9a-f]{8})\.jsonl$`),
+		Decoder: sessiondecode.GeminiCLI{},
 	},
 	{
 		Name: "polytoken",
@@ -154,7 +176,9 @@ type sessionFile struct {
 	path string
 	// real is path with every link resolved: the file that was checked
 	// against the exclusions, and so the one that is read.
-	real      string
+	real string
+	// sessionID is what the harness's File captured; the session is pushed
+	// under the ID convert returns.
 	sessionID string
 	info      fs.FileInfo
 }
@@ -219,7 +243,7 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 		if err != nil || !info.Mode().IsRegular() {
 			return nil // gone since the listing
 		}
-		found = append(found, sessionFile{path: path, real: real, sessionID: h.sessionID(m[1]), info: info})
+		found = append(found, sessionFile{path: path, real: real, sessionID: m[1], info: info})
 		return nil
 	})
 	return found, err

@@ -229,6 +229,123 @@ func TestCopilotCLIFixture(t *testing.T) {
 	}
 }
 
+func TestGeminiCLIFixture(t *testing.T) {
+	doc, records := assertFixture(t, GeminiCLI{}, "gemini-cli", "basic")
+	const p = "aaaaaaaa-0000-4000-8000-0000000000"
+	want := []string{
+		"5e1c0a2b3c4d5e6f708192a3b4c5d6e7/system",
+		p + "03/system",
+		p + "04/assistant",
+		p + "06/user",
+		p + "07:reasoning:0/reasoning",
+		p + "07:assistant:1/assistant",
+		p + "08:tool_result:0/tool",
+		p + "08:tool_result:1/tool",
+		p + "09:reasoning:0/reasoning",
+		p + "09:assistant:1/assistant",
+		p + "0a/user",
+		p + "0b/assistant",
+		p + "0d/tool",
+		p + "0e/assistant",
+		p + "11/user",
+		p + "12:reasoning:0/reasoning",
+		p + "12:assistant:1/assistant",
+		p + "13/tool",
+		p + "14/assistant",
+		p + "15/user",
+		p + "16/assistant",
+		p + "17/system",
+		p + "18/system",
+		p + "19/system",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("live messages:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityNative {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SessionID != "7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5" || doc.SourceVersion != "" || doc.Harness != "gemini-cli" ||
+		doc.UserTurnCount != 4 || doc.WarningRecords != 2 {
+		t.Fatalf("document = %+v", doc)
+	}
+	// Injected context and the compression summary are not the person's
+	// words; the expanded @-reference is replaced by what was typed, and
+	// its image keeps a placeholder.
+	if records[0].Phase != "context" || records[1].Phase != "compaction_summary" ||
+		string(records[3].Content) != `[{"type":"text","text":"Check @logo.png and run the tests."},{"type":"image","media_type":"image/png","available":false}]` {
+		t.Fatal("injected context, compression summary, or typed prompt lost")
+	}
+	// Two parallel calls; the image result keeps a placeholder, and a
+	// non-zero exit is output, not an error. The cancelled call's result is.
+	if len(records[5].ToolCalls) != 2 || records[5].ToolCalls[1].Args != `{"description":"Run the test suite.","command":"make test"}` ||
+		!strings.Contains(string(records[6].Content), `"type":"image","media_type":"image/png"`) || records[7].IsError || !records[12].IsError {
+		t.Fatal("tool calls, image result, or error flags lost")
+	}
+	// After the resume patch the subagent turn is read from its parts.
+	if records[16].ToolCalls[0].ID != "invoke_agent__call_1004" || records[15].Content == nil {
+		t.Fatal("patched turn lost its call or reasoning")
+	}
+	if records[20].Model != "gemini-synthetic-pro" || records[21].Phase != "error" || records[22].Phase != "warning" || records[23].Phase != "normalization" {
+		t.Fatal("model switch or notices lost")
+	}
+	if bytes.Contains(goldenRecords(t, records), []byte("iVBORw0KGgo")) {
+		t.Fatal("inline image bytes reached a record")
+	}
+}
+
+// TestGeminiCLILogOperations: later copies of a message replace it in place,
+// a rewind to an unknown message drops everything, and orderIds moves the
+// listed messages to the end.
+func TestGeminiCLILogOperations(t *testing.T) {
+	const meta = `{"sessionId":"7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5","projectHash":"x","startTime":"2026-11-01T10:00:00.000Z"}`
+	msg := func(id, text string) string {
+		return `{"id":"` + id + `","timestamp":"2026-11-01T10:00:00.000Z","type":"user","content":[{"text":"` + text + `"}]}`
+	}
+	doc := func(lines ...string) []byte {
+		return []byte(strings.Join(append([]string{meta}, lines...), "\n") + "\n")
+	}
+	_, records := assertContract(t, GeminiCLI{}, doc(msg("a", "one"), msg("b", "two"), msg("a", "one again"),
+		`{"$patch":{"orderIds":["a"]}}`))
+	if got := strings.Join(ids(records), ","); got != "b/user,a/user" || string(records[1].Content) != `"one again"` {
+		t.Fatalf("records = %v %s", got, records[1].Content)
+	}
+	_, records = assertContract(t, GeminiCLI{}, doc(msg("a", "one"), `{"$rewindTo":"gone"}`, msg("b", "two")))
+	if got := strings.Join(ids(records), ","); got != "b/user" {
+		t.Fatalf("records = %v", got)
+	}
+	// A rewind follows the order a move left; a removed message written
+	// again goes to the end.
+	_, records = assertContract(t, GeminiCLI{}, doc(msg("a", "1"), msg("b", "2"), msg("c", "3"),
+		`{"$patch":{"orderIds":["a","a","gone"]}}`, `{"$rewindTo":"c"}`, msg("d", "4"),
+		`{"$patch":{"removeIds":["b"]}}`, msg("b", "5")))
+	if got := strings.Join(ids(records), ","); got != "d/user,b/user" || string(records[1].Content) != `"5"` {
+		t.Fatalf("records = %v", got)
+	}
+	// An unknown message type is a notice whatever its content holds.
+	_, records = assertContract(t, GeminiCLI{}, doc(`{"id":"f","timestamp":"2026-11-01T10:00:00.000Z","type":"future_kind","content":7}`))
+	if len(records) != 1 || records[0].Phase != "normalization" {
+		t.Fatalf("records = %+v", records)
+	}
+}
+
+func TestGeminiCLIFunctionResponses(t *testing.T) {
+	for raw, want := range map[string]struct {
+		text  string
+		isErr bool
+	}{
+		`{"output":"ok"}`:                     {"ok", false},
+		`{"output":"partial","error":"boom"}`: {"partial\nboom", true},
+		`{}`:                                  {"{}", false},
+		`{"content":[{"type":"image","data":"iVBORw0KGgo"}]}`: {`{"content":[{"data":"[inline data omitted]","type":"image"}]}`, false},
+	} {
+		if text, isErr := gcResponseText(json.RawMessage(raw)); text != want.text || isErr != want.isErr {
+			t.Errorf("%s: text %q error %v, want %q %v", raw, text, isErr, want.text, want.isErr)
+		}
+	}
+}
+
 func TestPolytokenFixture(t *testing.T) {
 	doc, records := assertFixture(t, Polytoken{}, "polytoken", "basic")
 	const a, b, c = "AAAAAAAAAAAAAAAAAAAAAA:", "BBBBBBBBBBBBBBBBBBBBBB:", "CCCCCCCCCCCCCCCCCCCCCC:"
@@ -335,6 +452,7 @@ func TestPolytokenOlderLayout(t *testing.T) {
 func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 	cc := func(lines ...string) []byte { return []byte(strings.Join(lines, "\n") + "\n") }
 	const ts = `"timestamp":"2026-11-01T10:00:00Z"`
+	const gcMeta = `{"sessionId":"7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5","projectHash":"x"}`
 	const pt = `"emitted_at":"2026-11-01T10:00:00Z"`
 	cases := []struct {
 		name string
@@ -381,6 +499,22 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 		{"copilot-cli no conversation", CopilotCLI{}, cc(
 			`{"type":"session.start","data":{"copilotVersion":"1.0.114"},"id":"a",`+ts+`}`,
 			`{"type":"session.error","data":{"errorType":"query","message":"Model is not available."},"id":"b",`+ts+`}`)},
+		{"gemini-cli orphan tool result", GeminiCLI{}, cc(gcMeta,
+			`{"id":"u",`+ts+`,"type":"user","content":[{"functionResponse":{"id":"nope","name":"read_file","response":{"output":"x"}}}]}`)},
+		{"gemini-cli tool call without id", GeminiCLI{}, cc(gcMeta,
+			`{"id":"g",`+ts+`,"type":"gemini","content":"","toolCalls":[{"name":"read_file","args":{}}]}`)},
+		{"gemini-cli functionCall without id", GeminiCLI{}, cc(gcMeta,
+			`{"id":"g",`+ts+`,"type":"gemini","content":[{"functionCall":{"name":"read_file","args":{}}}]}`)},
+		{"gemini-cli missing timestamp", GeminiCLI{}, cc(gcMeta, `{"id":"u","type":"user","content":[{"text":"hi"}]}`)},
+		{"gemini-cli no session metadata", GeminiCLI{}, cc(`{"id":"u",` + ts + `,"type":"user","content":[{"text":"hi"}]}`)},
+		{"gemini-cli unparseable content", GeminiCLI{}, cc(gcMeta, `{"id":"u",`+ts+`,"type":"user","content":7}`)},
+		{"gemini-cli unparseable line", GeminiCLI{}, cc(gcMeta, `{"id":`)},
+		{"gemini-cli message without id", GeminiCLI{}, cc(gcMeta,
+			`{"id":"u",`+ts+`,"type":"user","content":[{"text":"hi"}]}`, `{`+ts+`,"type":"gemini","content":"lost"}`)},
+		{"gemini-cli message with an empty id", GeminiCLI{}, cc(gcMeta,
+			`{"id":"",`+ts+`,"type":"gemini","content":"reply","thoughts":[{"subject":"s","description":"d"}]}`)},
+		{"gemini-cli everything rewound", GeminiCLI{}, cc(gcMeta,
+			`{"id":"u",`+ts+`,"type":"user","content":[{"text":"hi"}]}`, `{"$rewindTo":"u"}`)},
 		{"polytoken orphan tool result", Polytoken{}, cc(
 			`{"type":"tool_result","results":[{"tool_use_id":"nope","content":{"text":"x"},"is_error":false}],` + pt + `}`)},
 		{"polytoken unparseable line", Polytoken{}, cc(
@@ -513,7 +647,7 @@ func TestPolytokenUnknownShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatPolytoken} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

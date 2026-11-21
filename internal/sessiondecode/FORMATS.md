@@ -154,6 +154,75 @@ synthetic).
   harness is `copilot-cli`. A session that ended before any conversation
   (a refused model, say) has no records and fails as such.
 
+## `gemini-cli-session-jsonl` (decoder version 1)
+
+Gemini CLI's `~/.gemini/tmp/<project>/chats/session-<started>-<first eight
+characters of the session ID>.jsonl` (under `$GEMINI_CLI_HOME` when that is
+set). Mapped from Gemini CLI's own writer and loader,
+`packages/core/src/services/chatRecordingService.ts` and
+`chatRecordingTypes.ts` in `github.com/google-gemini/gemini-cli` at v0.70.0
+(commit `8468962`), and checked against files Gemini CLI 0.70.0 wrote (key
+names only; fixtures are synthetic). The format has no version field, so
+`SourceVersion` is empty. A subagent's transcript
+(`chats/<parent session ID>/<session ID>.jsonl`, `kind: subagent`) has the
+same format.
+
+- **Log.** The file is a log of edits to the conversation. The first line is
+  the session's metadata (`sessionId`, `projectHash`, …). A line with a
+  non-empty `id` is a message, and a message written again (a model turn
+  gains its tool calls, then their status) replaces the earlier copy in
+  place. `$set`
+  updates the metadata. `$rewindTo` drops the named message and every
+  message after it (all of them when it names none the log holds). `$patch`
+  replaces the `content` of the messages it names (`id` and `content`, or
+  each of `updates`), removes `removeIds`, and moves `orderIds` to the end.
+  Any other line is counted as a warning and otherwise ignored, as Gemini
+  CLI's loader ignores it.
+- **Active path.** The decoder replays the log as Gemini CLI's loader does
+  and emits the messages left, in order. So a rewound turn is gone, and so
+  is the history before a compression. Gemini CLI compresses by replacing
+  the model's history with a summary turn, an acknowledgement, and the most
+  recent turns, all recorded as new messages (the recent turns under new
+  ids), and a `$patch` whose `removeIds` drops every message they replace.
+  The summarized turns are not emitted: the summary stands in for them.
+  This differs from the Claude Code and Codex decoders, which keep the
+  history before a compaction on the path. Those harnesses keep the turns
+  they carry over as the same entries, while Gemini CLI records them again,
+  so bringing back the removed messages would emit each kept turn twice,
+  under its old id and its new one. Gemini CLI also removes messages that
+  are not in the model's history when it syncs the log with it (after a
+  resume or a rewind), such as `info`, `warning`, and `error` messages.
+- **Ids.** Message `id`s are `native`. A message that becomes several
+  records gets `<id>:<kind>:<n>`, `n` being the record's position among them
+  (`reasoning`, `assistant`, `tool_result`, `user`, `system`).
+- **Messages.** Content is text, one part, or a list of text and parts.
+  In a `user` message each `functionResponse` part is a `tool` record paired
+  by its `id`: the `output` and `error` strings of its `response` are the
+  text, an `error` marks the result an error, any other response is kept as
+  JSON text, and its `parts` are placeholders. The rest is what was typed:
+  `displayContent` when present (the content then has `@` references
+  expanded), with a placeholder for each image in the content (Gemini CLI
+  saves a pasted image to a file and references it with `@`), else the
+  remaining parts. Text that starts with
+  `<session_context>` or `<hook_context>` is context Gemini CLI injected and
+  becomes `system` (phase `context`); text holding `<state_snapshot>` is the
+  compression summary and becomes `system` (phase `compaction_summary`). A
+  `gemini` message whose content has `thought` or `functionCall` parts is
+  read from those parts alone: thought text is the `reasoning` record,
+  `functionCall`s (`id`, `name`, `args`) the calls, the rest the reply.
+  Otherwise the content is the reply, `thoughts` (`**subject**
+  description`) the `reasoning` record, and `toolCalls` the calls. The
+  `result` copies inside `toolCalls` are not read: results come only from
+  `functionResponse` parts. `info`, `warning`, and `error` messages become
+  `system` records with the type as phase; an empty one is skipped. Any
+  other message type, inline data that is not an image, and parts of an
+  unknown kind become notices. A message of a known type without an `id`, a
+  call without an `id`, an emitted message without a timestamp, and a file
+  whose metadata has no `sessionId` fail the document.
+- **Session.** The model is each message's `model`. `Document.SessionID` is
+  the metadata's `sessionId`; `diderot sessions` pushes the session under
+  it, since the file name holds only its first eight characters.
+
 ## `polytoken-jsonl` (decoder version 1)
 
 Polytoken's `sessions-v1/<session>/log.jsonl` under its data directory

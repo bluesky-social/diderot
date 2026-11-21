@@ -29,6 +29,7 @@ func TestEncodeATIFRoundTrips(t *testing.T) {
 		{ClaudeCode{}, "claude-code/basic.jsonl"},
 		{Codex{}, "codex/basic.jsonl"},
 		{CopilotCLI{}, "copilot-cli/basic.jsonl"},
+		{GeminiCLI{}, "gemini-cli/basic.jsonl"},
 		{Polytoken{}, "polytoken/basic.jsonl"},
 	} {
 		t.Run(tc.decoder.Format(), func(t *testing.T) {

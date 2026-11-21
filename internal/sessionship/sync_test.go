@@ -30,6 +30,9 @@ const (
 	claudeSession  = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
 	codexSession   = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
 	copilotSession = "8d2f1e3a-5b6c-4d7e-9f80-a1b2c3d4e5f6"
+	// geminiSession is the ID the Gemini CLI fixture declares; its file is
+	// named after the first eight characters.
+	geminiSession = "7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
 )
 
 // claudeTurn is one synthetic Claude Code user or assistant line; each line
@@ -164,6 +167,7 @@ func newFixture(t *testing.T) *fixture {
 			{Harness: "claude-code", Dir: filepath.Join(root, "claude")},
 			{Harness: "codex", Dir: filepath.Join(root, "codex")},
 			{Harness: "copilot-cli", Dir: filepath.Join(root, "copilot")},
+			{Harness: "gemini-cli", Dir: filepath.Join(root, "gemini")},
 		}},
 		StatePath: filepath.Join(root, "state", "sessions-state.json"), ServerURL: pusher.MCPURL,
 		Put: pusher.Put, Now: func() time.Time { return f.now },
@@ -195,6 +199,11 @@ func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	copilotDir := filepath.Join(f.syncer.Settings.Sources[2].Dir, copilotSession)
 	write(t, filepath.Join(copilotDir, "events.jsonl"), string(copilot))
+	gemini, err := os.ReadFile("../sessiondecode/testdata/gemini-cli/basic.jsonl")
+	require.NoError(t, err)
+	geminiChats := filepath.Join(f.syncer.Settings.Sources[3].Dir, "demo", "chats")
+	geminiFile := filepath.Join(geminiChats, "session-2026-11-01T10-00-"+geminiSession[:8]+".jsonl")
+	write(t, geminiFile, string(gemini))
 	// Files that are not sessions are never read: a subagent's transcript,
 	// even one whose name ends in a session ID, a file whose name matches
 	// only together with the directory above it, a rotated log's archive,
@@ -206,13 +215,18 @@ func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	write(t, filepath.Join(copilotDir, "events.1.jsonl"), "not a session\n")
 	write(t, filepath.Join(copilotDir, "workspace.yaml"), "not a session\n")
 	write(t, filepath.Join(copilotDir, "files", copilotSession, "events.jsonl"), "not a session\n")
+	write(t, filepath.Join(geminiChats, geminiSession, "1a2b3c4d-0000-4000-8000-000000000009.jsonl"), "not a session\n")
+	write(t, filepath.Join(geminiChats, "..", "logs", "logs.json"), "not a session\n")
 
 	result := f.pass(t)
-	require.Len(t, result.Sent, 3)
+	require.Len(t, result.Sent, 4)
 	assert.Equal(t, Outcome{Harness: "claude-code", SessionID: claudeSession, Path: f.claude, Action: "created"}, result.Sent[0])
 	assert.Equal(t, "codex", result.Sent[1].Harness)
 	assert.Equal(t, codexSession, result.Sent[1].SessionID)
 	assert.Equal(t, Outcome{Harness: "copilot-cli", SessionID: copilotSession, Path: filepath.Join(copilotDir, "events.jsonl"), Action: "created"}, result.Sent[2])
+	// Gemini CLI's file name carries only the start of the session ID; the
+	// session itself declares the rest.
+	assert.Equal(t, Outcome{Harness: "gemini-cli", SessionID: geminiSession, Path: geminiFile, Action: "created"}, result.Sent[3])
 	assert.Empty(t, result.Skipped)
 
 	// The server's decoder gets back what the harness's own decoder reads.
@@ -224,6 +238,19 @@ func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, f.server.records(copilotSession), len(want))
 	assert.Len(t, f.server.records(claudeSession), 2)
+	_, want, err = sessiondecode.DecodeAll(sessiondecode.GeminiCLI{}, gemini)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(geminiSession), len(want))
+	state, err := LoadState(f.syncer.StatePath)
+	require.NoError(t, err)
+	assert.Equal(t, geminiSession, state.Files[geminiFile].SessionID)
+
+	// A file whose name does not begin the ID it declares is not sent.
+	other := filepath.Join(geminiChats, "session-2026-11-01T11-00-1a2b3c4d.jsonl")
+	write(t, other, string(gemini))
+	result = f.pass(t)
+	require.Len(t, result.Skipped, 1)
+	assert.Contains(t, result.Skipped[0].Reason, "does not match the session ID")
 
 	info, err := os.Stat(f.syncer.StatePath)
 	require.NoError(t, err)
@@ -265,7 +292,8 @@ func TestPassSendsPolytokenSessions(t *testing.T) {
 	require.Len(t, result.Sent, 1)
 	assert.Empty(t, result.Skipped)
 	polytoken, _ := Lookup("polytoken")
-	id := polytoken.sessionID("0abc12-demo")
+	id, err := polytoken.sessionID("0abc12-demo", "")
+	require.NoError(t, err)
 	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("polytoken/0abc12-demo")).String(), id)
 	assert.Equal(t, id, result.Sent[0].SessionID)
 	_, want, err := sessiondecode.DecodeAll(sessiondecode.Polytoken{}, basic)
@@ -282,6 +310,22 @@ func TestPassSendsPolytokenSessions(t *testing.T) {
 	assert.Equal(t, olderID, result.Sent[0].SessionID)
 	assert.Len(t, f.server.sessions, 3, "a migrated session is still one session")
 	assert.Len(t, f.server.records(olderID), len(want))
+}
+
+// TestSessionIDs: a session is pushed under its harness's own ID, which the
+// session completes when it declares the whole of it, and which is hashed
+// after that for a harness whose own IDs are not UUIDs.
+func TestSessionIDs(t *testing.T) {
+	plain := Harness{Name: "plain"}
+	id, err := plain.sessionID("7c1d2e3f", geminiSession)
+	require.NoError(t, err)
+	assert.Equal(t, geminiSession, id)
+	_, err = plain.sessionID("1a2b3c4d", geminiSession)
+	require.ErrorContains(t, err, "does not match the session ID")
+	hashed := Harness{Name: "hashed", HashID: true}
+	id, err = hashed.sessionID("0abc12", "0abc12-demo")
+	require.NoError(t, err)
+	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("hashed/0abc12-demo")).String(), id)
 }
 
 func TestPassIsIncremental(t *testing.T) {
@@ -515,7 +559,7 @@ func TestPassBoundsWhatItReads(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, files, 1)
 	write(t, f.claude, claudeTurns(6)) // grew after it was listed
-	_, err = convert(Harnesses[0], files[0])
+	_, _, err = convert(Harnesses[0], files[0])
 	require.ErrorContains(t, err, "larger than")
 
 	result := f.pass(t)

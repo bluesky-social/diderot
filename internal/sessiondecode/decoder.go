@@ -132,7 +132,11 @@ type Document struct {
 	SourceVersion string
 	// Harness names the agent that produced the session ("claude-code",
 	// "codex", ...); session-ingest policy filters on it.
-	Harness        string
+	Harness string
+	// SessionID is the session ID a native session file declares, set only
+	// by decoders whose harness names the file after part of it (Gemini
+	// CLI); "" otherwise.
+	SessionID      string
 	StartedAt      time.Time
 	UpdatedAt      time.Time
 	RecordCount    int
@@ -187,7 +191,7 @@ func NewRegistry(decoders ...Decoder) *Registry {
 
 // Launch is the registry of every launch decoder.
 func Launch() *Registry {
-	return NewRegistry(Bsky{}, ClaudeCode{}, Codex{}, CopilotCLI{}, Polytoken{}, ATIF{}, STS{})
+	return NewRegistry(Bsky{}, ClaudeCode{}, Codex{}, CopilotCLI{}, GeminiCLI{}, Polytoken{}, ATIF{}, STS{})
 }
 
 // Lookup returns the decoder for format.
