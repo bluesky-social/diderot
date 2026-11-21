@@ -29,11 +29,11 @@ by each event's scope.
 
 Diderot runs as one or more replicas. Every replica serves the admin pages,
 so a source's settings, test, status, and expand run anywhere. Its ingest
-runs only on the leader, and only while an administrator has enabled it:
-the settings supervisor calls the source's `Run` with the saved settings,
-and when they change, or the source is disabled, or the replica loses the
-leadership, it cancels `Run`'s context, waits for it to return, and starts it
-again if it should still run.
+runs only on the leader, and only while an administrator has enabled it.
+The settings supervisor calls the source's `Run` with the saved settings.
+When the settings change, or the source is disabled, or the replica loses
+the leadership, the supervisor cancels `Run`'s context, waits for `Run` to
+return, and starts it again if it should still run.
 
 ## The interface
 
@@ -64,7 +64,7 @@ of a field nobody has set; `Required` refuses to save it empty.
 A secret field is never shown again once saved, and never logged. It can be
 pasted on the page, where it is stored encrypted, or set by the deployment
 variable `DIDEROT_<NAME>_<FIELD>` (`settings.EnvName`), which wins. A secret
-field can't have a default or be a prompt variable.
+field can't have a default or be a [prompt variable](prompts.md#variables).
 
 Keep anything that reaches into the server's own machine off the page. A
 path typed into a form would let an administrator read any file the process
@@ -84,8 +84,8 @@ saved or not: does the token authenticate, does the folder open, how much
 is there. It has 30 seconds and writes nothing. Report it as checks, each
 with a short `Detail` and, when it failed, a `Remedy` that says what to fix.
 Never echo a response body or a secret. **Turn on** (**Save and turn on**
-before the first save) saves the page's
-settings and turns a source on only when their test passes.
+before the first save) saves the page's settings and turns the source on
+only when the test of those settings passes.
 
 ### `Info() Info`
 
@@ -151,15 +151,16 @@ returns `source.ErrNoState`.
 ## Optional interfaces
 
 The server finds these by type assertion. Each drives one piece of shared
-UI, so a source never needs code outside its package for them.
+UI, so a source needs no code outside its package for them, apart from the
+template a `SectionProvider` needs.
 
 - **`StatusReporter`**: `Status(ctx, deps) (settings.Status, error)` fills
   the Status section of the source's page: rows of facts such as "Last sync
-  2m ago", a note under them, and `Waiting`, a sentence at the top of the page
-  saying what keeps the enabled source from working, which also marks it as
-  needing attention on the connectors list. It runs on whichever
-  replica serves the page, so read what it shows from `Deps.State` or the
-  database, never from memory in `Run`.
+  2m ago", a note under them, and `Waiting`. `Waiting` is a sentence at the
+  top of the page saying what keeps the enabled source from working; it
+  also marks the source as needing attention on the connectors list.
+  `Status` runs on whichever replica serves the page, so read what it shows
+  from `Deps.State` or the database, never from memory in `Run`.
 - **`Backfiller`**: `Backfill()` describes a request to re-read what the
   source indexes, and `RequestBackfill(ctx, deps, args)` records one for
   `Run` to work through. The page's backfill form requests it. Its
@@ -345,7 +346,7 @@ event is still a `markdown` one.
 `list` opens the folder as an `os.Root`, so nothing outside it can be
 reached, and walks it with `fs.WalkDir`. It skips hidden entries, every
 symlink (the walk sees a symlink as itself and never follows it), and
-anything that is not a regular `.md` or `.markdown` file, and stops with an
+anything that is not a regular `.md` or `.markdown` file. It stops with an
 error past 10,000 files rather than index part of a large folder.
 
 `read` opens each file without blocking, so a file swapped for a named pipe
@@ -358,11 +359,11 @@ counted.
 
 `scan` then:
 
-1. Upserts each file as an event: external ID the slash-separated path,
-   title the first `# ` heading outside a code fence or else the file name,
-   body the text, occurred-at the modification time, scope
-   `events.ScopeInternal`, and a URL when a base URL is set. The sink leaves
-   unchanged files alone.
+1. Upserts each file as an event: the slash-separated path as its external
+   ID, the first `# ` heading outside a code fence (or else the file name)
+   as its title, the text as its body, the modification time as its
+   occurred-at, `events.ScopeInternal` as its scope, and a URL when a base
+   URL is set. The sink leaves unchanged files alone.
 2. Fails with "The folder has no Markdown files." if it saw none, and
    deletes nothing: an empty folder is more likely a mount that failed.
 3. Otherwise lists the source's indexed events with `Sink.ExternalIDs` and
@@ -374,9 +375,9 @@ Any error, or cancellation, returns before step 3.
 ### `status.go`: the page's status
 
 `Status` reads `last_scan` from `Deps.State`, so every replica shows the
-leader's last scan: when it finished (marked "failed" when it did), and the
-files indexed and skipped. While the variable is unset, or the last scan
-failed, it says why in `Waiting`.
+leader's last scan: when it finished (marked "failed" when the scan
+failed), and the files indexed and skipped. While the variable is unset, or
+the last scan failed, it says why in `Waiting`.
 
 ### The tests
 
