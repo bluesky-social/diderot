@@ -4,7 +4,7 @@ Diderot joins your Slack workspace as an app you create yourself. Once it is
 set up, Diderot:
 
 - reads the messages, threads, reactions, and files of the channels its bot
-  is in, so Ask can search them;
+  is in, so Ask, the agent that answers questions, can search them;
 - answers when someone mentions the bot in a channel, and answers every
   message sent to it directly;
 - offers the **Summarize thread** and **Summarize privately** shortcuts on
@@ -44,8 +44,8 @@ before creating the app.
 In the new app's settings:
 
 1. Under **Event Subscriptions**, turn on **Delayed Events**, if your app
-   settings offer it, and save. Slack then sends again the events it could
-   not deliver while Diderot was restarting, for up to a day, so a question
+   settings offer it, and save. Slack then resends the events it could not
+   deliver while Diderot was restarting, for up to a day, so a question
    asked during a restart still gets an answer.
 2. Under **Install App**, install the app to your workspace and allow what
    it asks for.
@@ -161,12 +161,13 @@ draws only on that channel and on what everyone may read.
    ends the answer without a reply.
 3. Open the app in Slack and send it a question in its **Messages** tab, or
    choose one of the suggested prompts at the top, which the manifest sets
-   and you may change. It answers there. Slack tells Diderot which channel
-   the person has open, so "what happened here this week?" means that
-   channel, when it is one they can already search through Diderot. On a paid Slack plan, workspace admins can hide an app's
-   agent experience; if Diderot is missing from people's agents, check that
-   **AI agent experience** is enabled in the app's settings under **Admin**,
-   **Apps and workflows**, **Installed apps**.
+   and you may change. Diderot answers there. Slack tells Diderot which
+   channel the person has open, so "what happened here this week?" means
+   that channel, if it is one they can already search through Diderot. On a
+   paid Slack plan, workspace admins can hide an app's agent experience. If
+   Diderot is missing from people's agents, check that **AI agent
+   experience** is enabled in the app's settings under **Admin**, **Apps and
+   workflows**, **Installed apps**.
 4. On a message in a thread with a few replies, open the message's **⋯**
    menu and choose **Summarize thread**. The summary needs a model for
    **Thread summaries** on the **Models** page; without one, the shortcut
@@ -226,9 +227,10 @@ do so. The bot token usually stays the same; if Slack shows a new one, paste
 it on the connector page. Then click **Test** to confirm the bot has every
 permission it needs.
 
-An app made from an older manifest may show a **Tasks** tab, where people can
-set the agent recurring work. Diderot doesn't take that work, and the current
-manifest turns the tab off, which pauses any tasks people had set up there.
+The manifest turns off the app's **Tasks** tab, where people can set an
+agent recurring work, because Diderot doesn't take that work. If your app
+showed the tab before you replaced its manifest, turning it off pauses any
+tasks people had set up there.
 
 ## Keeping it running
 
@@ -239,10 +241,10 @@ manifest turns the tab off, which pauses any tasks people had set up there.
   **Delayed Events** on, questions asked during a short outage are answered
   too.
 - If Diderot stops while it is working on an answer (it crashes, or another
-  replica takes over), Slack would show it working for up to an hour. When
-  Diderot is running again, it replies in that thread that it was
-  interrupted and asks the person to ask again, and clears the working
-  status, within about a minute.
+  replica takes over), Slack would otherwise show it working for up to an
+  hour. Within about a minute of running again, Diderot replies in that
+  thread that it was interrupted, asks the person to ask again, and clears
+  the working status.
 - If most deliveries fail for about an hour, for example because Diderot is
   stopped or keeps crashing, Slack turns off event delivery for the app and
   emails its owners. Alert on an hour without Slack events, and turn delivery

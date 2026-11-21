@@ -50,21 +50,33 @@ settings).
    token and the keys that seal browser sessions and encrypt the keys you
    paste in the admin UI, and keeps them in the stack's `keys` volume.
    `--wait` returns when every service is healthy; nothing about models is
-   needed yet. To use plain `docker compose` commands in this directory,
-   `cp .env.quickstart.example .env`, which names the quickstart's compose
-   file and holds its optional settings.
+   needed yet.
+
+   Then run `cp .env.quickstart.example .env`. The file names the
+   quickstart's compose file and holds its optional settings. The sections
+   after these five steps use plain `docker compose` commands, which reach
+   this stack only with that `.env` in place: without it, a bare
+   `docker compose` in this directory uses `compose.yaml`, the development
+   Postgres and Qdrant.
 
 2. Open <http://localhost:9091/admin> and sign in as `admin` / `admin`. It
    opens on the setup checklist ([Setup](setup.md)).
 
-3. Set up the models on **Models** (`/admin/settings/models`):
-   **Add a provider** with your key (OpenAI: kind **OpenAI-compatible**,
-   base URL `https://api.openai.com/v1`; Anthropic: kind **Anthropic**, base
-   URL `https://api.anthropic.com`, plus the local embedder:
-   [Model providers](#model-providers)). It lists the provider's models.
-   Then choose the **Embeddings** model, and a model for each job, and
-   **Save**: each is tested as it is saved, and a wrong key or a model
-   your account cannot use is reported on the page.
+3. Set up the models on **Models** (`/admin/settings/models`). Click
+   **Add a provider** and enter your key:
+
+   - OpenAI: kind **OpenAI-compatible**, base URL
+     `https://api.openai.com/v1`.
+   - Anthropic: kind **Anthropic**, base URL `https://api.anthropic.com`.
+     Anthropic serves no embeddings, so add the local embedder as a second
+     provider.
+
+   [Model providers](#model-providers) has the local embedder and other
+   providers. The page lists the provider's models. Then choose the
+   **Embeddings** model and a model for Ask, and click **Save**. The other
+   jobs are optional and can stay **Off**. Each model is tested as it is
+   saved, and a wrong key or a model your account cannot use is reported on
+   the page.
 
    The rest of the checklist: name your organization, turn on a source at
    **Connectors** ([Adding sources](#adding-sources)), use the example
@@ -80,7 +92,10 @@ settings).
    administrator, so the next step works during setup too.
 
 4. Ask. Sources sync in the background once they are on, and each item is
-   searchable as soon as the embedder has indexed it.
+   searchable as soon as the embedder has indexed it. Ask answers only from
+   what is indexed, so put your own question in place of this one. If no
+   source is on yet, turn on the [Markdown folder](#markdown-folder) first
+   and use its example question about Diderot.
 
    ```sh
    export DIDEROT_TOKEN="$(docker compose -f compose.quickstart.yaml run --rm -T init cat /keys/api-token)"
@@ -91,15 +106,18 @@ settings).
    ```
 
    The reply is JSON with the answer in `reply`. To see what retrieval finds
-   without calling a model, post the same body to `/v1/retrieve`. Until the
-   server has built Ask, a moment after it starts listening, Ask answers
-   `503 ask is unavailable on this replica; retry`; retry.
+   without calling a model, post the same body to `/v1/retrieve`. For a
+   moment after the server starts listening, while it builds Ask, Ask
+   answers `503 ask is unavailable on this replica; retry`. Send the request
+   again.
 
 5. Connect an MCP client. The server speaks MCP (streamable HTTP) at
-   `/mcp`, and the API token is its credential too. With the
-   [`diderot` command](cli.md) on your machine, in the shell where step 4
-   set `DIDEROT_TOKEN`, one command registers the server with your coding
-   agents and installs the agent skill:
+   `/mcp`, and the API token is its credential too. Install the
+   [`diderot` command](cli.md#install) on your machine. Then, in the shell
+   where step 4 set `DIDEROT_TOKEN`, `diderot setup` registers the server
+   with a coding agent (Claude Code here) and installs the agent skill.
+   `diderot doctor` checks the result, and `diderot ask` asks from the
+   shell:
 
    ```sh
    printf %s "$DIDEROT_TOKEN" | diderot setup http://localhost:9091 \
@@ -265,11 +283,11 @@ settings below turn it on.
 Coding-agent transcripts (Claude Code, Codex, and other formats) can be pushed
 to `PUT /v1/ingest/agent-sessions/{id}`; see
 [Agent-session ingest](session-ingest.md). Each session is summarized before
-it is indexed, and summaries need a model that calls tools, on the Anthropic
-Messages, OpenAI Responses, or Chat Completions API, chosen
-for both session-summary jobs, as well as the
-[Agent sessions](configuration.md#agent-sessions) settings. The quickstart
-sets none of them. Add them in an override file (see
+it is indexed. Summaries need a model that calls tools, on the Anthropic
+Messages, OpenAI Responses, or Chat Completions API, chosen for both
+session-summary jobs on the Models page. Push also needs the
+[Agent sessions](configuration.md#agent-sessions) settings, and the
+quickstart sets none of them. Add them in an override file (see
 [Running it](#running-it)):
 
 ```yaml
@@ -372,11 +390,12 @@ passage again, into a collection of its own.
 
 With the `embedder` container chosen for embeddings, embeddings are
 computed locally, so indexing text from a Markdown folder, Linear, Notion,
-Zendesk, Discord, or Slack sends nothing to the model provider; with a
-provider's embedding model, every indexed passage goes to that provider. Agent-session summaries, if you set them up, send each
-transcript to the summary models before it is indexed, and image captions
-and PDF extraction, which need storage the quickstart doesn't have, would
-send images and pages. These requests reach the provider, which bills them:
+Zendesk, Discord, or Slack sends nothing to the model provider. With a
+provider's embedding model, every indexed passage goes to that provider.
+Agent-session summaries, if you set them up, send each transcript to the
+summary models before it is indexed. Image captions and PDF extraction
+would send images and pages, but they need storage the quickstart doesn't
+have. These requests reach the provider, which bills them:
 
 - Each Ask question: one model call per round of searching and reading, up
   to **Maximum tool turns** (8 unless you change it on the Models page),
@@ -421,10 +440,10 @@ services:
       DIDEROT_AUTH_STATIC_TOKENS_FILE: /etc/diderot/tokens.yaml
 ```
 
-The server runs as UID 65532, which must be able to read the file. It holds
-only digests, so on Linux `chmod 644` it (a file only you can read is
-refused). It replaces the generated token file, so the generated API token
-stops working unless you list it too: copy its entry from
+The server runs as UID 65532, which must be able to read the file. The file
+holds only digests, so on Linux `chmod 644` it (a file only you can read is
+refused). Your file replaces the generated token file, so the generated API
+token stops working unless you list it too: copy its entry from
 `docker compose run --rm init cat /keys/tokens.yaml`. Put administrators in
 `diderot-admins` and people who manage their own agent sessions in
 `diderot-users`, the groups the quickstart's `DIDEROT_ADMIN_GROUPS` and
@@ -512,9 +531,9 @@ provider (`DIDEROT_AUTH_MODE=oidc`; see [Authentication](auth.md)).
 
   and list both files in `.env`:
   `COMPOSE_FILE=compose.quickstart.yaml:compose.quickstart.override.yaml`.
-- The server re-checks the model provider every five minutes with a one-token
-  request (`DIDEROT_ASK_READINESS_INTERVAL`) and reports unready while that
-  fails.
+- The server re-checks the model provider every five minutes with a request
+  of a few tokens (`DIDEROT_ASK_READINESS_INTERVAL`) and reports unready
+  while that fails.
 - The API listens on 127.0.0.1 only and speaks plain HTTP. Before exposing it
   to a network, put a TLS-terminating proxy in front and change the `ports`
   binding. If port 9091 is taken, set `DIDEROT_QUICKSTART_PORT` in `.env`
@@ -551,14 +570,14 @@ provider (`DIDEROT_AUTH_MODE=oidc`; see [Authentication](auth.md)).
 `just quickstart-smoke` (or `scripts/quickstart-smoke.sh`) builds this stack
 with `internal/e2e/quickstart/compose.smoke.yaml`, which adds a
 deterministic stub model provider in place of a real one and of the
-embedder. Like a fresh install, it sets no token or keys: it reads the
+embedder. Like a fresh install, it sets no token or keys. It reads the
 generated token as above, checks that another `init` run keeps the token
-and keys, signs in to the browser admin with the token and opens the setup
-checklist, checks that search answers it is not set up, adds the stub as a
-provider, chooses its embedding model and Ask's model on the Models page as
-an installer does, then ingests a small fixture,
-waits for it to be embedded, retrieves it, checks that an Ask answer quotes
-it, and lists it as an MCP client. The
+and keys, signs in to the browser admin with the token, and opens the setup
+checklist. It checks that search answers it is not set up, adds the stub as
+a provider, and chooses its embedding model and Ask's model on the Models
+page as an installer does. Then it ingests a small fixture, waits for it to
+be embedded, retrieves it, checks that an Ask answer quotes it, and lists it
+as an MCP client. The
 `quickstart` GitHub Actions workflow runs the same script on every pull
 request, with no secrets.
 

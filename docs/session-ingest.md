@@ -57,12 +57,13 @@ session's ID is the one in the file's name, a session is created with
 `If-None-Match: *`, and one that grew is sent again whole with `If-Match`
 naming the revision it replaces. It sends a growing session once its file
 has gone five minutes without a write, so that a session in progress is one
-new revision each time its agent pauses and not one a minute, and never
+new revision each time its agent pauses and not one a minute. It never
 sends a last line that has no newline yet: that line goes with the next
-push, once it is complete. When the server holds a revision other than the one it
-remembers (its state file was lost, or an answer was), it takes the current
-revision from the 412 and replaces that. Nothing is redacted on the way:
-[redaction](#redaction-is-the-producers-job) is still the producer's job,
+push, once it is complete. When the server holds a revision other than the
+one `diderot sessions` remembers (its state file was lost, or an answer
+was), it takes the current revision from the 412 and replaces that. Nothing
+is redacted on the way:
+[redaction](#redaction-is-the-producers-job) is the producer's job,
 and here the producer is the person whose sessions they are.
 
 ### Decoder contract
@@ -215,30 +216,31 @@ push. They cannot run together, and a session written by one source can
 never be updated by the other. The source, the revision key, and the push
 limits are set under [Agent sessions](configuration.md#agent-sessions).
 
-A feed page can still name a session_id whose binding belongs to push (a
+A feed page can name a session_id whose binding belongs to push (a
 database that ran push and was later switched to the feed, or a rolling
-deploy that mixes the two), or a row whose own data fails validation before
-it ever reaches the database (an empty owner, a malformed source-timestamp pair, a NUL
-byte or invalid UTF-8 in a text field, an oversized session_id/owner/
-client, a record or user-turn count outside the database column's range).
-Each such refusal depends only on that one change, so it never clears on
-retry: the drain logs and skips just that one change — `reason` is
-`writer_conflict`, `invalid_scope`, or `malformed_row` in both the log line
-and the `diderot_sessioningest_feed_changes_skipped_total` counter (the
-binding check also recognizes a `format_conflict`, but the feed always
-binds the same format, so a push-held binding fails the writer check
-first and the feed can never actually produce one) — and still commits
-the rest of the page and advances the cursor past it, so one bad
-session_id or row never stalls ingestion for every owner.
+deploy that mixes the two). It can also carry a row whose own data fails
+validation before it reaches the database: an empty owner, a malformed
+source-timestamp pair, a NUL byte or invalid UTF-8 in a text field, an
+oversized session_id/owner/client, or a record or user-turn count outside
+the database column's range.
 
-The written invariant still stands: push never touches a feed session, and
-the feed never takes over a push session. A `writer_conflict` skip means
-exactly that invariant held. Deciding that a
-given session's binding is wrong and should move to the other writer is a
-deliberate operator call outside what this skip does — its row cascades to
-that writer's own state (e.g. deleting a push binding deletes that
-session's `session_push_chunks`/`session_push_blobs`/`session_push_revisions`),
-so it is not something to do routinely from this log line alone.
+Each such refusal depends only on that one change, so it never clears on
+retry. The drain logs and skips just that one change, commits the rest of
+the page, and advances the cursor past it, so one bad session_id or row
+never stalls ingestion for every owner. `reason` is `writer_conflict`,
+`invalid_scope`, or `malformed_row` in both the log line and the
+`diderot_sessioningest_feed_changes_skipped_total` counter. The binding
+check also recognizes a `format_conflict`, but the feed always binds the
+same format, so a push-held binding fails the writer check first and the
+feed never produces one.
+
+Push never touches a feed session, and the feed never takes over a push
+session. A `writer_conflict` skip is that rule being applied. Moving a
+session's binding to the other writer is a deliberate operator decision,
+which the skip does not make. Deleting a binding's row cascades to that
+writer's own state (deleting a push binding deletes that session's
+`session_push_chunks`/`session_push_blobs`/`session_push_revisions`), so it
+is not something to do routinely from this log line alone.
 
 ## The session feed
 
@@ -265,9 +267,9 @@ policy is applied; the session service's copy is never deleted.
 
 ### When the eligibility policy changes
 
-The policy file is read when the server starts. When it decides differently
-from the policy last applied, the server checks every session the feed has
-already reported against it: a session it now excludes is removed from
+The policy file is read when the server starts. When the policy decides
+differently from the one last applied, the server checks every session the
+feed has already reported against it: a session it now excludes is removed from
 search, one it now admits is queued for a summary, and one whose audience
 `ownerOnly` changes is restricted or released. A session it decides as
 before is left untouched.
@@ -321,32 +323,34 @@ the request is smaller, and only by what carries nothing to summarize:
 | Its ID, timestamps, and model names | nothing |
 | A tool's output | the output, named by the tool that produced it |
 | A tool call's arguments | the arguments as JSON, not as escaped text |
-| Text of 256 bytes or more that repeats an earlier record's in the session, such as instructions a harness sends again on every call | a note saying so |
+| Text of 256 bytes or more that repeats the text of an earlier record of the same role in the session, such as instructions a harness sends again on every call | a note saying so |
 | Continuations, call outcomes, and capture notices | their first 160 bytes |
 | Everything else | all of it |
 
-Content is never cut short: what a session read and ran is often what it is
-later searched for. Any single record is already bounded at 32 KiB when the
-session is read.
+Apart from the rows above, content is never cut short: what a session read
+and ran is often what it is later searched for. Any single record is already
+bounded at 32 KiB when the session is read.
 
-A chunk summarized before these rules, or under different ones, keeps its
-summary: the rules apply to chunks the map model reads from then on, and
-changing them re-summarizes nothing.
+A chunk summarized under different rules (by another version of Diderot)
+keeps its summary: the rules apply to chunks the map model reads from then
+on, and changing them re-summarizes nothing.
 
 ### Repairing summaries
 
 The summary model sometimes writes a session summary's search text and
 context line inside its narrative, after a stray `</narrative>`, and leaves
 the fields they belong in empty. Diderot moves them back to their fields
-before saving a summary. Summaries saved before it did can be repaired under
-Operations, Jobs and maintenance, **Repair session summaries**, which says
-how many summaries written in the last 30 days need it before it starts. A
+before saving a summary. Summaries saved without that step can be repaired
+under Operations, Jobs and maintenance, **Repair session summaries**, which
+says, before it starts, how many summaries written in the last 30 days need
+it. A
 summary whose fields are all in its own text is put right with no model
 call; one whose fields cannot be recovered is written again from the chunk
 summaries already stored, with one call to the session summary model. Each
 repaired session is published again and its search text indexed again.
 Running it again repairs only what is still broken. A session with a newer
-revision waiting is left to its next summary, which reads the repaired text.
+revision waiting is left to its next summary, which reads the earlier
+summary's text in its repaired form.
 
 ## Indexing failures
 
@@ -364,9 +368,9 @@ A new revision clears both states.
 
 Failing and parked sessions are listed under **Session summaries** on the
 admin Failures page (Operations > Failures), with the cause and when each
-last failed. **Retry** there puts the parked sessions of a cause back, for a
-cause retrying can get past: after a provider outage that outlasted the
-retries, for example. Parked sessions are not counted as waiting on the
+last failed. For a cause that retrying can get past (a provider outage that
+outlasted the retries, for example), **Retry** there puts that cause's
+parked sessions back. Parked sessions are not counted as waiting on the
 Status page, the session connector's page, or an owner's My sessions page.
 `diderot_sessioningest_backoff_sessions` and
 `diderot_sessioningest_quarantined_sessions` count them, and
@@ -383,8 +387,9 @@ WHERE session_id = '<uuid>';
 
 An indexed session is visible to every authenticated user (scope
 `internal`) unless it is owner-only (scope `owner:<email>`). That holds for
-a pushed session too, whoever pushed it and with whatever client: on a
-server only you can sign in to, that is only you. The `/sessions` page calls
+a pushed session too, whoever pushed it and with whatever client. On a
+server that only you can sign in to, every authenticated user means only
+you. The `/sessions` page calls
 owner-only **Only me**. An owner can
 make individual sessions owner-only on the `/sessions` page, or through the
 `/v1/me/agent-sessions` and `/v1/me/agent-session-privacy` routes. The

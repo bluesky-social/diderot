@@ -4,7 +4,8 @@ A fresh install starts in **setup**: ingestion and embedding run, but only
 administrators can use Ask. The setup checklist at `/admin/settings` says what
 is done, what is missing, and links to the page that does each step; until
 the install goes live, `/admin` opens on it instead of the Overview. When
-every required step is done, an administrator goes live.
+every required step is done, an administrator clicks **Go live**, which
+opens Ask to everyone else ([Go live](#go-live)).
 
 ## First sign-in
 
@@ -13,10 +14,10 @@ database, Qdrant, the listen addresses, `DIDEROT_PUBLIC_URL`, the auth mode,
 `DIDEROT_ADMIN_GROUPS` and `DIDEROT_SELF_SERVICE_GROUPS`, and
 `DIDEROT_BROWSER_SESSION_KEYS` (generate one
 with `openssl rand -base64 32`). `serve` refuses to start without the
-required ones and names what is missing. Connector secrets, such as
-Slack's tokens, need `DIDEROT_CONFIG_KEYS` to be pasted on their pages, or
-their own variables set in the deployment
-([connector settings](configuration.md#connector-settings)). The
+required ones and names what is missing. To paste a connector's secrets,
+such as Slack's tokens, on its page, the server needs
+`DIDEROT_CONFIG_KEYS`. Without it, set the connector's own variables in the
+deployment ([connector settings](configuration.md#connector-settings)). The
 [quickstart](quickstart.md) sets all of them. Everything else is on the
 setup pages, models included: the server needs none to start.
 
@@ -40,9 +41,9 @@ Required steps:
 
 | Step | Page | Done when |
 |---|---|---|
-| Organization | `/admin/settings/organization` | A name is saved. The name appears in Ask's built-in tool descriptions and in Slack's replies to external members, without a restart (other replicas pick it up within 15 seconds). Prompts can use both values as the `{{ORG_NAME}}` and `{{ORG_DESCRIPTION}}` [variables](prompts.md#variables). Neither value may span lines or contain `{{` or `}}`. The optional **Operational dashboard** is a link every admin page shows at the bottom. |
+| Organization | `/admin/settings/organization` | A name is saved. The name appears in Ask's built-in tool descriptions and in Slack's replies to external members, without a restart (other replicas pick it up within 15 seconds). Prompts can use the name and the description as the `{{ORG_NAME}}` and `{{ORG_DESCRIPTION}}` [variables](prompts.md#variables). Neither value may span lines or contain `{{` or `}}`. The optional **Operational dashboard** is a link every admin page shows at the bottom. |
 | Models | `/admin/settings/models` | The last test passed, on the models in use now. The page adds model providers, and chooses the embedding model, the model each job uses, and Ask's limits ([Models](#models)). Saving runs the test, and so does **Test models**: one tiny request to each saved model and the embedding model, within 30 seconds, recording pass or fail per job, never the provider's response. |
-| Sources | `/admin/connectors` | A source is on: a connector (Slack, Discord, Notion, Linear, Zendesk, the session feed, or a Markdown folder), or agent-session push ([Agent-session ingest](session-ingest.md)). Fill in a connector's page and click **Turn on** ([Slack app setup](slack-app.md) covers Slack, [Discord](discord.md) Discord). While setup is unfinished, a source's page links back to the checklist and on to the next step. Push counts while someone may push and pushed sessions are summarized; otherwise the step says why it doesn't. |
+| Sources | `/admin/connectors` | A source is on: a connector (Slack, Discord, Notion, Linear, Zendesk, the session feed, or a Markdown folder), or agent-session push ([Agent-session ingest](session-ingest.md)). Fill in a connector's page and click **Turn on** ([Slack app setup](slack-app.md) covers Slack, [Discord](discord.md) Discord). While setup is unfinished, a source's page links back to the checklist and on to the next step. Agent-session push counts as a source while someone may push and pushed sessions are summarized; otherwise the step says why it doesn't count. |
 | Prompts | `/admin/prompts` | The active prompt release is not the shipped example, or an administrator clicked **Use the example as-is**. |
 | Access | `/admin/settings/access` | An administrator clicked **Mark access as reviewed** on the summary of who can use Diderot: the auth mode, browser sign-in, administrator and self-service groups, the authorization policy file, and how many Slack channels have Ask on. |
 | Replace the bootstrap admin | `/admin/settings` | The bootstrap admin is off. |
@@ -82,18 +83,19 @@ encrypted, which needs `DIDEROT_CONFIG_KEYS`; to keep it in your secret
 store instead, leave it empty and set `DIDEROT_PROVIDER_<NAME>_KEY` in the
 deployment. For a server that takes no key (a local model server, an
 embedder beside Diderot), tick **It takes no API key**: requests then carry
-none. A provider that should have a key and has none is not sent requests
-without one. **Extra request headers** are sent with every request to the
+none. Without that tick, a provider that has no key is sent no requests.
+**Extra request headers** are sent with every request to the
 provider, one `Name: value` per line; a header that is a credential goes
 under **Secret request headers**, which are stored encrypted like the key
 and never shown again (or set `DIDEROT_PROVIDER_<NAME>_SECRET_HEADERS`).
 **Add and turn on** lists the provider's models and turns it on when that
-works. Its page shows
-the models it offers, with what its list says about each (name, context,
-image input, price, retirement date), and takes **Models offered**: leave it
-empty to offer every model the provider lists, or enter IDs to offer only
-those, models its list lacks, or every model of a provider with no list (a
-local embedding server, for example). The kind and base URL can't be changed
+works. The provider's page shows the models it offers, with what its list
+says about each (name, context, image input, price, retirement date). The
+page also takes **Models offered**. Leave it empty to offer every model the
+provider lists. Enter model IDs to offer only those; the IDs can be models
+the provider's list lacks, and they are the only way to offer the models of
+a provider with no list (a local embedding server, for example). The kind
+and base URL can't be changed
 later; a new address is a new provider. Diderot lists each provider's models
 again every 10 minutes. A provider that is turned off or removed stops the
 jobs whose model it serves until they are given another.
@@ -125,10 +127,10 @@ model no catalog lists is not an error.
 
 When a job is first given a model, what is published goes on the model's
 entry and the job's test finds the rest (on a gateway, the protocol it
-serves the model on). After that nothing changes what the entry says except
-you: the model's page shows each fact, where it came from, and what is
-published now when that differs, with **Use the published facts** to take
-them, which lists what would change for the jobs using the model first.
+serves the model on). After that, only an administrator changes what the
+entry says. The model's page shows each fact, where it came from, and what
+is published today when that differs. **Use the published facts** takes
+them, after listing what would change for the jobs using the model.
 
 **Retirement.** A model in use that its provider's list or the catalog
 marks deprecated, or that retires within 90 days, needs attention on the
@@ -147,18 +149,18 @@ recorded use over the last 30 days came to; the other jobs record none.
 **Embeddings.** The embedding model turns every indexed passage, and every
 question, into the vectors search compares. Choosing it sends it one passage
 to learn its vectors' size, then creates a collection for them in Qdrant,
-named after the model and the size. An install whose passages were embedded
-before (an upgrade) either keeps them, by entering the existing collection
-under **Keep an existing collection**, or confirms that every passage is
-embedded again, in which case search stays off until every passage is in
-the new collection. Choosing the model already in use changes nothing.
-Choosing another model later always asks to confirm: every passage is
-embedded again into that model's own collection while search keeps
-answering from the present one, without the passages indexed in the
-meantime, and search moves to the new collection by itself once it holds
-every passage. The Models page shows how far that is, and the change can't
-be undone part way. The old collection is left in Qdrant for the operator
-to delete.
+named after the model and the size. On an install that has no embedding
+model chosen but already holds embedded passages (after an upgrade), there
+are two choices. Enter the existing collection under **Keep an existing
+collection** to keep them, or confirm that every passage is embedded again,
+in which case search stays off until every passage is in the new
+collection. Choosing the model already in use changes nothing. Choosing
+another model later always asks to confirm. Every passage is then embedded
+again into that model's own collection. Meanwhile search keeps answering
+from the present collection, without the passages indexed in the meantime,
+and it moves to the new collection by itself once that holds every passage.
+The Models page shows how far that is, and the change can't be undone part
+way. The old collection is left in Qdrant for the operator to delete.
 
 **Model for each job.** Ask, titles for Ask conversations and agent
 sessions, session summaries (map and reduce), image captions, document
@@ -210,11 +212,12 @@ and answers 200 at once while Ask has no model.
 
 Some changes are refused or need confirming, because they stop work in
 progress. Turning a provider off names the jobs it serves, and search when
-it serves the embedding model, and asks. A provider that anything still uses
-can't be removed, nor its key while it is on. On a model's page, a change
-to what the jobs using the model send is listed and asks to be confirmed;
-one that would stop such a job (unticking **Accepts images** on the caption
-model) is refused until the job has another model. A job's test never
+it serves the embedding model, and asks. A provider that a job or search
+uses can't be removed, and its key can't be removed while it is on. On a
+model's page, a change that alters what the jobs using the model send is
+listed and has to be confirmed. A change that would stop such a job
+(unticking **Accepts images** on the caption model) is refused until the
+job has another model. A job's test never
 changes what is set there: it only fills in what is not known yet.
 
 ## Go live
@@ -239,6 +242,10 @@ source turned off, say) shows on the checklist but takes nothing offline.
 
 Every replica caches the state and checks for changes every 15 seconds, so
 a change made on one replica reaches the others within that time.
+
+Once the install is live, give people the server's URL.
+[The `diderot` command](cli.md) connects their coding agents to it and asks
+from the shell.
 
 ## Locked out
 

@@ -14,6 +14,8 @@ Conventions used on this page:
   feature it belongs to is not started (the reason is logged as an error),
   but the server still starts. Otherwise the variable is optional, and unset
   means the default shown, or the feature it belongs to stays off.
+- **Requires** and **Needs** name another setting that must be set along
+  with the variable; the server refuses to start without it.
 - Setting a variable to the empty string is the same as leaving it unset.
 - Feature switches named `*_ENABLED` turn on only for the exact value `true`.
   Other booleans accept Go's `strconv.ParseBool` spellings (`true`, `false`,
@@ -49,8 +51,9 @@ A setting stays a deployment variable for one of two reasons:
   and resource bounds, probes.
 
 Anything else is product configuration and belongs in the admin UI. A few
-such settings are still variables or files; the table says which. When one
-moves, its variable is removed outright ([Removed](#removed)).
+such settings are still variables or files; the table marks them "Product,
+still in the deployment". When a release moves one to the admin UI, its
+variable is removed outright ([Removed](#removed)).
 
 | Variables | Kind | Why |
 |---|---|---|
@@ -108,7 +111,7 @@ without one, and search waits for it.
 | `DIDEROT_QDRANT_ADDR` | none | **Required.** Qdrant gRPC address (`host:6334`). Qdrant holds the search index that retrieval and Ask read and the embedder writes. |
 | `DIDEROT_QDRANT_API_KEY` | none | Secret. Qdrant API key, sent with every request. Without TLS it crosses the network in plaintext, and the server warns at startup unless Qdrant is on `localhost` or a loopback IP. |
 | `DIDEROT_QDRANT_TLS` | `false` | Connect to Qdrant over TLS 1.3, as Qdrant Cloud and a cluster with `service.enable_tls` require. Qdrant's certificate must name the host in `DIDEROT_QDRANT_ADDR` and chain to a system CA, or to `DIDEROT_QDRANT_CA_FILE`. |
-| `DIDEROT_QDRANT_CA_FILE` | system CAs | PEM file of the CA certificates that sign Qdrant's certificate, for a cluster with a private CA. It replaces the system's CAs for Qdrant, and is read at startup: a file that can't be read or holds no certificate stops it. **Requires** `DIDEROT_QDRANT_TLS=true`. |
+| `DIDEROT_QDRANT_CA_FILE` | system CAs | PEM file of the CA certificates that sign Qdrant's certificate, for a cluster with a private CA. It replaces the system's CAs for Qdrant, and is read at startup: a file that can't be read or holds no certificate stops startup. **Requires** `DIDEROT_QDRANT_TLS=true`. |
 | `DIDEROT_QDRANT_SHARD_NUMBER` | `1` | Shards used when the collection is created; checked against an existing collection. |
 | `DIDEROT_QDRANT_REPLICATION_FACTOR` | `1` | Replication factor used when the collection is created; checked against an existing collection. |
 | `DIDEROT_EMBED_WORKERS` | `1` | **Lenient.** Concurrent embedding requests. |
@@ -136,8 +139,8 @@ DIDEROT_QDRANT_API_KEY=<the API key in Qdrant's service.api_key>
 ```
 
 `serve`, once an embedding model is chosen, and `diderot qdrant-audit` check
-Qdrant with one call as they open the collection and say so when it fails,
-naming the setting that doesn't match: TLS
+Qdrant with one call as they open the collection. When the call fails they
+say so, naming the setting that doesn't match: TLS
 off against a Qdrant that requires it, TLS on against one that doesn't, a
 certificate no trusted CA signed, or a certificate that doesn't name the
 host in `DIDEROT_QDRANT_ADDR`. An API key works without TLS, so it can be
@@ -215,7 +218,8 @@ The OIDC sign-in also requires `DIDEROT_OIDC_ISSUER`.
 
 `/mcp` is always mounted. Until an embedding model is chosen on the Models
 page, its search tools answer that search is not set up. A caller presents
-the bearer `DIDEROT_AUTH_MODE` accepts on `/v1` and is that token's identity. With `DIDEROT_GATEWAY_API_KEY` set, an
+the bearer that `DIDEROT_AUTH_MODE` accepts on `/v1` and acts as that
+token's identity. With `DIDEROT_GATEWAY_API_KEY` set, an
 agent gateway may present that key instead; the caller's identity is then
 the `DIDEROT_TRUSTED_PROXY_MCP_EMAIL_HEADER` value from a peer inside
 `DIDEROT_TRUSTED_PROXY_CIDRS`, and every tool call fails without one. See
@@ -231,7 +235,7 @@ are set on the [Models page](setup.md#models).
 | Variable | Default | Notes |
 |---|---|---|
 | `DIDEROT_ASK_ENABLED` | off | Turn Ask on. Ask then answers once its model and the embedding model are chosen on the Models page; until then it says it is not set up. Off, the Models page shows Ask as unavailable and says to set this. |
-| `DIDEROT_ASK_READINESS_TIMEOUT` | `5s` | **Lenient.** Bound on the readiness probe, a one-token inference that gates `/readyz` while Ask is on. |
+| `DIDEROT_ASK_READINESS_TIMEOUT` | `5s` | **Lenient.** Bound on the readiness probe, a request of a few tokens to Ask's model that gates `/readyz` while Ask is on. |
 | `DIDEROT_ASK_READINESS_INTERVAL` | `30s` | **Lenient.** How often that probe runs. |
 
 Web search and code search are connectors, set up in the admin UI: **Web
@@ -256,7 +260,7 @@ setup](slack-app.md) for a walkthrough.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `DIDEROT_CONFIG_KEYS` | none | Secret. Comma- or space-separated base64 keys of 32 bytes (`openssl rand -base64 32`) that encrypt pasted secrets with AES-256-GCM before they are stored. The first key encrypts and every key decrypts: to rotate, put a new key first, paste each secret again on its connector page, then drop the old key. Unset, secrets can't be pasted; set their variables instead. |
+| `DIDEROT_CONFIG_KEYS` | none | Secret. Comma- or space-separated base64 keys of 32 bytes (`openssl rand -base64 32`) that encrypt pasted secrets with AES-256-GCM before they are stored. The first key encrypts and every key decrypts: to rotate, put a new key first, paste each secret again on its page, then drop the old key. Unset, secrets can't be pasted; set their variables instead. |
 | `DIDEROT_CONFIG_KEYS_FILE` | none | A file holding the value of `DIDEROT_CONFIG_KEYS`, read at startup, for keys mounted as a file. Set one or the other, not both. |
 | `DIDEROT_SLACK_BOT_TOKEN` | none | Secret. The Slack connector's **Bot token**, used instead of a pasted one. A change takes effect when the server restarts. |
 | `DIDEROT_SLACK_APP_TOKEN` | none | Secret. The Slack connector's **App token**, likewise. |
@@ -391,10 +395,10 @@ ingest runs on its own, whether or not the connector is enabled.
 | `DIDEROT_SESSION_PUSH_MAX_CONCURRENT` | `8` | Pushes in flight across the process; excess requests get 503 with `Retry-After`. |
 | `DIDEROT_SESSION_PUSH_MAX_CONCURRENT_PER_OWNER` | `2` | Pushes in flight per owner; excess requests get 429 with `Retry-After`. |
 | `DIDEROT_SESSION_PUSH_MAX_INFLIGHT_BYTES` | `1073741824` (1 GiB) | Bytes buffered across in-flight pushes. |
-| `DIDEROT_SESSION_PUSH_SUPERSEDED_RETENTION` | `0` (keep) | How long superseded revisions are kept. Expanding a pruned revision returns a superseded note naming the current one. |
+| `DIDEROT_SESSION_PUSH_SUPERSEDED_RETENTION` | `0` (keep) | **Lenient.** How long superseded revisions are kept. Expanding a pruned revision returns a superseded note naming the current one. |
 | `DIDEROT_SESSION_FEED_TOKEN` | none | Secret. The Session feed connector's **Token**, used instead of a pasted one. A change takes effect when the server restarts. |
 | `DIDEROT_SESSION_INGEST_MAX_REVISION_BYTES` | none | **Needed when** the session feed is read. **Lenient.** Largest accepted session revision after decompression. Larger revisions are quarantined. |
-| `DIDEROT_SESSION_INGEST_POLICY_PATH` | built-in | YAML eligibility policy: a `sessionIngest` block with `include`, `exclude`, and `ownerOnly`. An invalid policy, or one that still has a `summarize` block, keeps the worker from starting. The file is read when the server starts; a changed policy is then applied to the sessions already seen, without reading the feed again ([Session ingest](session-ingest.md#when-the-eligibility-policy-changes)). |
+| `DIDEROT_SESSION_INGEST_POLICY_PATH` | built-in | YAML eligibility policy: a `sessionIngest` block with `include`, `exclude`, and `ownerOnly`. An invalid policy, or one that has a `summarize` block, keeps the worker from starting. The file is read when the server starts; a changed policy is then applied to the sessions already seen, without reading the feed again ([Session ingest](session-ingest.md#when-the-eligibility-policy-changes)). |
 | `DIDEROT_SESSION_INGEST_CHUNK_CONCURRENCY` | `20` | Concurrent map and reduce model calls, shared across sessions. |
 | `DIDEROT_SESSION_INGEST_CONCURRENCY` | `1` | **Lenient.** Sessions published in parallel per tick. |
 | `DIDEROT_SESSION_INGEST_TICK` | `30s` | **Lenient.** Feed poll cadence. |
@@ -410,13 +414,13 @@ When a PagerDuty incident triggers, Diderot investigates it with Ask and
 replies in the alert's Slack thread and as an incident note. PagerDuty is
 set up on its connector page, `/admin/connectors/pagerduty`: the API token
 and webhook signing secrets (unless their [variables](#connector-settings)
-set them), the PagerDuty user notes are posted as, the alerts channel, and
+set them), the PagerDuty user that notes are posted as, the alerts channel, and
 the scopes an investigation may read.
 
 The signed webhook listener runs on `DIDEROT_PAGERDUTY_LISTEN_ADDR` (`:9093`
 by default) at `/webhooks/pagerduty`. While the connector is disabled it
 answers 404; while it is enabled it checks each signature with
-the secrets saved then and queues the page. Investigations run while the
+the secrets saved at that time and queues the page. Investigations run while the
 PagerDuty and Slack connectors are both enabled, on a deployment with Ask and
 a Grafana [tool connection](mcp-servers.md) that is on; until then pages stay
 queued. The connector's Test says which of
@@ -474,9 +478,10 @@ skips unless its provider and its model are named:
 
 No release has removed a variable yet, so the server refuses none. When a
 release removes one, because its setting moved to the admin UI or went
-away, there is no fallback: every command that reads the server's
+away, there is no fallback. Every command that reads the server's
 configuration (`serve`, `reset-admin`, and the other server-side commands)
 refuses to start while the variable is set, naming it and where its setting
-is now, so a half-finished move fails loudly instead of running without the
-setting ([Upgrading](upgrading.md#settings-that-moved-or-were-removed)).
-Each removed variable is then listed here with where its setting went.
+is now. A half-finished move therefore fails loudly instead of running
+without the setting
+([Upgrading](upgrading.md#settings-that-moved-or-were-removed)). Each
+removed variable is then listed here with where its setting went.

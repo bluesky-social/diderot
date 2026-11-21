@@ -1,10 +1,10 @@
 # Prompts
 
-Every instruction Diderot sends to a model is a named prompt in one catalog:
-the Ask agent's role and research policy, how it writes for Slack and for
-the API, MCP and `diderot ask`,
-the observability investigator, session summaries, titles, document
-extraction, image captions, and scheduled report templates. Tool descriptions
+Every instruction Diderot sends to a model is a named prompt in one catalog.
+The catalog holds the Ask agent's role and research policy, how it writes
+for Slack and for the API, MCP and `diderot ask`, the observability
+investigator, session summaries, titles, document extraction, image
+captions, and scheduled report templates. Tool descriptions
 and schemas are the exception: they stay in Go beside their tools, and the
 Prompts page's **Tools Ask can use** tab shows them as the model reads them.
 
@@ -43,22 +43,24 @@ Every change goes through one **draft**, shared by all administrators, and
 goes live in one step:
 
 1. Open a prompt, change its text, and choose **Save to draft**. Diderot
-   checks the text (it must not be empty, and every variable must be a
-   known one) and keeps it in the draft. Nothing changes for anyone yet.
+   checks the text (only the [organization note](#organization-note) may
+   be empty, and every variable must be a known one) and keeps it in the
+   draft. Nothing changes for anyone yet.
    Save as many prompts as the change needs; **Shipped text** and **Put
    this text in the draft** on an earlier version add to the same draft.
 2. Open **Draft**. It shows each change against the live text, line by
    line, and the text as the model receives it, with its variables filled
    in. It also says what going live redoes: a change to the agent-session
-   summary prompts has each session summarized again the next time it
-   changes, and the page estimates that work from the sessions summarized
-   in the last seven days.
+   summary prompts has each session summarized again the next time that
+   session changes. The page estimates that work from the sessions
+   summarized in the last seven days.
 3. Add a note saying what changed and why, and choose **Make the draft
    live**. Diderot stores the live catalog with the draft applied as one new
    release, activates it, and empties the draft. Conversations that start
    from then on use it.
 
-Each save, discard, and making live applies only to what its page showed.
+Saving, discarding, and making the draft live each apply only to what the
+page showed.
 If someone else changed the draft or the live prompts in the meantime,
 nothing changes and the page says so: a prompt's page keeps your text so you
 can copy it, and the draft page asks you to look again. If the live text of
@@ -76,10 +78,10 @@ change to the draft and every activation is recorded in the audit log
 ## Organization note
 
 **About your organization** (`ask.organization`) holds what Ask needs to
-know about your organization and no shipped prompt can: internal sites and
-tools, and where to look for what. Ask adds it right after **Role and
+know about your organization that no shipped prompt can say: internal sites
+and tools, and where to look for what. Ask adds it right after **Role and
 research**. Diderot ships none: until you write one, nothing is added. It is
-edited and goes live through the draft like any other prompt, saving it
+edited and goes live through the draft like any other prompt. Saving it
 empty removes it, and **Shipped text** never lists it.
 
 Facts about a connection belong to that connection, not to a prompt: the
@@ -100,8 +102,8 @@ The **Version history** tab lists every change of the live catalog and the
 prompts each one changed. Opening a version shows what it changed against
 the version it replaced; **Make version N live** there rolls back every
 prompt at once, without going through the draft. If the draft changes
-prompts whose text that version has differently, its page says how many of
-those changes will be marked out of date.
+prompts whose text is different in that version, the version's page says
+how many of those changes will be marked out of date.
 
 ## Variables
 
@@ -117,9 +119,10 @@ request:
 | `{{SLACK_WORKSPACE_NAME}}` | The Slack workspace's name, which the Slack connector's Test finds (`/admin/connectors/slack`). Empty while Slack is disabled. |
 | `{{GRAFANA_DATASOURCES}}` | One line naming the Grafana datasources the observability investigator's queries always use, from the **Datasources** pinned on the Grafana [tool connection](mcp-servers.md#kinds). Empty when none is pinned. The example's Grafana rules begin with it. |
 
-A connector field can be a variable; its connector page says so. A secret
-never is. While its connector is disabled, a variable has the field's
-default, usually empty, so word prompts to survive that.
+A connector field can be a variable, as `{{SLACK_WORKSPACE_NAME}}` is; its
+connector page says so. A secret never is. While its connector is disabled,
+a variable has the field's default, usually empty, so word prompts to read
+well without it.
 
 The list is fixed. Saving a prompt that uses any other
 placeholder fails, including near-misses such as `{{ ORG_NAME }}` or

@@ -30,9 +30,9 @@ mode, a token without `email_verified: true` yields a principal with no email
 (unless `DIDEROT_OIDC_REQUIRE_EMAIL_VERIFIED=false`). That caller gets no
 Slack scopes, owns no sessions, and cannot use self-service. Diderot never
 falls back to an unverified address. Set the variable to `false` only when
-your IdP assigns every address itself and does not emit the claim. Emails in
-`static` and `none` mode come from operator configuration and count as
-verified.
+your identity provider (IdP) assigns every address itself and does not emit
+the claim. Emails in `static` and `none` mode come from operator
+configuration and count as verified.
 
 ## Authorization
 
@@ -82,14 +82,16 @@ The allowed set depends on where the question is asked:
 - **A one-to-one DM:** the asker's set, including their own sessions and
   their DM history with the bot.
 - **Discord:** what the answer's audience can read in Discord, from the
-  server's roles and channel permissions read at each turn: `public` and
-  Discord channel scopes, plus `internal` in a server an administrator
-  marked trusted (its members are the organisation's own people), never a
-  policy scope ([Ask in Discord](discord.md#who-an-answer-may-read),
+  server's roles and channel permissions read at each turn. That is `public`
+  and Discord channel scopes, plus `internal` in a server an administrator
+  marked trusted (its members are the organisation's own people). It never
+  includes a policy scope
+  ([Ask in Discord](discord.md#who-an-answer-may-read),
   [trusted servers](discord.md#trusted-servers)).
 
-Wherever the set comes from, the sources then add the scopes they grant to
-it: a Discord channel's scope to the readers its visibility names.
+Wherever the set comes from, each source then adds the scopes it grants.
+Discord adds a channel's scope for the readers that the channel's visibility
+names.
 
 ### Authorization policy
 
@@ -140,13 +142,13 @@ yourself instead, use [`static`](#static).
   `https://example.com/groups` works as is. Otherwise the path is split on
   dots: Keycloak realm roles are `realm_access.roles`.
 - **What the token must carry.** The server reads identity from the token
-  alone and never calls the userinfo endpoint, so the token must be a JWT
-  access token whose `aud` is `DIDEROT_OIDC_AUDIENCE`, and must hold the
+  alone and never calls the userinfo endpoint. So the token must be a JWT
+  access token whose `aud` is `DIDEROT_OIDC_AUDIENCE`. It must hold the
   email and groups claims, and `email_verified` unless you turned that rule
   off ([Identity](#identity)). An ID token is not accepted. With an IdP
   whose access tokens are opaque (Google), use [`static`](#static) for the
-  API and MCP; the [built-in browser sign-in](#built-in-sign-in-oidc) works with
-  it either way.
+  API and MCP. The [built-in browser sign-in](#built-in-sign-in-oidc) works
+  with such an IdP either way.
 
 A minimal server configuration, with a web client for the browser registered
 at the IdP:
@@ -279,9 +281,10 @@ For development on plain HTTP, use a literal loopback IP as the public URL
 
 `DIDEROT_BROWSER_SESSION_KEYS` turns on the browser's own sign-in in every
 auth mode except `none`, where it must be unset. It needs no identity
-provider. The sign-in page (`/auth/login`, where an unauthenticated page load
-is sent) offers each method that is available now; with the OIDC sign-in
-and no local method available, it goes straight to the identity provider.
+provider. An unauthenticated page load is sent to the sign-in page
+(`/auth/login`), which offers each method that is available at that moment.
+With the OIDC sign-in and no local method available, the page goes straight
+to the identity provider.
 Every method sets the same session cookie, with the same lifetimes and key
 rotation, as the OIDC sign-in. The sign-in forms check the request's origin
 and a double-submit token, so another site cannot sign a browser in.
@@ -303,15 +306,15 @@ operator can reach `/admin` before any identity provider or token is set up
 - is checked against the database on every request its session makes, so
   turning it off ends its open sessions at once on every replica.
 
-Turning it off is a setup step, from a session that is not the bootstrap
-admin, and permanent from the UI. `diderot reset-admin`, run on the
-server with its database access, turns it back on.
+Turning it off is a setup step. It is done from a session that is not the
+bootstrap admin, and the UI cannot turn it back on. `diderot reset-admin`,
+run on the server with its database access, turns it back on.
 
 #### Static tokens
 
 In `static` mode the sign-in page also takes an API token from
 `DIDEROT_AUTH_STATIC_TOKENS_FILE`, pasted into a form. The session records
-the token's SHA-256, the value the token file holds, never the token. Every
+the token's SHA-256 (the value the token file holds), never the token. Every
 request re-resolves it against the tokens the server loaded, so a token
 removed from the file stops working at the next restart, and its email and
 groups always come from the file.
@@ -327,7 +330,7 @@ bootstrap admin, sign out.
 
 `/mcp` is a stateless, streamable-HTTP MCP server exposing `retrieve`,
 `list`, `expand`, `attachment`, and `ask`. It is always mounted, on both API
-listeners; until an embedding model is chosen, its search tools answer that
+listeners. Until an embedding model is chosen, its search tools answer that
 search is not set up. A request's bearer alone decides which
 of two ways it authenticates:
 
@@ -360,19 +363,20 @@ of two ways it authenticates:
   on their own, the gateway answers an unauthenticated request with `401`
   and MCP authorization metadata (RFC 9728 protected resource metadata
   naming the authorization server). Clients register by dynamic client
-  registration at that server; if it has none, the gateway can serve its own
-  authorization server metadata at the MCP URL with a registration endpoint
-  that answers with a public client registered at the identity provider, or
-  people pass that client's ID to `diderot setup --client-id`. A public
+  registration at that server. If that server has none, there are two ways.
+  The gateway can serve its own authorization server metadata at the MCP URL,
+  with a registration endpoint that answers with a public client registered
+  at the identity provider. Or people pass that client's ID to
+  `diderot setup --client-id`. A public
   client shared this way must accept the loopback redirects
   `http://127.0.0.1:<any port>/callback` and `http://localhost:<any port>/callback`
   ([The `diderot` command](cli.md#what-setup-cannot-do)).
 
 A request with no bearer, or one neither path accepts, is answered `401`
 with a `WWW-Authenticate: Bearer` challenge (in `oidc` mode it also names
-the resource metadata and the scopes, below); a token whose identity the
+the resource metadata and the scopes, below). A token whose identity the
 deployment does not admit (outside `DIDEROT_OIDC_ALLOWED_EMAIL_DOMAINS`) is
-`403`, as on `/v1`. A bearer token without an email authenticates but
+answered `403`, as on `/v1`. A bearer token without an email authenticates but
 identifies nobody, so its tool calls fail too.
 
 Each call is filtered by the same scopes as the `/v1` API. `list` reads a
@@ -405,9 +409,9 @@ WWW-Authenticate: Bearer realm="diderot", resource_metadata="https://diderot.exa
 }
 ```
 
-An MCP client, `diderot setup` among them, reads it, finds the issuer's
-metadata, signs the person in in the browser, and presents the access token
-it gets. The scopes are `DIDEROT_OIDC_SCOPES`: the ones that make your IdP
+An MCP client, `diderot setup` among them, reads this metadata, finds the
+issuer's metadata, signs the person in through the browser, and presents the
+access token it gets. The scopes are `DIDEROT_OIDC_SCOPES`: the ones that make your IdP
 put the email and groups claims in its tokens. Nothing about who is accepted
 changes: the token is checked exactly as above, so it must be a JWT access
 token with `aud` equal to `DIDEROT_OIDC_AUDIENCE` and the identity claims.
@@ -434,6 +438,6 @@ What the IdP needs:
 - **The identity claims in the access token**, as for any `/v1` caller.
 
 The metadata names `DIDEROT_PUBLIC_URL/mcp` as the resource, so people
-connect to that URL. A deployment whose `/mcp` people reach through an
-agent gateway publishes this too, but the gateway's own metadata is what
-their clients see.
+connect to that URL. When people reach a deployment's `/mcp` through an
+agent gateway, the deployment publishes this metadata too, but their clients
+see the gateway's own metadata.

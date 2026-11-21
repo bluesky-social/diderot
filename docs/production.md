@@ -34,10 +34,10 @@ The image is `gcr.io/distroless/static` with the static `diderot` binary at
 [Atlas](https://atlasgo.io) community edition at `/usr/local/bin/atlas`,
 which applies the migrations embedded in `diderot`. The entrypoint is
 `diderot` and the default argument `serve`; pass another command
-(`qdrant-audit`, `reset-admin`) to run that instead. Its health check runs
-`diderot probe healthz`; readiness (`probe readyz`) is the orchestrator's
-to schedule, since it can cost a model call. It runs as `nonroot`, UID and
-GID 65532, and has no shell. Diderot's licences and those of everything
+(`qdrant-audit`, `reset-admin`) to run that instead. The image's health
+check runs `diderot probe healthz`; readiness (`probe readyz`) is the
+orchestrator's to schedule, since it can cost a model call. The container
+runs as `nonroot`, UID and GID 65532, and has no shell. Diderot's licences and those of everything
 compiled into it are under `/usr/share/doc/diderot/`.
 
 **Postgres 14 or later.** Postgres holds every event, setting, secret (sealed),
@@ -48,10 +48,11 @@ tests against Postgres 18.
 - The server applies pending migrations every time it starts, so its role
   needs to create tables, not just write rows. The simplest grant is to make
   it the owner of the database. Atlas, which applies the migrations, keeps
-  its revision table in a schema of its own, `atlas_schema_revisions`, so a
-  role that doesn't own the database needs `CREATE` on the database as well
-  as on the schema the tables go in, unless `DIDEROT_DB_URL` sets
-  `search_path` (then Atlas's table goes in that schema too).
+  its revision table in a schema of its own, `atlas_schema_revisions`. A
+  role that doesn't own the database therefore needs `CREATE` on the
+  database as well as on the schema the tables go in, unless
+  `DIDEROT_DB_URL` sets `search_path` (then Atlas's table goes in that
+  schema too).
 - Each replica holds up to 32 pooled connections, one more for `LISTEN`,
   and, with the Postgres leader election, one for the election's lock. The
   leader holds one more while Slack is on, to hear when a channel is blocked
@@ -71,12 +72,13 @@ rebuild them ([Backup and restore](#backup-and-restore)). The project runs
 Qdrant 1.20. Diderot talks to its gRPC port (6334) only. It creates one
 collection when an administrator chooses the embedding model on the Models
 page, named after the model and its dimension
-(`diderot_chunks_<model>_<dim>`), so another model starts a new collection
-beside the old one, which choosing it fills. An API key (`DIDEROT_QDRANT_API_KEY`) and TLS
+(`diderot_chunks_<model>_<dim>`). Choosing another model starts a new
+collection beside the old one and fills it. An API key
+(`DIDEROT_QDRANT_API_KEY`) and TLS
 (`DIDEROT_QDRANT_TLS`, `DIDEROT_QDRANT_CA_FILE`) are supported; see
 [Qdrant with TLS and an API key](configuration.md#qdrant-with-tls-and-an-api-key).
-Each replica checks Qdrant as it opens the collection, and search is off,
-saying so in the log, until it can.
+Each replica checks Qdrant as it opens the collection. Until it can open
+the collection, search is off and the replica says so in its log.
 
 **A model provider.** Providers, their keys and models are set up on the
 Models page after the server starts
@@ -85,8 +87,9 @@ configures none. You need at least an embedding model served over the
 OpenAI embeddings API, and, for Ask, a model served over the OpenAI
 Responses API or the Anthropic Messages API. Every replica embeds questions
 for retrieval and runs the readiness check, so every replica needs to reach
-the providers. A key may be pasted on the provider's page (it needs the
-config key) or set by `DIDEROT_PROVIDER_<NAME>_KEY` from your secret store.
+the providers. A key may be pasted on the provider's page (pasting needs
+the config key, `DIDEROT_CONFIG_KEYS`) or set by
+`DIDEROT_PROVIDER_<NAME>_KEY` from your secret store.
 
 **Object storage, if you want attachments.** Image captions and PDF, DOCX,
 and XLSX text extraction mirror files into an S3-compatible bucket
@@ -96,8 +99,8 @@ from the AWS SDK's default chain: `AWS_ACCESS_KEY_ID` and
 `AWS_SECRET_ACCESS_KEY`, a web identity token, or an instance role. Startup
 fails without a region (`DIDEROT_IMAGES_REGION` or `AWS_REGION`), but the
 server doesn't try the bucket until it mirrors a file, so a missing bucket
-or a denied permission shows up later as failed captions and extractions;
-check that the server's credentials can read and write the bucket. Without
+or a denied permission shows up later as failed captions and extractions.
+Check that the server's credentials can read and write the bucket. Without
 a bucket, attachments are not indexed.
 
 **Outbound access** to whatever the connectors you enable talk to: Slack
@@ -116,7 +119,7 @@ sync, session ingest and summaries, scheduled reports, PagerDuty
 investigations, and the workers that keep Qdrant in step with Postgres.
 
 **What more replicas buy.** Behind a load balancer, Ask over the API and
-MCP, retrieval, `list`, `expand`, and the UI spread over the replicas: each
+MCP, retrieval, `list`, `expand`, and the UI spread over the replicas. Each
 runs its own Ask turns, an MCP `ask` task started on one replica can be
 polled on any, and two requests that continue one session never run at
 once, whichever replicas they reach (the second waits for the first, as it
@@ -128,21 +131,21 @@ at a time, so Slack answers, ingest, and embedding have one pod's capacity.
 (the channel list, the per-channel switches, blocking a channel, history replays,
 inviting and removing the bot) write the database, which the leader's
 workers follow, and call Slack with the saved tokens, so the pages answer
-the same whichever replica serves them; while Slack is off they say so. A
+the same whichever replica serves them. While Slack is off they say so. A
 block or unblock reaches the leader's ingest at once. **Start re-embed** under
 Operations, Jobs and maintenance, records the request in the database and the
-leader runs it: a
-request made while no replica leads waits for the next leader. A run the
-leader stops as it gives up its work ends as `canceled`; one whose leader
-dies shows as `stalled` once its heartbeat is 30 seconds old. Request
-either again. Progress reads the same from every replica. Each replica also sends the
+leader runs it. A request made while no replica leads waits for the next
+leader. A run the leader stops as it gives up its work ends as `canceled`;
+one whose leader dies shows as `stalled` once its heartbeat is 30 seconds
+old. In either case, request the re-embed again. Progress reads the same
+from every replica. Each replica also sends the
 operators' Slack DMs about the API and MCP requests it serves.
 
 **Each replica connects to the tool connections itself**
 ([Tool connections](mcp-servers.md)), when it starts and again when the Ask
-model or a connection changes. A server down for one replica is logged there
-and left out of that replica's Ask until it connects again, five minutes
-later; the other replicas keep it.
+model or a connection changes. A server that is down for one replica is
+logged there and left out of that replica's Ask until the replica connects
+to it again, five minutes later; the other replicas keep it.
 
 ### Leader election
 
@@ -248,12 +251,12 @@ All four listeners speak plain HTTP; terminate TLS in front of them.
   the saved key can't be read), a job's saved model has no usable entry,
   jobs are saved with no embedding model while passages have vectors (the
   `models` row was overwritten), or the embedding model's Qdrant
-  collection can't be opened or has another shape. So a rollout whose new
-  replicas would come up with search or a job off stops, as one whose
-  replicas could not start does. None of these can be caused from the admin
-  pages, which refuse the changes that would: a provider an administrator
+  collection can't be opened or has another shape. So a rollout stops when
+  its new replicas would come up with search or a job off, as it does when
+  they can't start. None of these can be caused from the admin pages, which
+  refuse the changes that would cause them. A provider an administrator
   turned off, a job given no model, and a server nobody has set up yet are
-  ready. Postgres is checked once, at startup, and Qdrant when the
+  all ready. Postgres is checked once, at startup, and Qdrant when the
   collection is opened, and never again: during a database outage `/readyz`
   stays 200 while requests fail. A provider outage or a revoked key, on the
   other hand, makes every replica unready at once, which takes the UI and
@@ -268,12 +271,15 @@ All four listeners speak plain HTTP; terminate TLS in front of them.
   (with `127.0.0.1` in place of an empty or all-interfaces host), with a
   2-second timeout, and exit non-zero on anything but a 2xx.
 - **Startup.** Nothing listens until the server has applied migrations
-  (bounded at 2 minutes), loaded its settings, seeded the prompt catalog,
-  and checked Qdrant and its collection. On an empty database this takes
-  seconds, since the whole schema is one migration; give the startup probe
+  (bounded at 2 minutes), loaded its settings, and seeded the prompt
+  catalog. On an empty database this takes
+  seconds, since nearly the whole schema is one baseline migration; give the startup probe
   a few minutes anyway, for the migrations a later release brings. A
   failure in any of these steps exits the process with the reason in its
-  log.
+  log. Qdrant is not one of these steps. Once an embedding model is chosen,
+  the replica opens the model's collection after it starts listening and
+  tries again every 15 seconds, and `/readyz` answers 503 until the
+  collection is open.
 - **Shutdown.** On SIGTERM a replica starts no new Ask turn: a `/v1/ask`
   request or MCP `ask` call that reaches it from then on is refused with
   "ask is unavailable on this replica; retry" (a 503 for `/v1/ask`), and
@@ -281,8 +287,8 @@ All four listeners speak plain HTTP; terminate TLS in front of them.
   the client's next request reaches another replica. What is already in
   progress has until one deadline, 14 minutes 30 seconds after SIGTERM, to
   finish: the leader's work drains first, Slack answers among it, and then
-  the replica's Ask turns, `/v1/ask` requests and MCP `ask` tasks, whose
-  answers any replica's `tasks/get` returns. The listeners serve requests
+  the replica's Ask turns (`/v1/ask` requests and MCP `ask` tasks, whose
+  answers any replica's `tasks/get` returns). The listeners serve requests
   all the while, and `/readyz` stays 200. At the deadline the Ask turns
   still running are cancelled, with 5 seconds to end, which frees their
   sessions for another replica at once; a `/v1/ask` cut off this way
@@ -319,9 +325,9 @@ DIDEROT_CONFIG_KEYS_FILE=/etc/diderot/keys/config-keys
 ```
 
 Outside Kubernetes, add `DIDEROT_DEPLOYMENT=standalone`. Models are not
-here: add a provider and choose the models on the Models page once the
-server is up. Choose the embedding model before you index much: another one
-later embeds everything again.
+set in the environment: add a provider and choose the models on the Models
+page once the server is up. Choose the embedding model before you index
+much: choosing another one later embeds everything again.
 
 **Secrets** are environment variables, except three that can be files: the
 two keyrings (`DIDEROT_CONFIG_KEYS_FILE`, `DIDEROT_BROWSER_SESSION_KEYS_FILE`)
@@ -331,13 +337,14 @@ model provider and connector secrets a variable sets) is read from its
 variable only. Every file and variable
 is read once, at startup.
 
-**The config key** (`DIDEROT_CONFIG_KEYS`) encrypts the connector secrets
-that administrators paste in the admin UI (AES-256-GCM, in Postgres). It
-protects nothing else. If you lose it, those secrets can't be read: the
-server logs that the connector's settings can't be resolved and treats the
-connector as off until someone pastes its secrets again. Back it up apart
-from the database. It holds several keys: the first encrypts, and every one
-decrypts. To rotate, put a new key first, paste each secret again, then
+**The config key** (`DIDEROT_CONFIG_KEYS`) encrypts the secrets that
+administrators paste in the admin UI: connector secrets, model provider
+keys, and tool connections' credentials (AES-256-GCM, in Postgres). It
+protects nothing else. If you lose it, those secrets can't be read: for a
+connector, the server logs that its settings can't be resolved and treats
+it as off until someone pastes its secrets again. Back it up apart
+from the database. It can hold several keys: the first encrypts, and every
+one decrypts. To rotate, put a new key first, paste each secret again, then
 remove the old key; nothing re-encrypts in bulk. Without any config key,
 secrets can't be pasted, and each must come from its own variable
 (`DIDEROT_SLACK_BOT_TOKEN` and the others under
@@ -352,8 +359,8 @@ rollouts ([auth](auth.md#built-in-sign-in-oidc)). Generate either kind with
 **Files**, mounted read-only: the authorization policy
 (`DIDEROT_AUTHORIZATION_POLICY_PATH`, needed only for Zendesk grants and
 per-channel restrictions; [Authorization policy](auth.md#authorization-policy)),
-and, in `static` mode, the token file. Changing one
-takes a restart.
+and, in `static` mode, the token file
+(`DIDEROT_AUTH_STATIC_TOKENS_FILE`). Changing one takes a restart.
 
 **Connector credentials** (Slack, Notion, Linear, Zendesk, Tavily, and the
 rest) are pasted on the connectors' pages, or set by their variables in the
@@ -369,7 +376,7 @@ for a deployment are these.
   audience of the access tokens callers present. Diderot checks only that a token is
   genuine, and any holder of one can ask about and search Notion, Linear,
   Markdown, public Slack channels, and shared agent sessions
-  ([Retrieval scopes](auth.md#retrieval-scopes)): `DIDEROT_ADMIN_GROUPS` and
+  ([Retrieval scopes](auth.md#retrieval-scopes)). `DIDEROT_ADMIN_GROUPS` and
   `DIDEROT_SELF_SERVICE_GROUPS` gate administration and session
   self-service, not reading. So restrict who can get a token in your IdP's
   application, and if the issuer signs in accounts outside your organization
@@ -391,7 +398,7 @@ for a deployment are these.
 - **`/mcp`** accepts the same bearer as `/v1`, on both API listeners, so
   anyone who can reach either port with a valid API token can use it as
   themselves. To put an agent gateway in front instead, set
-  `DIDEROT_GATEWAY_API_KEY`: the gateway presents that key as its bearer,
+  `DIDEROT_GATEWAY_API_KEY`. The gateway presents that key as its bearer,
   plus the caller's email in a header, which counts only on a request with
   the key and from a trusted peer ([MCP endpoint](auth.md#mcp-endpoint)). A
   gateway that allowlists tool names needs `attachment` beside `retrieve`,
@@ -643,17 +650,17 @@ The server applies pending migrations as it starts, and a migration is never
 undone, so back up the database before a release that has one. With one
 replica and `Recreate`, the old pod drains, then the new one migrates and
 starts; the API is down in between. With `RollingUpdate`, the old pods keep
-running against the migrated schema until they are replaced, which the
-project does not guarantee works.
+running against the migrated schema until they are replaced, and the
+project does not guarantee that this works.
 
 **Rolling back.** Deploying an older image does not undo the newer
 release's migrations, and the older release starts against the newer schema
 without complaint: its migrations are all applied, and it does not look at
 the ones it doesn't know. Whether it then works is not guaranteed. To go
 back across a release with a migration, restore the backup taken before the
-upgrade the way [Backup and restore](#backup-and-restore) says, Qdrant
-included, and run the older image on it; whatever was written after the
-backup is lost.
+upgrade the way [Backup and restore](#backup-and-restore) says, which
+includes rebuilding Qdrant, and run the older image on it. Whatever was
+written after the backup is lost.
 
 ### Backup and restore
 
@@ -679,7 +686,7 @@ backup is lost.
   (`pg_restore --no-owner --dbname=diderot diderot.dump`, as the server's
   role), point the server at an empty Qdrant collection (delete the old one),
   start it with the same config key, and rebuild Qdrant as above. Don't put
-  back a Qdrant snapshot from another moment instead: the restored database
+  back a Qdrant snapshot from another moment instead. The restored database
   hands out chunk IDs again that a later snapshot holds for other text, and
   `qdrant-audit` compares only point IDs and permission scopes, never the
   vectors, so it can't find them.

@@ -1,10 +1,11 @@
 # Tool connections
 
-Ask can call the tools of MCP servers you run, which is how a deployment
-adds integrations (observability, ticketing, internal APIs) without changing
-code. Each server is a **tool connection**, added and managed in the admin
-UI under **Connectors**, **Tool connections**. Ask needs to be on
-(`DIDEROT_ASK_ENABLED=true`); nothing else is set in the deployment.
+Ask can call the tools of MCP (Model Context Protocol) servers you run,
+which is how a deployment adds integrations (observability, ticketing,
+internal APIs) without changing code. Each server is a **tool connection**,
+added and managed in the admin UI under **Connectors**, **Tool
+connections**. Ask needs to be on (`DIDEROT_ASK_ENABLED=true`); nothing else
+is set in the deployment.
 
 This page covers Ask as an MCP *client*. Diderot's own MCP endpoint, `/mcp`,
 is described in [Authentication](auth.md#mcp-endpoint).
@@ -12,9 +13,9 @@ is described in [Authentication](auth.md#mcp-endpoint).
 ## Adding a connection
 
 1. On the Connectors page, choose **Add a connection**, pick its kind
-   (Grafana, Sentry, or MCP server), and name it. The name, lowercase
-   letters, digits or `_`, appears in logs and Ask's progress lines and
-   can't be changed.
+   (Grafana, Sentry, or MCP server), and name it. The name is 1 to 40
+   lowercase letters, digits or `_`, starting with a letter. It appears in
+   logs and Ask's progress lines and can't be changed.
 2. On its page, enter the server's address (for Sentry, the organization
    and project) and its credential.
 3. **Test** connects and lists every tool the server offers, each marked
@@ -39,15 +40,16 @@ log (Operations, Audit log).
   encrypted with `DIDEROT_CONFIG_KEYS` and never shown again. To keep it in
   your secret store instead, set the variable the page names,
   `DIDEROT_CONNECTION_<NAME>_TOKEN` (the connection's name in capitals),
-  from that store; while it is set, it is the credential, and the page says
-  so. A change to the variable takes effect when the server restarts.
-- **Who uses its tools.** Ask, which calls them while it researches a
-  question; the observability investigator, `investigate_observability`, a
-  bounded child agent Ask hands a question about live systems to, which
-  researches in its own context and returns one report; or both, over one
-  connection. Callers whose access is limited to the corpus never see them.
-  The investigator exists only while a connection for it is on. Grafana and
-  Sentry connections serve the investigator only.
+  from that store. While the variable is set, it is the credential, and the
+  page says so. A change to the variable takes effect when the server restarts.
+- **Who uses its tools.** Ask, the observability investigator, or both,
+  over one connection. Ask calls the tools while it researches a question.
+  The observability investigator, `investigate_observability`, is a bounded
+  child agent that Ask hands a question about live systems to; it
+  researches in its own context and returns one report. Callers whose
+  access is limited to the corpus never see the tools. The investigator
+  exists only while a connection for it is on. Grafana and Sentry
+  connections serve the investigator only.
 - **Tools Ask may call.** An allowlist: tools the server offers that are not
   ticked are never exposed, and a ticked tool the server stops offering
   keeps the whole connection out until it is fixed. A tool name may not
@@ -60,8 +62,8 @@ log (Operations, Audit log).
 
 ## Read-only tools
 
-Ask calls a connection's tools with its credential on behalf of anyone who
-asks, so a ticked tool attaches only when one of these holds:
+Ask calls a connection's tools with the connection's credential on behalf
+of anyone who asks, so a ticked tool attaches only when one of these holds:
 
 - it is in the kind's reviewed read-only set;
 - the server annotates it `readOnlyHint: true` without a `destructiveHint`
@@ -87,9 +89,10 @@ A kind selects code reviewed against one upstream.
   (Tempo tools take none). When the server offers Grafana's datasource list
   as a read-only tool, the test lists the datasources to choose from;
   otherwise enter each UID. Every tool of a pinned kind queries that
-  datasource: the investigator is not offered the datasource argument at
+  datasource. The investigator is not offered the datasource argument at
   all, Diderot sets it on every call, and
-  [`{{GRAFANA_DATASOURCES}}`](prompts.md#variables) names the pins to it.
+  [`{{GRAFANA_DATASOURCES}}`](prompts.md#variables) names the pins to the
+  investigator.
 - **Sentry** is Sentry's hosted MCP server. Enter the organization and
   project; Diderot connects to
   `https://mcp.sentry.dev/mcp/<organization>/<project>?skills=inspect`
@@ -106,7 +109,7 @@ A kind selects code reviewed against one upstream.
   can't connect, or whose tools fail admission, is logged and left out of
   every agent it serves; the rest of Ask stays up, and the replica tries
   again five minutes later.
-- The leader tests every connection that is on every 10 minutes. One whose
+- Every 10 minutes the leader tests every connection that is on. One whose
   latest check, or last saved test, failed shows **needs attention** on the
   Connectors page, on its page, and on the Overview.
 - [PagerDuty investigations](configuration.md#pagerduty-investigations)
@@ -117,6 +120,6 @@ A kind selects code reviewed against one upstream.
 Diderot has no deployment-history client of its own. A service that serves
 a change timeline over MCP is an ordinary connection. Letting both Ask and
 the investigator use it lets Ask answer change-history questions itself and
-the investigator correlate changes with telemetry. The example prompts'
-change-history guidance applies whenever Ask or the investigator has such a
-tool.
+the investigator correlate changes with telemetry. The change-history
+guidance in the [example prompts](prompts.md#the-example) applies whenever
+Ask or the investigator has such a tool.
