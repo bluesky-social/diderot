@@ -63,8 +63,8 @@ flowchart LR
 Every replica serves HTTP and answers Ask over the API and MCP
 ([Replicas](#replicas)). Work that must run once per deployment runs only on
 the leader: the Slack connector, the embedder, connector syncs, session
-ingest, scheduled reports, PagerDuty investigations, and the delete and
-scope workers.
+ingest, scheduled reports, PagerDuty investigations, and the Qdrant delete
+and scope workers.
 
 - **Kubernetes** (`DIDEROT_LEADER_BACKEND=kubernetes`): a Lease with a 15s
   term (`internal/leader`). During a rolling update the lease moves from the
@@ -86,12 +86,11 @@ service account credentials, a database older than Postgres 14), stops
 `serve` with the reason rather than leave a replica that serves requests and
 never leads. Failures once an election runs, lost terms included, are retried.
 
-`serve` listens on a public port (default `:9091`), a machine port (default
-`:9092`) that refuses the browser routes, a PagerDuty webhook port
-(default `:9093`), which answers 404 while the PagerDuty connector is
-disabled, and
-a metrics port (default `:9094`), the only one that serves `/metrics` and
-`/debug/pprof/`.
+`serve` listens on four ports: a public port (default `:9091`); a machine
+port (default `:9092`) that refuses the browser routes; a PagerDuty webhook
+port (default `:9093`), which answers 404 while the PagerDuty connector is
+disabled; and a metrics port (default `:9094`), the only one that serves
+`/metrics` and `/debug/pprof/`.
 
 ### Starting and stopping
 
@@ -112,11 +111,11 @@ each building what the later ones take:
 4. **Corpus** (`preparePrompts`, `newCorpusReaders`, `followEmbedding`):
    the prompt catalog, seeded and watched; and what reads the corpus: the
    retriever, the source expander, and the reference resolver. The
-   retriever follows the saved embedding model: once one is chosen it opens
-   its Qdrant collection, checked with one call that names any TLS setting
-   that doesn't match the server, created or validated, and until then
-   search answers that it is not set up. A server with no model is healthy
-   and ready.
+   retriever follows the saved embedding model. Once one is chosen, it opens
+   the model's Qdrant collection: one call checks Qdrant and names any TLS
+   setting that doesn't match the server, and the collection is then
+   created or validated. Until a model is chosen, search answers that it is
+   not set up. A server with no model is healthy and ready.
 5. **Routes and listeners** (`startReadiness`, `mountAdminAPI`,
    `mountBrowserUI`, `attachFileStorage`, `mountCorpusMCP`,
    `startListeners`): object storage attaches to the file proxy and the MCP
@@ -129,28 +128,28 @@ each building what the later ones take:
    replica starts no new Ask turn, and each connection closes once it has
    answered its request in progress. The work in progress then has until
    one deadline, 14½ minutes on (the Slack consumer's own bound), to
-   finish: the leader's work drains, and then the replica waits for its Ask
-   turns, MCP `ask` tasks among them, while the listeners still serve
+   finish. The leader's work drains first. Then the replica waits for its
+   Ask turns, MCP `ask` tasks among them, while the listeners still serve
    requests, so a `/v1/ask` can write its answer and `tasks/get` keeps
    answering. At the deadline the Ask turns left are cancelled and given 5
    seconds to end. Then the listeners shut down, giving the requests in
    progress 10 seconds before their connections are closed, so no request
-   but an Ask turn holds the shutdown longer; that leaves 15 seconds of a
+   but an Ask turn holds the shutdown longer. That leaves 15 seconds of a
    15-minute termination grace. A listener that fails, or an election that
    cannot start, stops `serve` at once.
 
-A **leader term** builds its work from the models the roles use, and the
-embedding model's collection, as it starts; a saved change to them ends the
+A **leader term** builds its work, as it starts, from the models the roles
+use and the embedding model's collection; a saved change to them ends the
 term and starts another. Without an embedding model the embedder and the
-scope and Qdrant delete workers are off for the term. It takes
-the replica's Ask for its Ask model, waiting while the replica builds it,
-and builds the title, embedder, and caption workers, push ingest's worker,
-scheduled reports, the connector supervisor, and the scope and Qdrant
+scope and Qdrant delete workers are off for the term. The term takes
+the replica's Ask for its Ask model, waiting while the replica builds it.
+It builds the title, embedder, and caption workers, push ingest's worker,
+scheduled reports, the connector supervisor, the scope and Qdrant
 delete workers, and the re-embed worker, all under one worker supervisor.
-While they run, the term lends itself (its models, its Ask, and session
-ingest) to the Slack and session feed sources. Once every worker has
-stopped, it takes that back and lets its Ask go, so the next term starts
-from nothing.
+While they run, the term lends what it holds (its models, its Ask, and
+session ingest) to the Slack and session feed sources. Once every worker
+has stopped, it takes that back and lets its Ask go, so the next term
+starts from nothing.
 
 A **re-embed** is requested on any replica and run by the leader. The
 request is a queued `admin_jobs` row (`internal/reembed/job.go`), one at a
@@ -160,7 +159,7 @@ queued row waits as long as it takes for a leader to claim it; a run cut
 short when its term ends is recorded as canceled, and one whose process
 died reads as stalled once its heartbeat expires, until the next request
 fails it. The request names the sources to rebuild, or none for every
-source the driver has a rebuilder for (Slack today); the page offers a
+source the driver has a rebuilder for (Slack only); the page offers a
 source only while its connector is on, since rebuilding an event asks the
 running connector about it.
 
@@ -192,8 +191,9 @@ Important columns:
 - `thread_id`, `occurred_at`, `deleted`
 - `scope`, the permission boundary that retrieval enforces (see
   [Permissions](#permissions))
-- `content_hash`, which lets the sink skip a re-ingest that changed nothing,
-  so it costs no embedding
+- `content_hash`, a generated MD5 of `body`. The sink does not read it: it
+  skips a re-ingest that changed nothing by comparing the stored columns
+  with the incoming ones, so that re-ingest costs no embedding
 - `embedding_text`, which replaces `body` as the chunker input when set
 - `session_id`, `record_start`, and `record_end` for `agent_session` rows.
   The record range is the stable handle for expansion.
@@ -202,10 +202,10 @@ Source-specific data lives in side tables such as `slack_message_details`,
 `event_images`, `event_documents`, and the `notion_*`, `linear_sync`, and
 `zendesk_*` tables.
 
-Edits are in-place updates. The event's chunks are deleted and rebuilt, so
-the chunk count always matches the new content. A delete sets
-`deleted = true`, blanks the body, and deletes the chunks in the same
-transaction.
+Edits are in-place updates. The event's `text` chunks are deleted and
+rebuilt, so their count always matches the new content; its caption and
+document-text chunks are kept. A delete sets `deleted = true`, blanks the
+body, and deletes every chunk in the same transaction.
 
 ### `event_chunks`
 
@@ -288,9 +288,10 @@ worked on: it is listed under Failures while it is retried.
   A crash between the upsert and the commit only repeats the idempotent
   upsert. The Qdrant write always comes before the SQL marker, so a row is
   never marked embedded before its vector exists.
-- **Collection.** Named after the model and dimension when the model is
-  chosen, or an existing one adopted then, so another model selects a new
-  collection, which choosing it fills by marking every chunk unembedded.
+- **Collection.** When the model is chosen, a collection is named after the
+  model and dimension, or an existing one is adopted. Another model
+  therefore selects a new collection, and choosing that model fills it by
+  marking every chunk unembedded.
   The collection uses
   cosine distance, int8 scalar quantization kept in RAM, float32 originals
   and payload on disk, and an HNSW graph in RAM (`m=16`,
@@ -333,8 +334,9 @@ an administrator has paused them with the switch on the same page.
   (`internal/source`) writes to the corpus; a **tool** (`internal/asktool`:
   web search, `tavily`, and code search, `sourcebot`) gives Ask tools; an
   **automation** (`internal/automation`: PagerDuty) runs Ask in response to
-  something and delivers the answer. A `settings.Registry` holds them all,
-  sources then tools then automations, the order pages list them, and refuses a secret field that is also a prompt variable.
+  something and delivers the answer. A `settings.Registry` holds them all
+  in the order pages list them (sources, then tools, then automations), and
+  refuses a secret field that is also a prompt variable.
 - **Secrets** come from the field's fixed variable,
   `DIDEROT_<CONNECTOR>_<FIELD>` (`settings.EnvName`), read at startup, or
   else from a value pasted on the page and stored as AES-256-GCM ciphertext
@@ -376,9 +378,9 @@ an administrator has paused them with the switch on the same page.
   `source_state`, kept across runs and replicas: Zendesk's pending backfill
   and the workspace Linear's sync state belongs to are there. An API key for
   another Linear workspace clears Linear's watermark and any backfill in
-  progress before its sync starts; Notion already starts discovery over
-  when its integration changes. The older sources' cursors stay in their
-  own tables.
+  progress before its sync starts; Notion starts discovery over when its
+  integration changes. Slack's, Notion's, Linear's, Zendesk's and the
+  session feed's cursors are in tables of their own.
 - **Optional interfaces** give every source the same page:
   a `StatusReporter` (source or automation) says what it waits for and
   shows status rows (Notion, Linear, Zendesk, the session feed, the
@@ -391,14 +393,15 @@ an administrator has paused them with the switch on the same page.
 - **Each Run** holds every worker of its source. Notion's, Linear's, and
   Zendesk's live in their connector packages; Slack's and the session
   feed's in `cmd/diderot`, with what the leader term lends them. Notion's
-  holds the sync worker (discovery, the daily walk of the
-  managed roots, backfills); Linear's the sync worker (incremental sync, the
-  private-team sweep, the daily reconcile, backfills); Zendesk's the sync
-  worker and, while its own **Index documents** is on, a document worker for
-  Zendesk attachments; the session feed's the session ingest worker reading
-  the feed; the Markdown folder's its scan; Discord's the directory read,
-  the control loop that acts on the chosen channels, the tail and daily
-  re-read, and the gateway. Notion, Zendesk and Discord lend their image fetchers to the caption
+  Run holds the sync worker (discovery, the daily walk of the
+  managed roots, backfills). Linear's holds the sync worker (incremental
+  sync, the private-team sweep, the daily reconcile, backfills). Zendesk's
+  holds the sync worker and, while its own **Index documents** is on, a
+  document worker for Zendesk attachments. The session feed's holds the
+  session ingest worker reading the feed, and the Markdown folder's holds
+  its scan. Discord's holds the directory read, the control loop that acts
+  on the chosen channels, the tail and daily re-read, and the gateway.
+  Notion, Zendesk and Discord lend their image fetchers to the caption
   worker, which claims a source's images only while its fetcher is lent.
   Push ingest (`DIDEROT_SESSION_INGEST_SOURCE=push`) runs its session ingest
   worker without a connector.
@@ -430,8 +433,8 @@ an administrator has paused them with the switch on the same page.
   Zendesk's sync workers count each pass), and
   `diderot_connector_errors_total` (failed work, and a Run that ended with
   an error). Each series exists, at zero, from a connector's first run on
-  the replica, so alert on a stale last success, as for
-  `diderot_worker_last_success_timestamp_seconds`, and it catches a
+  the replica. An alert on a stale last success, as for
+  `diderot_worker_last_success_timestamp_seconds`, therefore also catches a
   connector that runs but has never succeeded.
 
 ## Administrator actions
@@ -452,13 +455,12 @@ the history sync and thread workers, channel reconciliation, and the
 document worker while **Index documents** is on. It lends its file fetcher
 to the caption worker, and its delivery handle (`slackcx.Delivery`: its
 client and limiter, consumer, DM and channel audience resolvers, and event
-rebuilder) to work that runs without it and takes the handle for each use:
+rebuilder) to work that runs outside the Run and takes the handle for each use:
 PagerDuty investigations, scheduled reports, the scope reconcile's
 channel-privacy refresh, and the re-embed worker. A use holds the handle
 (`settings.Live.With`), and the Run's end waits for the uses in progress,
 so none goes through a run that has ended. As the Run starts to stop, the
-uses still waiting on Slack are cancelled (`Delivery.Within`), as they were
-when this work ran inside it.
+uses still waiting on Slack are cancelled (`Delivery.Within`).
 While Slack is off, reports and pages wait in the queue, and a re-embed of
 Slack events ends saying the connector is off.
 
@@ -472,6 +474,7 @@ saved tokens. The ingest gates match a snapshot of the blocked channels; a chang
 is announced with a Postgres notification, so the leader's snapshot follows
 a change made through any replica at once, with a refresh every minute
 behind it.
+
 The consumer, the history sync worker, and a thread worker share
 database-backed state:
 
@@ -560,9 +563,10 @@ That is a search of one source. A search that names several sources, or
 none, ranks each source on its own: one grouped Qdrant query returns the
 best points of every source, and the result is the top K events of each
 (**default 5, at most 10**), best first overall. Ranked together, the
-sources with the most events take every place, and a page or an issue that
-answers the question is never returned. So the search that needs no choice
-of source is also the one that covers every source, and Ask begins with it.
+sources with the most events would take every place, and a page or an issue
+that answers the question would never be returned. So the search that needs
+no choice of source is also the one that covers every source, and Ask
+begins with it.
 Each of Ask's `retrieve` results also lists, as `not_searched`, the
 sources no search of the turn has covered yet, so that "not found" is
 never said with a source unsearched.
@@ -591,10 +595,10 @@ range an index scan. Replies are marked `is_reply`.
 `expand` dispatches by source on the server. Slack returns the full thread,
 or ±20 messages / ±30 minutes of channel context for a standalone message.
 `agent_session` returns the verbatim record range. Notion, Linear, and the
-Markdown folder return the whole stored page, issue, or file, Zendesk
-the ticket conversation or article, and Discord the thread, or for a message
-outside one the 15 messages either side of it in its channel and the message
-it replies to. Expansion re-applies the per-event scope
+Markdown folder return the whole stored page, issue, or file. Zendesk
+returns the ticket conversation or article. Discord returns the thread, or,
+for a message outside one, the 15 messages either side of it in its channel
+and the message it replies to. Expansion re-applies the per-event scope
 check.
 
 The result also lists the files attached to what it returned: for Slack,
@@ -606,7 +610,7 @@ and an image's caption. Over MCP each file Diderot holds also has an id,
 (`internal/ask/attachment.go`), which checks the parent event's scope before
 reading anything and then returns an image of up to 4 MiB as MCP image
 content, or a document's extracted text, 64 KiB at a time. A file that is
-missing, on a deleted event, or out of scope gets one answer.
+missing, on a deleted event, or out of scope gets the same answer.
 
 ### MCP (`/mcp`, `internal/ask/corpus_mcp.go`)
 
@@ -717,9 +721,9 @@ request is sent (`internal/ask/tool_strict.go`), not tool by tool.
   leave that thread's messages out for the run: the model already has them
   as thread context, and as search results they are the question matching
   itself. Earlier threads, earlier askings of the same question among them,
-  are searched as before. Diderot's own posts are never in the corpus (the
-  Slack connector does not ingest them), so there is no earlier answer of
-  its own to find.
+  are searched like the rest of the corpus. Diderot's own posts are never
+  in the corpus (the Slack connector does not ingest them), so there is no
+  earlier answer of its own to find.
 
 **Setup gate.** The `org` row of `connector_settings` holds the
 organization's name and the install's state. Until an administrator goes live
@@ -733,8 +737,8 @@ name the turn read, so a saved name applies without a restart.
 
 **Sessions.** A Slack thread is one session (`ask_slack_sessions`), and a
 one-to-one DM is one session per user. Follow-up turns replay the persisted
-agent history (`ask_messages`, `ask_tool_calls`), so the model sees earlier
-questions, tool calls, and answers.
+agent history (`ask_messages`, whose rows hold the tool calls and results
+too), so the model sees earlier questions, tool calls, and answers.
 
 **Prompts** (`internal/promptcatalog`). All model instruction text is one
 catalog stored in the database as immutable `prompt_releases`, with one
@@ -749,10 +753,12 @@ in on every model request. See [Prompts](prompts.md).
 
 ### Replicas
 
-Every replica builds its own Ask (`replicaAsk`) from the Ask model the
-settings name, and builds it again when a saved change alters that model:
-the model's client, its connections to the MCP servers, the tools, the
-prompt runtime, and the service. `/v1/ask`, its artifact route, and the MCP
+Every replica builds its own Ask (`replicaAsk`) from the Ask model and
+limits the settings name and the tool connections that are on: the model's
+client, its connections to the MCP servers, the tools, the prompt runtime,
+and the service. It builds Ask again when a saved change alters any of
+them, and five minutes after a build in which a connection failed to
+attach. `/v1/ask`, its artifact route, and the MCP
 `ask` task run each turn on the build current as the turn starts; the
 leader term lends its build's service to Slack, scheduled reports, and
 PagerDuty investigations. A replaced build closes its MCP connections only
@@ -855,29 +861,31 @@ summary is the arguments of one forced tool call on every protocol
 (`tool_choice` naming the tool), read and validated by the same code; an
 answer without that call fails the summary, and a request is never sent
 again on another protocol. A model that lists `anthropic-messages` is sent
-the same Messages request as when that was the only protocol.
+the same Messages request whatever else it lists.
 
-**The menu.** Saving a provider, and the leader every ten minutes, read its
-listing and keep it under its row (`source_state`, key `check`), with what
-the listing says beyond the ID: name, context window, image input, price,
-deprecation and retirement date, in OpenAI's (`shutdown_date`),
+**The menu.** When a provider is saved, and every ten minutes on the
+leader, its listing is read and kept under its row (`source_state`, key
+`check`), with what the listing says beyond the ID: name, context window,
+image input, price, deprecation and retirement date. These are read in
+OpenAI's (`shutdown_date`),
 Anthropic's (`capabilities`, `lifecycle`, `retires_at`) and OpenRouter's
 (`architecture`, `pricing`, `expiration_date`) shapes, which gateways echo
-(`internal/modelregistry/list.go`). Models offered, when set, is the menu
-instead: it narrows a curated deployment's choice, and offers models a
-listing lacks or a provider without a listing (404 or 405).
+(`internal/modelregistry/list.go`). Models offered, the provider's optional
+list, is the menu instead when it is set: it narrows a curated deployment's
+choice, and it offers models a listing lacks, or the models of a provider
+that has no listing (404 or 405).
 
 **A job's test.** Saving a model for a job first sends it that job's own
 small request (`modelregistry.TestForRole`) and saves nothing if it fails.
 Ask tries Responses, then Messages, on an OpenAI-compatible provider (a 400
-or 404 moves on); titles send their forced function call with effort `low`,
-then without; the session summaries their forced tool call, whose answer
-must carry the call, on the protocol the entry gives them, or, for a model
-that lists none of theirs yet, on Messages, then Responses, then chat (a
-400, 404 or 405, or an answer without the call, moves on); chat jobs try
+or 404 moves on). Titles send their forced function call with effort `low`,
+then without. The session summaries send their forced tool call, whose
+answer must carry the call, on the protocol the entry gives them, or, for a
+model that lists none of theirs yet, on Messages, then Responses, then chat
+(a 400, 404 or 405, or an answer without the call, moves on). Chat jobs try
 at most four request shapes, `max_tokens` or `max_completion_tokens`, each
-with temperature 0 and then without, moving on only from a 400, and
-captions and PDF extraction send an image. Any other failure ends the test.
+with temperature 0 and then without, moving on only from a 400; captions
+and PDF extraction send an image. Any other failure ends the test.
 What a test learns goes on the model's **entry** in the `models` row
 (`settings.Models.Available`): the protocols it answers on, the efforts it
 took, whether it takes images, the chat output-limit field (a model that
@@ -930,9 +938,9 @@ a job in use are refused, and those that change what such a job sends ask
 to be confirmed (`setup.UpdateModelEntry`).
 
 **Readiness.** `/readyz` fails while the saved models can't be run
-(`modelCatalog.faults`) or the collection can't be opened: faults of the
-deployment or of the saved rows, none of which the admin pages can cause,
-because a replica that is not ready no longer serves those pages. A role's
+(`modelCatalog.faults`) or the collection can't be opened. These are faults
+of the deployment or of the saved rows. None is one the admin pages can
+cause, because a replica that is not ready does not serve those pages. A role's
 clients are rebuilt only when what they send changes: the provider's
 address or key, or the entry's request fields (`boundModel.fingerprint`).
 
@@ -973,10 +981,10 @@ Overview.
 - **A Slack delete missed live can stay searchable.** The sync worker
   repairs a missed delete only for a thread root that still has replies,
   which Slack's history returns as a tombstone. A deleted reply, or a
-  deleted message without replies, is simply no longer returned, and
-  nothing compares what is stored with what history returns, so a delete
-  that arrived while the bot was disconnected, and that Slack did not
-  redeliver, is not applied.
+  deleted message without replies, is simply absent from what history
+  returns, and nothing compares what is stored with what history returns.
+  So a delete that arrived while the bot was disconnected, and that Slack
+  did not redeliver, is not applied.
 - **Retrieval is vector-only**, with no reranking or lexical matching.
 - **Document extraction cost is an estimate.** The cost recorded for a
   document, and the $10 cap that stops extracting one, are computed from
