@@ -22,10 +22,11 @@ import (
 // keeps them, which files are sessions, and how to read one.
 type Harness struct {
 	Name string
-	// Dir is the harness's session directory under home, after the harness's
-	// own environment override.
-	Dir func(home string) string
-	// File matches a session file's name and captures its session ID.
+	// Dirs are the harness's session directories under home, after any
+	// environment override.
+	Dirs func(home string) []string
+	// File matches a session file's slash-separated path relative to its
+	// source directory and captures its session ID.
 	File *regexp.Regexp
 	// Decoder reads the harness's session file.
 	Decoder sessiondecode.Decoder
@@ -38,19 +39,19 @@ const uuidPattern = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 var Harnesses = []Harness{
 	{
 		Name: "claude-code",
-		Dir: func(home string) string {
-			return filepath.Join(envOr("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")), "projects")
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")), "projects")}
 		},
 		// A project's own sessions; a subagent's transcript is agent-*.jsonl.
-		File:    regexp.MustCompile(`^(` + uuidPattern + `)\.jsonl$`),
+		File:    regexp.MustCompile(`(?:^|/)(` + uuidPattern + `)\.jsonl$`),
 		Decoder: sessiondecode.ClaudeCode{},
 	},
 	{
 		Name: "codex",
-		Dir: func(home string) string {
-			return filepath.Join(envOr("CODEX_HOME", filepath.Join(home, ".codex")), "sessions")
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("CODEX_HOME", filepath.Join(home, ".codex")), "sessions")}
 		},
-		File:    regexp.MustCompile(`^rollout-.*-(` + uuidPattern + `)\.jsonl$`),
+		File:    regexp.MustCompile(`(?:^|/)rollout-[^/]*-(` + uuidPattern + `)\.jsonl$`),
 		Decoder: sessiondecode.Codex{},
 	},
 }
@@ -95,9 +96,10 @@ func Detect() ([]Source, error) {
 	}
 	var found []Source
 	for _, h := range Harnesses {
-		dir := h.Dir(home)
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			found = append(found, Source{Harness: h.Name, Dir: dir})
+		for _, dir := range h.Dirs(home) {
+			if info, err := os.Stat(dir); err == nil && info.IsDir() {
+				found = append(found, Source{Harness: h.Name, Dir: dir})
+			}
 		}
 	}
 	return found, nil
@@ -155,7 +157,11 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 		if d.IsDir() {
 			return nil
 		}
-		m := h.File.FindStringSubmatch(d.Name())
+		rel, err := filepath.Rel(root, resolved)
+		if err != nil {
+			return nil
+		}
+		m := h.File.FindStringSubmatch(filepath.ToSlash(rel))
 		if m == nil {
 			return nil
 		}

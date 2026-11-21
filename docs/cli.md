@@ -221,10 +221,13 @@ diderot sessions install \
   --exclude $HOME/.claude/projects/-Users-you-private-project
 ```
 
-`--path` replaces the directories found; `--exclude` leaves out every
-session whose file is really under a directory, including one reached
-through a symbolic link from somewhere else. Both repeat, and both belong to
-`diderot sessions install` alone.
+`--path` replaces the directories found. `--path <harness>=<dir>` names
+that harness's root, a directory laid out like the one the table shows for
+it, not a directory below it: a session file is recognized by its path
+inside the root. `--exclude` leaves out every session whose file is really
+under a directory, including one reached through a symbolic link from
+somewhere else, so it is the way to ship only part of a root. Both repeat,
+and both belong to `diderot sessions install` alone.
 
 **How it works.** Each session file is read and converted on your machine
 to [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md),

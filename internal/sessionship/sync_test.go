@@ -189,8 +189,12 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	codexDir := f.syncer.Settings.Sources[1].Dir
 	write(t, filepath.Join(codexDir, "2026", "11", "01", "rollout-2026-11-01T11-00-00-"+codexSession+".jsonl"), string(codex))
 	// Files that are not sessions are never read: a subagent's transcript,
-	// and anything else a harness keeps beside its sessions.
+	// even one whose name ends in a session ID, a file whose name matches
+	// only together with the directory above it, and anything else a
+	// harness keeps beside its sessions.
 	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-a1b2c3.jsonl"), "not a session\n")
+	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-"+codexSession+".jsonl"), "not a session\n")
+	write(t, filepath.Join(codexDir, "rollout-old", "notes-"+codexSession+".jsonl"), "not a session\n")
 	write(t, filepath.Join(filepath.Dir(f.claude), "notes.txt"), "not a session\n")
 
 	result := f.pass(t)
