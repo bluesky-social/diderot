@@ -19,6 +19,7 @@ outside Diderot should depend on it.
 | `bsky.session.v1` | NDJSON from a session service's feed | The session feed |
 | `claude-code-jsonl` | Claude Code's `~/.claude/projects/<project>/<session>.jsonl` | Push |
 | `codex-rollout-jsonl` | Codex CLI's `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Push |
+| `antigravity-jsonl` | Antigravity's `brain/<session>/.system_generated/logs/transcript_full.jsonl` | Push |
 | `atif-json` | ATIF trajectory (Harbor's Agent Trajectory Interchange Format, v1.8) | Push |
 | `hf-sts-jsonl` | Hugging Face Session Trace Simple Format | Push |
 
@@ -36,7 +37,7 @@ which branch of a session is kept.
 ### From your own machine
 
 `diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Claude Code and Codex sessions on a person's machine, from a background
+the Claude Code, Codex, and Antigravity sessions on a person's machine, from a background
 service that `diderot setup` offers to install. It reads each session file
 with the same decoder the server has for that harness, converts the result
 to ATIF on that machine, and pushes it as `atif-json`, so the server stores

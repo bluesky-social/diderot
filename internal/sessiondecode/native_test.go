@@ -158,6 +158,52 @@ func TestCodexFixture(t *testing.T) {
 	}
 }
 
+func TestAntigravityFixture(t *testing.T) {
+	doc, records := assertFixture(t, Antigravity{}, "antigravity", "basic")
+	want := []string{
+		"step:0/user",
+		"step:1:reasoning:0/reasoning",
+		"step:1:assistant:1/assistant",
+		"step:2/tool",
+		"step:3/tool",
+		"step:4/assistant",
+		"step:5/tool",
+		"step:6/system",
+		"step:7/system",
+		"step:8/system",
+		"step:9/system",
+		"step:10/assistant",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityPositional {
+			t.Fatalf("%s fidelity %s, want positional", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "" || doc.Harness != "antigravity" || doc.UserTurnCount != 1 || doc.WarningRecords != 1 {
+		t.Fatalf("document = %+v", doc)
+	}
+	// Steps 2 and 3 arrived out of order in the file; sorting by step_index
+	// pairs step:2 with call 0 (run_command) and step:3 with call 1 (read_file).
+	if records[3].ToolCallID != "step:1:call:0" || !records[3].IsError {
+		t.Fatalf("step:2 tool record = %+v", records[3])
+	}
+	if records[4].ToolCallID != "step:1:call:1" || records[4].IsError {
+		t.Fatalf("step:3 tool record = %+v", records[4])
+	}
+	if records[6].ToolCallID != "step:4:call:0" || !records[6].IsError {
+		t.Fatalf("step:5 tool record = %+v", records[6])
+	}
+	if records[8].Phase != "compaction" || records[9].Phase != "error" || !records[9].IsError || records[10].Phase != "normalization" {
+		t.Fatalf("system phases lost: %+v", records[8:11])
+	}
+	if bytes.Contains(goldenRecords(t, records), []byte("synthetic-screenshot.png")) {
+		t.Fatal("media uri path reached a record")
+	}
+}
+
 func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 	cc := func(lines ...string) []byte { return []byte(strings.Join(lines, "\n") + "\n") }
 	const ts = `"timestamp":"2026-11-01T10:00:00Z"`
@@ -190,6 +236,20 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 		{"codex duplicate item id", Codex{}, cc(
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"a"}}`,
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"b"}}`)},
+		{"antigravity missing step_index", Antigravity{}, cc(
+			`{"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"hi"}`)},
+		{"antigravity duplicate step_index", Antigravity{}, cc(
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"a"}`,
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:01Z","content":"b"}`)},
+		{"antigravity orphan tool result", Antigravity{}, cc(
+			`{"step_index":0,"source":"MODEL","type":"RUN_COMMAND","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"ok"}`)},
+		{"antigravity missing created_at", Antigravity{}, cc(
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","content":"hi"}`)},
+		{"antigravity tool call without name", Antigravity{}, cc(
+			`{"step_index":0,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:00Z","tool_calls":[{"args":{}}]}`)},
+		{"antigravity unparseable line", Antigravity{}, cc(`not json`)},
+		{"antigravity empty document", Antigravity{}, cc(
+			`{"step_index":0,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:00Z"}`)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -257,7 +317,7 @@ func TestClaudeCodeEntryShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatAntigravity} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}
