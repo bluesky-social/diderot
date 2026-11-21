@@ -45,7 +45,7 @@ services:
   # extraction run. It keeps files inside its container and accepts any
   # credentials.
   files:
-    image: adobe/s3mock:4.12.4@sha256:e8d02904541324862264b05c3a262207d36c43e6de8c2cac177eab3c9fd75338
+    image: adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92
     environment:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: diderot-files
     ports:
