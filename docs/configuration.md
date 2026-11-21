@@ -399,11 +399,12 @@ password or app password, and a polling interval that defaults to five
 minutes. Credentials use the usual connector secret settings.
 
 - IMAP uses implicit TLS at a configured host and port (normally port 993).
-  It reads one mailbox, `INBOX` by default. Each poll fetches up to 300
-  messages that still need indexing, starting with the newest UIDs. It
+  Every poll discovers all selectable mailboxes, including nested folders,
+  and fetches up to 300 new messages per mailbox, newest UIDs first. It
   indexes decoded inline text from the first 512 KiB of each message and
-  skips attachment content. Moves out of the configured mailbox and
-  expunges are reflected in the index on the next successful poll.
+  skips attachment content. If a message appears in more than one mailbox,
+  each copy is indexed separately. Message expunges and removed mailboxes
+  are reconciled after a successful account poll.
 - CalDAV accepts a calendar collection URL for `VEVENT` and a notes
   collection URL for `VJOURNAL`. Set either or both and include the
   trailing slash. It periodically re-reads the selected HTTPS collections

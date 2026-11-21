@@ -151,8 +151,8 @@ you entered stays saved and the page says what to fix.
 ### Personal mail, calendar, and journal notes
 
 1. Open **IMAP mail** at `/admin/connectors/imap`. Enter your mail
-   server and port, login, and password or app password. Leave the
-   mailbox set to `INBOX` to index your inbox.
+   server and port, login, and password or app password. Diderot discovers
+   and indexes all selectable mailboxes, including nested folders.
 2. Open **CalDAV calendar and notes** at `/admin/connectors/caldav`. Enter
    your CalDAV login and the full HTTPS collection URL for your calendar,
    your journal notes, or both. A notes collection must expose its notes as

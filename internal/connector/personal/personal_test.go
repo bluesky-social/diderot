@@ -56,7 +56,7 @@ ATTACHMENT CONTENT
 		"Content-Type: text/html\r\n\r\n<head><title>ignore</title></head><script>ignore</script><p>Hello &amp; goodbye<br>Next</p>")))
 }
 
-func TestIMAPSyncReadsWithoutMarkingSeenAndReconciles(t *testing.T) {
+func TestIMAPSyncReadsAllMailboxesWithoutMarkingSeenAndReconciles(t *testing.T) {
 	ctx := t.Context()
 	pool, err := pgxpool.New(ctx, testdb.URL(t, "personal_imap"))
 	require.NoError(t, err)
@@ -65,16 +65,19 @@ func TestIMAPSyncReadsWithoutMarkingSeenAndReconciles(t *testing.T) {
 
 	memory := imapmemserver.New()
 	user := imapmemserver.NewUser("mailuser", "app-password")
-	require.NoError(t, user.Create("INBOX", nil))
+	for _, name := range []string{"INBOX", "Sent", "Archive/2026"} {
+		require.NoError(t, user.Create(name, nil))
+	}
 	memory.AddUser(user)
 
 	certificateServer := httptest.NewTLSServer(nil)
 	t.Cleanup(certificateServer.Close)
 	roots := x509.NewCertPool()
 	roots.AddCert(certificateServer.Certificate())
+	var failArchive atomic.Bool
 	server := imapserver.New(&imapserver.Options{
 		NewSession: func(*imapserver.Conn) (imapserver.Session, *imapserver.GreetingData, error) {
-			return memory.NewSession(), nil, nil
+			return imapFixture{Session: memory.NewSession(), failArchive: &failArchive}, nil, nil
 		},
 	})
 	listener, err := tls.Listen("tcp", "127.0.0.1:0", certificateServer.TLS)
@@ -93,49 +96,82 @@ func TestIMAPSyncReadsWithoutMarkingSeenAndReconciles(t *testing.T) {
 	require.NoError(t, upstream.Login("mailuser", "app-password").Wait())
 	_, err = upstream.Select("INBOX", nil).Wait()
 	require.NoError(t, err)
-	saved := appendMessage(t, upstream, "Lunch plans", "Dinner on the roof.")
+	saved := appendMessage(t, upstream, "INBOX", "Lunch plans", "Dinner on the roof.")
+	require.Equal(t, saved, appendMessage(t, upstream, "Sent", "Sent reply", "Confirmed lunch."))
+	appendMessage(t, upstream, "Archive/2026", "Old draft", "Archived project text.")
 	cfg := settings.NewResolved(imapName, settings.Values{
 		fieldOwner: " ALICE@example.com ", fieldUsername: "mailuser",
-		fieldIMAPServer: listener.Addr().String(), fieldMailbox: "INBOX",
+		fieldIMAPServer: listener.Addr().String(),
 	}, map[string]string{fieldPassword: "app-password"})
 
-	sync := func() {
+	sync := func() error {
 		t.Helper()
-		box, err := examineMailbox(ctx, dial(), cfg)
+		account, err := loginIMAP(ctx, dial(), cfg)
 		require.NoError(t, err)
-		defer box.close()
-		require.NoError(t, box.sync(ctx, sink, cfg))
+		defer account.close()
+		return account.sync(ctx, sink, cfg)
 	}
-	sync()
+	require.NoError(t, sync())
 	first := readRows(t, pool, imapName)
-	require.Len(t, first, 1)
-	require.Equal(t, "owner:alice@example.com", first[0].scope)
-	require.Equal(t, "Lunch plans", first[0].title)
-	require.Contains(t, first[0].body, "Dinner on the roof.")
+	require.Len(t, first, 3)
+	before := make(map[string]storedRow, len(first))
+	for _, row := range first {
+		require.Equal(t, "owner:alice@example.com", row.scope)
+		before[row.title] = row
+	}
+	require.Contains(t, before["Lunch plans"].body, "Dinner on the roof.")
+	require.Contains(t, before["Sent reply"].body, "Mailbox: Sent")
+	require.Contains(t, before["Old draft"].body, "Mailbox: Archive/2026")
 	flags, err := upstream.Fetch(imap.UIDSetNum(saved), &imap.FetchOptions{Flags: true}).Collect()
 	require.NoError(t, err)
 	require.Len(t, flags, 1)
 	require.NotContains(t, flags[0].Flags, imap.FlagSeen)
 
-	sync()
+	require.NoError(t, sync())
 	require.Equal(t, first, readRows(t, pool, imapName), "repeat polls should leave the event and its embeddings alone")
-	appendMessage(t, upstream, "Second message", "New message text.")
+	appendMessage(t, upstream, "INBOX", "Second message", "New message text.")
 	require.NoError(t, upstream.Store(imap.UIDSetNum(saved), &imap.StoreFlags{
 		Op: imap.StoreFlagsAdd, Flags: []imap.Flag{imap.FlagDeleted},
 	}, nil).Close())
 	require.NoError(t, upstream.Expunge().Close())
-	sync()
+	failArchive.Store(true)
+	require.ErrorContains(t, sync(), "Archive/2026")
+	require.Len(t, readRows(t, pool, imapName), 4, "a partial poll can ingest updates but must not remove rows")
+
+	failArchive.Store(false)
+	require.NoError(t, upstream.Delete("Archive/2026").Wait())
+	require.NoError(t, sync())
 	rows := readRows(t, pool, imapName)
-	require.Len(t, rows, 1)
-	require.Equal(t, "Second message", rows[0].title)
-	require.Contains(t, rows[0].body, "New message text.")
+	require.Len(t, rows, 2)
+	require.Equal(t, before["Sent reply"], rows[0])
+	require.Equal(t, "Second message", rows[1].title)
+	require.Contains(t, rows[1].body, "New message text.")
 }
 
-func appendMessage(t *testing.T, c *imapclient.Client, subject, body string) imap.UID {
+type imapFixture struct {
+	imapserver.Session
+	failArchive *atomic.Bool
+}
+
+func (s imapFixture) List(w *imapserver.ListWriter, ref string, patterns []string, options *imap.ListOptions) error {
+	if err := w.WriteList(&imap.ListData{Mailbox: "Archive", Delim: '/', Attrs: []imap.MailboxAttr{imap.MailboxAttrNoSelect}}); err != nil {
+		return err
+	}
+	return s.Session.List(w, ref, patterns, options)
+}
+
+func (s imapFixture) Select(name string, options *imap.SelectOptions) (*imap.SelectData, error) {
+	if name == "Archive/2026" && s.failArchive.Load() {
+		return nil, &imap.Error{Type: imap.StatusResponseTypeNo, Text: "temporary failure"}
+	}
+	return s.Session.Select(name, options)
+}
+
+func appendMessage(t *testing.T, c *imapclient.Client, mailbox, subject, body string) imap.UID {
 	t.Helper()
 	raw := "Date: Fri, 20 Nov 2026 12:00:00 +0000\r\nFrom: Taylor <taylor@example.com>\r\n" +
 		"To: Alice <alice@example.com>\r\nSubject: " + subject + "\r\n\r\n" + body + "\r\n"
-	append := c.Append("INBOX", int64(len(raw)), nil)
+	append := c.Append(mailbox, int64(len(raw)), nil)
 	_, err := io.WriteString(append, raw)
 	require.NoError(t, err)
 	require.NoError(t, append.Close())
