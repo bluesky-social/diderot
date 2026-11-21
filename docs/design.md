@@ -845,6 +845,13 @@ key.
 | `chat` | `POST {base}/chat/completions` | captions and PDF extraction (with an image), thread summaries, session-summary map and reduce |
 | `embeddings` | `POST {base}/embeddings` | the embedder and retrieval |
 
+The optional [Codex provider](quickstart.md#signed-in-codex) serves
+Diderot's text Responses requests from a separate process. It runs one
+ephemeral Codex turn per request and translates structured results into
+text or function calls. Ask still executes functions in Diderot with the
+requester's existing permissions, and passes results back in its replayed
+history.
+
 Ask and the session summaries speak more than one protocol, and which one a
 model is called on follows from its entry alone
 (`modelregistry.Model.RoleProtocol`): Ask uses the first of `responses` and

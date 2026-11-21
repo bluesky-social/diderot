@@ -370,6 +370,34 @@ for memory, exit code 137, as it warms up) and downloads about 2.3 GB more.
 Choose before you ingest if you can: another embedding model embeds every
 passage again, into a collection of its own.
 
+### Signed-in Codex
+
+Run the server binary's optional `codex-provider` command on a host with
+Codex CLI installed (tested with 0.170.0). Log in to Codex as the account that runs the adapter.
+The CLI uses that account's auth store, including a dedicated `CODEX_HOME`
+if one is configured. Use a deployment account with its own Codex home.
+
+```sh
+(umask 077; openssl rand -hex 32 > codex-provider.token)
+diderot codex-provider --model gpt-6.2-sol --token-file codex-provider.token
+```
+
+In **Models → Inference providers**, add an **OpenAI-compatible** provider
+with base URL `http://127.0.0.1:9460/v1` for a standalone server on the
+same host. Paste the provider token as its API key. In Kubernetes, run the
+adapter with Codex installed and its authentication store mounted, set
+`--listen` to the private service interface, and use that Service's
+`*.svc.cluster.local` URL. The shipped Diderot image does not bundle Codex.
+
+Select the listed model for text **Ask**, **Titles**, or the two session
+summary jobs. For **Embeddings**, keep the separate local provider. The
+adapter accepts the non-streaming, text Responses calls used by these jobs.
+It runs a fresh Codex process for each request, including model checks, and
+does not apply Responses output-token caps or prompt-cache settings. Leave
+Ask's service tier at the provider default. Diderot still executes corpus
+tools itself. Codex receives the questions, excerpts and transcripts passed
+to whichever jobs use it, so local embeddings only keep embedding calls local.
+
 ## What leaves the machine
 
 With the `embedder` container chosen for embeddings, embeddings are
