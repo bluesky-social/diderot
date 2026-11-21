@@ -296,11 +296,14 @@ its own completes the setup checklist's Sources step.
 
 ### Web search
 
-Ask can search the open web through [Tavily](https://tavily.com). Open
-<http://localhost:9091/admin/connectors/tavily>, paste a Tavily API key
-(`tvly-...`), and click **Save and turn on**. Ask's next answer can use the
-web; turning the connector off takes the web away again, both without a
-restart.
+Open **Connectors → Web search** at
+<http://localhost:9091/admin/connectors/tavily>. Choose **kagi** or
+**tavily** as the provider, paste its API key, and click **Save and turn on**.
+The next Ask run can search the web and read pages without a restart.
+
+Create a Kagi key in the [Kagi API portal](https://kagi.com/api/keys).
+Kagi's Extract API returns Markdown for HTTPS pages. The Tavily provider
+also supports ranking passages within a page against a query.
 
 To keep the key out of the database, pass it to the server as
 `DIDEROT_TAVILY_API_KEY` instead. Compose passes only the variables the
@@ -317,7 +320,7 @@ services:
 set `DIDEROT_TAVILY_API_KEY` in `.env`, run `docker compose up -d`, and
 click **Save and turn on** on the connector's page. Every connector secret
 works this way; [Connector settings](configuration.md#connector-settings)
-lists their variables.
+lists their variables, including `DIDEROT_KAGI_API_KEY` for Kagi.
 
 Code search (a [Sourcebot](https://sourcebot.dev) deployment) and PagerDuty
 investigations are connectors too, at `/admin/connectors/sourcebot` and
@@ -395,7 +398,7 @@ send images and pages. These requests reach the provider, which bills them:
   when you set them up, are Ask runs.
 
 The other outbound connections are the ones you set up: the API of each
-connector you enable, Tavily for web search, and, on the first start, the
+connector you enable, the chosen provider for web search, and, on the first start, the
 download of the embedding model from Hugging Face.
 
 ## Authentication

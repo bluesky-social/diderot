@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/diderot/internal/settings"
+
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // ConnectorName is the web search connector's connector_settings row. Ask
@@ -67,7 +69,7 @@ func ClientFrom(r settings.Resolved, httpClient *http.Client) *Client {
 // response.
 func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestReport {
 	check := settings.Check{Name: "Search", Passed: true, Detail: "Tavily answered a one-result search."}
-	if _, err := ClientFrom(r, c.HTTP).Search(ctx, SearchParams{Query: testQuery, MaxResults: 1}); err != nil {
+	if _, err := ClientFrom(r, c.HTTP).Search(ctx, websearch.SearchParams{Query: testQuery, MaxResults: 1}); err != nil {
 		check = describeError(err, r)
 	}
 	return settings.TestReport{Checks: []settings.Check{check}}

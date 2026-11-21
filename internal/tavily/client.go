@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/bluesky-social/diderot/internal/safehttp"
+
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // DefaultBaseURL is Tavily's public API host. Overridable (config /
@@ -58,35 +60,6 @@ func NewClient(baseURL, apiKey string, httpClient *http.Client) *Client {
 	}
 }
 
-// SearchParams configures a POST /search call. Query is required;
-// the rest are optional and omitted from the request body when zero.
-type SearchParams struct {
-	Query          string
-	MaxResults     int      // 0 = Tavily default (5); capped to 20 server-side
-	Topic          string   // "" = "general"; also "news", "finance"
-	SearchDepth    string   // "" = "basic"; also "advanced", "fast", "ultra-fast"
-	TimeRange      string   // "" = none; "day"|"week"|"month"|"year"
-	IncludeDomains []string // "" = no domain filter
-	ExcludeDomains []string
-}
-
-// SearchResult is the trimmed /search response — only the fields the
-// ask tool layer surfaces to the model. Tavily returns more
-// (images, favicons, usage, request_id) that we deliberately drop to
-// keep the model-facing payload compact.
-type SearchResult struct {
-	Query   string      `json:"query"`
-	Results []SearchHit `json:"results"`
-}
-
-// SearchHit is one ranked web result.
-type SearchHit struct {
-	Title   string  `json:"title"`
-	URL     string  `json:"url"`
-	Content string  `json:"content"`
-	Score   float64 `json:"score"`
-}
-
 // searchRequest is the wire body for POST /search. json tags match
 // Tavily's field names verbatim; omitempty keeps optional fields off
 // the wire when unset so we take Tavily's defaults.
@@ -102,39 +75,18 @@ type searchRequest struct {
 
 // Search runs a web search. Returns the trimmed result set; a
 // zero-result query is a normal (non-error) empty Results slice.
-func (c *Client) Search(ctx context.Context, p SearchParams) (*SearchResult, error) {
+func (c *Client) Search(ctx context.Context, p websearch.SearchParams) (*websearch.SearchResult, error) {
 	if strings.TrimSpace(p.Query) == "" {
 		return nil, errors.New("tavily search: empty query")
 	}
-	// SearchParams and searchRequest have identical fields (only json
+	// websearch.SearchParams and searchRequest have identical fields (only json
 	// tags differ), so a direct struct conversion is exact.
 	body := searchRequest(p)
-	var out SearchResult
+	var out websearch.SearchResult
 	if err := c.postJSON(ctx, "/search", body, &out); err != nil {
 		return nil, fmt.Errorf("tavily search: %w", err)
 	}
 	return &out, nil
-}
-
-// ExtractResult is the trimmed /extract response. Results holds the
-// successfully-fetched pages; Failed holds per-URL errors (a URL
-// that 404'd or timed out shows up here, not as a call-level error).
-type ExtractResult struct {
-	Results []ExtractHit    `json:"results"`
-	Failed  []ExtractFailed `json:"failed_results"`
-}
-
-// ExtractHit is one successfully-fetched page. RawContent is the
-// parsed page body (markdown, per our request format).
-type ExtractHit struct {
-	URL        string `json:"url"`
-	RawContent string `json:"raw_content"`
-}
-
-// ExtractFailed is one URL Tavily couldn't fetch, with the reason.
-type ExtractFailed struct {
-	URL   string `json:"url"`
-	Error string `json:"error"`
 }
 
 // extractRequest is the wire body for POST /extract. Format is
@@ -148,14 +100,14 @@ type extractRequest struct {
 
 // Extract fetches the full parsed content of one or more URLs. query
 // is optional (reranks chunks by relevance). A URL that fails to
-// fetch lands in the returned ExtractResult.Failed, not as an error —
+// fetch lands in the returned websearch.ExtractResult.Failed, not as an error —
 // only a call-level failure (auth, network, non-2xx) returns error.
-func (c *Client) Extract(ctx context.Context, urls []string, query string) (*ExtractResult, error) {
+func (c *Client) Extract(ctx context.Context, urls []string, query string) (*websearch.ExtractResult, error) {
 	if len(urls) == 0 {
 		return nil, errors.New("tavily extract: no urls")
 	}
 	body := extractRequest{URLs: urls, Query: query, Format: "markdown"}
-	var out ExtractResult
+	var out websearch.ExtractResult
 	if err := c.postJSON(ctx, "/extract", body, &out); err != nil {
 		return nil, fmt.Errorf("tavily extract: %w", err)
 	}

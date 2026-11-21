@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -119,6 +121,67 @@ func TestWebToolsFollowTheWebSearchConnector(t *testing.T) {
 
 	store.set(tavily.ConnectorName, nil)
 	assert.False(t, available(t, search), "disabled again")
+}
+
+type webTestTransport func(*http.Request) (*http.Response, error)
+
+func (f webTestTransport) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestWebSearchConnectorKagi(t *testing.T) {
+	t.Parallel()
+	var requests []string
+	connector := webSearchTool{tavily.Connector{HTTP: &http.Client{Transport: webTestTransport(
+		func(req *http.Request) (*http.Response, error) {
+			assert.Equal(t, "kagi.com", req.URL.Host)
+			assert.Equal(t, http.MethodPost, req.Method)
+			assert.Equal(t, "Bearer kagi-fixture", req.Header.Get("Authorization"))
+			requests = append(requests, req.URL.Path)
+			data, err := io.ReadAll(req.Body)
+			require.NoError(t, err)
+			var response string
+			switch req.URL.Path {
+			case "/api/v1/search":
+				if len(requests) == 1 {
+					assert.JSONEq(t, `{"query":"Kagi","workflow":"search","limit":1}`, string(data))
+				} else {
+					assert.JSONEq(t, `{"query":"news","workflow":"news","limit":5,"lens":{"sites_included":["example.com"]}}`, string(data))
+				}
+				response = `{"data":{"news":[{"title":"News","url":"https://example.com/news","snippet":"A headline"}]}}`
+			case "/api/v1/extract":
+				assert.JSONEq(t, `{"pages":[{"url":"https://example.com/news"}]}`, string(data))
+				response = `{"data":[{"url":"https://example.com/news","markdown":"# News"}]}`
+			default:
+				t.Fatalf("unexpected API path %s", req.URL.Path)
+			}
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(response))}, nil
+		},
+	)}}}
+	values := settings.Values{webProviderField: kagiProvider}
+	resolved := settings.NewResolved(tavily.ConnectorName, values, map[string]string{tavily.FieldAPIKey: "tvly-unused"})
+	require.False(t, connector.Test(t.Context(), resolved).Checks[0].Passed)
+	require.Empty(t, requests)
+	require.Equal(t, "DIDEROT_KAGI_API_KEY", settings.SecretEnv(connector, kagiAPIKeyField))
+
+	resolved = settings.NewResolved(tavily.ConnectorName, values,
+		map[string]string{tavily.FieldAPIKey: "tvly-unused", kagiAPIKeyField: "kagi-fixture"})
+	require.True(t, connector.Test(t.Context(), resolved).Checks[0].Passed)
+	store := &fakeConnectors{}
+	store.set(tavily.ConnectorName, &resolved)
+	registrations := asktool.NewRegistry(connector).Registrations(store)
+	require.Len(t, registrations, 2)
+	search, err := registrations[0].Tool.(tool.InvokableTool).InvokableRun(t.Context(),
+		`{"query":"news","topic":"news","include_domains":["example.com"]}`)
+	require.NoError(t, err)
+	assert.Contains(t, search, "A headline")
+	fetch, err := registrations[1].Tool.(tool.InvokableTool).InvokableRun(t.Context(),
+		`{"url":"https://example.com/news","query":"story"}`)
+	require.NoError(t, err)
+	assert.Contains(t, fetch, "# News")
+	badURL, err := registrations[1].Tool.(tool.InvokableTool).InvokableRun(t.Context(),
+		`{"url":"http://example.com"}`)
+	require.NoError(t, err)
+	assert.Contains(t, badURL, "Kagi requires an HTTPS URL")
+	assert.Equal(t, []string{"/api/v1/search", "/api/v1/search", "/api/v1/extract"}, requests)
 }
 
 // TestCodeToolsFollowTheCodeSearchConnector: the code tools are offered only

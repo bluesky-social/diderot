@@ -27,7 +27,7 @@ Don't call retrieval "hybrid".
 The Ask agent (`/v1/ask`, `@diderot` in Slack, the MCP `ask` task) is an Eino
 loop that calls its model through the provider-native protocol its test on
 the Models page found. Its tools: `retrieve` / `list` / `expand` over the corpus,
-`web_search` / `web_fetch` (Tavily), `code_search` / `code_read` (Sourcebot),
+`web_search` / `web_fetch` (Tavily or Kagi), `code_search` / `code_read` (Sourcebot),
 and the tools of the MCP servers administrators add as tool connections
 ([docs/mcp-servers.md](docs/mcp-servers.md)), on the root agent, on
 `investigate_observability` (a delegated child agent), or on both.

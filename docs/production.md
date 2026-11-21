@@ -102,7 +102,7 @@ a bucket, attachments are not indexed.
 
 **Outbound access** to whatever the connectors you enable talk to: Slack
 (Socket Mode is an outbound WebSocket, so Slack needs no inbound route),
-Notion, Linear, Zendesk, Tavily, your Sourcebot, and the servers of your
+Notion, Linear, Zendesk, your web search provider, your Sourcebot, and the servers of your
 [tool connections](mcp-servers.md).
 
 ## Replicas and the leader
@@ -355,7 +355,7 @@ per-channel restrictions; [Authorization policy](auth.md#authorization-policy)),
 and, in `static` mode, the token file. Changing one
 takes a restart.
 
-**Connector credentials** (Slack, Notion, Linear, Zendesk, Tavily, and the
+**Connector credentials** (Slack, Notion, Linear, Zendesk, Kagi, Tavily, and the
 rest) are pasted on the connectors' pages, or set by their variables in the
 deployment. A connector's other settings (channels, teams, intervals) live
 only in the database.

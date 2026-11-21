@@ -55,7 +55,7 @@ can reach the page before the default account goes away. Turning it off is perma
 from the UI; see [Locked out](#locked-out).
 
 Optional steps are shown with their state but never required: web search
-(Tavily, `/admin/connectors/tavily`), code search (Sourcebot,
+(Kagi or Tavily, `/admin/connectors/tavily`), code search (Sourcebot,
 `/admin/connectors/sourcebot`), MCP tools for Ask, scheduled reports, and
 PagerDuty investigations (`/admin/connectors/pagerduty`). The connector steps
 are done while their connector is on.

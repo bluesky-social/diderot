@@ -51,7 +51,7 @@ func TestConnectorSecretVariables(t *testing.T) {
 	for _, def := range connectorRegistry(sourceRegistry(nil, nil, nil, nil, nil, nil, false), toolRegistry(), automationRegistry(&config.Config{}, nil)).Definitions() {
 		for _, field := range def.Fields() {
 			if field.Kind == settings.KindSecret {
-				names = append(names, settings.EnvName(def.Name(), field.Key))
+				names = append(names, settings.SecretEnv(def, field.Key))
 			}
 		}
 	}
@@ -62,7 +62,7 @@ func TestConnectorSecretVariables(t *testing.T) {
 		"DIDEROT_NOTION_TOKEN",
 		"DIDEROT_LINEAR_OAUTH_SECRET", "DIDEROT_LINEAR_TOKEN",
 		"DIDEROT_ZENDESK_OAUTH_SECRET",
-		"DIDEROT_TAVILY_API_KEY", "DIDEROT_SOURCEBOT_API_KEY",
+		"DIDEROT_KAGI_API_KEY", "DIDEROT_TAVILY_API_KEY", "DIDEROT_SOURCEBOT_API_KEY",
 		"DIDEROT_PAGERDUTY_API_TOKEN", "DIDEROT_PAGERDUTY_WEBHOOK_SECRETS",
 	}, names)
 	doc, err := os.ReadFile(filepath.Join("..", "..", "docs", "configuration.md"))

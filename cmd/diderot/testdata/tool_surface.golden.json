@@ -34,7 +34,7 @@
               "news",
               "finance"
             ],
-            "description": "'general' for most questions, 'news' for current events, 'finance' for markets.",
+            "description": "'general' for most questions, 'news' for current events, 'finance' for markets where supported.",
             "type": "string"
           },
           "time_range": {
@@ -70,7 +70,7 @@
     },
     {
       "name": "web_fetch",
-      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. With `query`, it returns only the passages of the page most relevant to the query, which is not the whole page: do not conclude that something is absent from a page you read that way. Without `query`, it returns the page from the top, with `truncated` set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
+      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. By default it returns the page from the top. Providers with passage ranking use `query` to return relevant passages. Check the full page before drawing conclusions about missing details. `truncated` is set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
       "parameters": {
         "properties": {
           "url": {
@@ -78,7 +78,7 @@
             "type": "string"
           },
           "query": {
-            "description": "What you are looking for on the page. With it, only the passages most relevant to it come back; leave it empty to get the page from the top.",
+            "description": "What you are looking for on the page. Providers with passage ranking use this to return relevant passages. Omit it to get the page from the top.",
             "type": "string"
           }
         },
@@ -163,7 +163,7 @@
               "news",
               "finance"
             ],
-            "description": "'general' for most questions, 'news' for current events, 'finance' for markets.",
+            "description": "'general' for most questions, 'news' for current events, 'finance' for markets where supported.",
             "type": "string"
           },
           "time_range": {
@@ -199,7 +199,7 @@
     },
     {
       "name": "web_fetch",
-      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. With `query`, it returns only the passages of the page most relevant to the query, which is not the whole page: do not conclude that something is absent from a page you read that way. Without `query`, it returns the page from the top, with `truncated` set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
+      "description": "Read one web page as Markdown. Use it on a web_search result when the snippet is not enough. By default it returns the page from the top. Providers with passage ranking use `query` to return relevant passages. Check the full page before drawing conclusions about missing details. `truncated` is set when a long page was cut. When the page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the search snippet and do not retry. Pages are large, so read the ones that matter.",
       "parameters": {
         "properties": {
           "url": {
@@ -207,7 +207,7 @@
             "type": "string"
           },
           "query": {
-            "description": "What you are looking for on the page. With it, only the passages most relevant to it come back; leave it empty to get the page from the top.",
+            "description": "What you are looking for on the page. Providers with passage ranking use this to return relevant passages. Omit it to get the page from the top.",
             "type": "string"
           }
         },
@@ -367,15 +367,30 @@
     ],
     "tavily": [
       {
+        "key": "provider",
+        "label": "Provider",
+        "help": "Ask sends web searches and page fetches to this provider.",
+        "kind": "enum",
+        "options": [
+          "tavily",
+          "kagi"
+        ]
+      },
+      {
+        "key": "kagi_api_key",
+        "label": "Kagi API key",
+        "help": "From kagi.com/api/keys. Required when the provider is Kagi.",
+        "kind": "secret"
+      },
+      {
         "key": "api_key",
-        "label": "API key",
-        "help": "Starts with tvly-. From your account at app.tavily.com. Ask's web searches are sent to Tavily with it.",
-        "kind": "secret",
-        "required": true
+        "label": "Tavily API key",
+        "help": "Starts with tvly-. From your account at app.tavily.com. Ask's web searches are sent to Tavily with it. Required when the provider is Tavily.",
+        "kind": "secret"
       },
       {
         "key": "base_url",
-        "label": "API URL",
+        "label": "Tavily API URL",
         "help": "Leave empty for Tavily's API. Set it only to send requests through a proxy.",
         "kind": "text"
       }
@@ -389,6 +404,8 @@
       ]
     },
     "sourcebot": {},
-    "tavily": {}
+    "tavily": {
+      "provider": "tavily"
+    }
   }
 }

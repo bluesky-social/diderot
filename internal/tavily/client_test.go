@@ -9,11 +9,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // TestSearch_RequestAndResponse asserts the /search request shape
 // (method, path, auth header, body) and that the response decodes to
-// the trimmed SearchResult.
+// the trimmed websearch.SearchResult.
 func TestSearch_RequestAndResponse(t *testing.T) {
 	var gotAuth, gotPath, gotMethod string
 	var gotBody searchRequest
@@ -35,7 +37,7 @@ func TestSearch_RequestAndResponse(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient(srv.URL, "tvly-testkey", srv.Client())
-	res, err := c.Search(context.Background(), SearchParams{
+	res, err := c.Search(context.Background(), websearch.SearchParams{
 		Query:      "q",
 		MaxResults: 2,
 		Topic:      "news",
@@ -76,7 +78,7 @@ func TestSearch_OmitsEmptyOptionalFields(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient(srv.URL, "k", srv.Client())
-	if _, err := c.Search(context.Background(), SearchParams{Query: "q"}); err != nil {
+	if _, err := c.Search(context.Background(), websearch.SearchParams{Query: "q"}); err != nil {
 		t.Fatalf("Search: %v", err)
 	}
 	for _, k := range []string{"max_results", "topic", "search_depth", "time_range", "include_domains", "exclude_domains"} {
@@ -127,7 +129,7 @@ func TestPostJSON_HTTPError(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient(srv.URL, "k", srv.Client())
-	_, err := c.Search(context.Background(), SearchParams{Query: "q"})
+	_, err := c.Search(context.Background(), websearch.SearchParams{Query: "q"})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -143,7 +145,7 @@ func TestPostJSON_HTTPError(t *testing.T) {
 // TestSearch_EmptyQuery rejects an empty query before any HTTP call.
 func TestSearch_EmptyQuery(t *testing.T) {
 	c := NewClient("", "k", nil)
-	if _, err := c.Search(context.Background(), SearchParams{Query: "  "}); err == nil {
+	if _, err := c.Search(context.Background(), websearch.SearchParams{Query: "  "}); err == nil {
 		t.Fatal("expected error on empty query")
 	}
 }
