@@ -372,31 +372,32 @@ passage again, into a collection of its own.
 
 ### Signed-in Codex
 
-Run the server binary's optional `codex-provider` command on a host with
-Codex CLI installed (tested with 0.170.0). Log in to Codex as the account that runs the adapter.
-The CLI uses that account's auth store, including a dedicated `CODEX_HOME`
-if one is configured. Use a deployment account with its own Codex home.
+Run the server binary's optional `codex-provider` command with a dedicated
+Codex ChatGPT `auth.json`. You can initialize the file with a one-time
+ChatGPT sign-in in a separate Codex home. Keep the file and its directory
+private and writable by one adapter process, which refreshes and rotates
+the OAuth credentials. The adapter uses the ChatGPT Codex backend
+directly over HTTPS.
 
 ```sh
 (umask 077; openssl rand -hex 32 > codex-provider.token)
-diderot codex-provider --model gpt-6.2-sol --token-file codex-provider.token
+diderot codex-provider --model gpt-6.2-sol \
+  --auth-file /path/to/dedicated/codex/auth.json --token-file codex-provider.token
 ```
 
 In **Models → Inference providers**, add an **OpenAI-compatible** provider
 with base URL `http://127.0.0.1:9460/v1` for a standalone server on the
-same host. Paste the provider token as its API key. In Kubernetes, run the
-adapter with Codex installed and its authentication store mounted, set
-`--listen` to the private service interface, and use that Service's
-`*.svc.cluster.local` URL. The shipped Diderot image does not bundle Codex.
+same host. Paste the provider token as its API key. In Kubernetes, keep the
+auth file on a private writable volume, bind `--listen` to the private
+service interface, and use the Service's `*.svc.cluster.local` URL.
 
-Select the listed model for text **Ask**, **Titles**, or the two session
-summary jobs. For **Embeddings**, keep the separate local provider. The
-adapter accepts the non-streaming, text Responses calls used by these jobs.
-It runs a fresh Codex process for each request, including model checks, and
-does not apply Responses output-token caps or prompt-cache settings. Leave
-Ask's service tier at the provider default. Diderot still executes corpus
-tools itself. Codex receives the questions, excerpts and transcripts passed
-to whichever jobs use it, so local embeddings only keep embedding calls local.
+Choose the listed model for **Ask**, **Titles**, or the two session summary
+jobs. Keep your separate provider for **Embeddings**. The adapter consumes
+the Codex event stream and gives Diderot a complete Responses result.
+Diderot executes corpus functions itself. The Codex backend receives the
+questions, excerpts and transcripts passed to whichever jobs use it.
+The adapter does not pass through public API output caps or cache retention
+settings. Its backend is a ChatGPT client interface and may change.
 
 ## What leaves the machine
 

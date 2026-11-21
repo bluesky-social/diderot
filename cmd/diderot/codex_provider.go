@@ -7,9 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -37,13 +35,8 @@ func codexProviderCmd() *cobra.Command {
 			if len(cfg.Token) < 32 || strings.ContainsAny(cfg.Token, " \t\r\n") {
 				return errors.New("the provider token must contain at least 32 non-whitespace characters")
 			}
-			binary, err := exec.LookPath(cfg.Binary)
-			if err != nil {
-				return fmt.Errorf("find Codex executable: %w", err)
-			}
-			cfg.Binary, err = filepath.Abs(binary)
-			if err != nil {
-				return err
+			if _, err := os.Stat(cfg.AuthFile); err != nil {
+				return fmt.Errorf("locate ChatGPT auth file: %w", err)
 			}
 			listener, err := net.Listen("tcp", listen)
 			if err != nil {
@@ -79,11 +72,12 @@ func codexProviderCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&listen, "listen", "127.0.0.1:9460", "HTTP listen address")
 	cmd.Flags().StringVar(&tokenFile, "token-file", "", "File containing the provider bearer token")
-	cmd.Flags().StringVar(&cfg.Binary, "codex-bin", "codex", "Path to the Codex executable")
+	cmd.Flags().StringVar(&cfg.AuthFile, "auth-file", "", "Path to a dedicated Codex ChatGPT auth.json")
 	cmd.Flags().StringVar(&cfg.Model, "model", "", "Codex model to expose in Diderot")
 	cmd.Flags().DurationVar(&cfg.Timeout, "timeout", 90*time.Second, "Deadline for a Codex request")
 	cmd.Flags().IntVar(&cfg.MaxConcurrent, "max-concurrent", 2, "Maximum simultaneous Codex invocations")
 	_ = cmd.MarkFlagRequired("token-file")
+	_ = cmd.MarkFlagRequired("auth-file")
 	_ = cmd.MarkFlagRequired("model")
 	return cmd
 }

@@ -845,12 +845,12 @@ key.
 | `chat` | `POST {base}/chat/completions` | captions and PDF extraction (with an image), thread summaries, session-summary map and reduce |
 | `embeddings` | `POST {base}/embeddings` | the embedder and retrieval |
 
-The optional [Codex provider](quickstart.md#signed-in-codex) serves
-Diderot's text Responses requests from a separate process. It runs one
-ephemeral Codex turn per request and translates structured results into
-text or function calls. Ask still executes functions in Diderot with the
-requester's existing permissions, and passes results back in its replayed
-history.
+The optional [Codex provider](quickstart.md#signed-in-codex) sends
+Diderot's Responses requests directly to the ChatGPT Codex backend using
+the configured account's OAuth credentials. It consumes the event stream
+and returns a complete Responses result, preserving native function calls
+and replayable reasoning. Ask executes functions in Diderot with the
+requester's permissions and replays their results in the next model call.
 
 Ask and the session summaries speak more than one protocol, and which one a
 model is called on follows from its entry alone
