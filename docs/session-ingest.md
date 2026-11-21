@@ -21,6 +21,7 @@ outside Diderot should depend on it.
 | `codex-rollout-jsonl` | Codex CLI's `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Push |
 | `copilot-cli-events-jsonl` | GitHub Copilot CLI's `~/.copilot/session-state/<session>/events.jsonl` | Push |
 | `gemini-cli-session-jsonl` | Gemini CLI's `~/.gemini/tmp/<project>/chats/session-*.jsonl` | Push |
+| `opencode-export-json` | OpenCode 2's session export (`opencode session export`), which `diderot sessions` builds from `~/.local/share/opencode/opencode.db` | Push |
 | `pi-session-jsonl` | Pi's `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session>.jsonl` | Push |
 | `polytoken-jsonl` | Polytoken's `~/.local/share/polytoken/sessions-v1/<session>/log.jsonl` | Push |
 | `atif-json` | ATIF trajectory (Harbor's Agent Trajectory Interchange Format, v1.8) | Push |
@@ -40,22 +41,22 @@ which branch of a session is kept.
 ### From your own machine
 
 `diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Claude Code, Codex, Copilot CLI, Gemini CLI, Pi, and Polytoken sessions on
-a person's machine, from a background service that `diderot setup` offers to
-install. It reads each session file with the same decoder the server has for
-that harness, converts the result to ATIF on that machine, and pushes it as
-`atif-json`, so the server stores and decodes ATIF and never receives the
-harness's own file. Each record becomes one ATIF step. A record ID that came
-from the harness travels in the step's `extra.stable_step_id`, so it is the
-same ID as a push of the file itself would give; a positional ID becomes the
-step's ordinal. The harness's name and version are the trajectory's `agent`.
-ATIF has no field for two things, which are left out: the flag that marks a
-tool result as an error (its output is still there), and the phase of a record
-that is not a system record. Images are left out as every decoder leaves them
-out: a pasted screenshot or an image a tool returned is a placeholder with its
-media type, and here its bytes never leave the machine. A tool call whose
-arguments are not a JSON object (a patch passed as text) is carried as
-`{"input": "<the text>"}`.
+the Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Pi, and Polytoken
+sessions on a person's machine, from a background service that `diderot setup`
+offers to install. It reads each session file with the same decoder the server
+has for that harness, converts the result to ATIF on that machine, and pushes
+it as `atif-json`, so the server stores and decodes ATIF and never receives
+the harness's own file. Each record becomes one ATIF step. A record ID that
+came from the harness travels in the step's `extra.stable_step_id`, so it is
+the same ID as a push of the file itself would give; a positional ID becomes
+the step's ordinal. The harness's name and version are the trajectory's
+`agent`. ATIF has no field for two things, which are left out: the flag that
+marks a tool result as an error (its output is still there), and the phase of
+a record that is not a system record. Images are left out as every decoder
+leaves them out: a pasted screenshot or an image a tool returned is a
+placeholder with its media type, and here its bytes never leave the machine. A
+tool call whose arguments are not a JSON object (a patch passed as text) is
+carried as `{"input": "<the text>"}`.
 
 It follows the [push protocol](#push-protocol) as any client does: a session
 is created with `If-None-Match: *`, and one that grew is sent again whole
@@ -69,12 +70,13 @@ current revision from the 412 and replaces that. Nothing is redacted on the
 way: [redaction](#redaction-is-the-producers-job) is still the producer's job,
 and here the producer is the person whose sessions they are.
 
-A session is pushed under the ID in its file's path. Gemini CLI names a file
-after the first eight characters of the ID, so a Gemini CLI session goes
-under the whole ID the file declares, which must begin with them. The push
-route takes only UUIDs, so a harness whose own IDs are not UUIDs, such as
-Polytoken, pushes its sessions under a name-based UUID of the harness's name
-and the session's own ID, which is the same every time.
+A session is pushed under the ID in its file's path, or for OpenCode the ID
+of its row in the database. Gemini CLI names a file after the first eight
+characters of the ID, so a Gemini CLI session goes under the whole ID the
+file declares, which must begin with them. The push route takes only UUIDs,
+so a harness whose own IDs are not UUIDs, such as Polytoken and OpenCode,
+pushes its sessions under a name-based UUID of the harness's name and the
+session's own ID, which is the same every time.
 
 ### Decoder contract
 

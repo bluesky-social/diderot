@@ -349,6 +349,14 @@ func TestSessionIDs(t *testing.T) {
 	id, err = hashed.sessionID("0abc12", "0abc12-demo")
 	require.NoError(t, err)
 	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("hashed/0abc12-demo")).String(), id)
+	// A session in a database goes the same way, from the ID its row has.
+	for _, name := range []string{"opencode", "polytoken"} {
+		h, ok := Lookup(name)
+		require.True(t, ok)
+		id, err = h.sessionID("ses_0abc12", "")
+		require.NoError(t, err)
+		assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte(name+"/ses_0abc12")).String(), id)
+	}
 }
 
 func TestPassIsIncremental(t *testing.T) {

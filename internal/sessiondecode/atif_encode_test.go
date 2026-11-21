@@ -30,6 +30,7 @@ func TestEncodeATIFRoundTrips(t *testing.T) {
 		{Codex{}, "codex/basic.jsonl"},
 		{CopilotCLI{}, "copilot-cli/basic.jsonl"},
 		{GeminiCLI{}, "gemini-cli/basic.jsonl"},
+		{OpenCode{}, "opencode/basic.json"},
 		{Pi{}, "pi/basic.jsonl"},
 		{Polytoken{}, "polytoken/basic.jsonl"},
 	} {

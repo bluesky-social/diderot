@@ -223,6 +223,89 @@ same format.
   the metadata's `sessionId`; `diderot sessions` pushes the session under
   it, since the file name holds only its first eight characters.
 
+## `opencode-export-json` (decoder version 1)
+
+OpenCode 2's session export: the one JSON document `opencode session export
+<session>` writes, `{"info": …, "messages": […]}`. OpenCode keeps every
+session in one SQLite database (`$OPENCODE_DB`, a name under its data
+directory unless absolute, else `opencode.db` there; the data directory is
+`$XDG_DATA_HOME/opencode`, else `~/.local/share/opencode`), so `diderot
+sessions` builds this document from the database's rows and decodes it here;
+a pushed export decodes the same way. The mapping follows OpenCode's own
+schema and writer, `github.com/anomalyco/opencode` at `v2.3.2` (commit
+`c0ad18b`): `packages/schema/src/session-message.ts` (messages and parts),
+`session.ts` and `session-transfer.ts` (the export), and
+`packages/core/src/session/` `sql.ts`, `info.ts`, `history.ts`, `store.ts`
+and `transfer.ts` (the tables, and how an export is assembled from them). It
+was checked against sessions OpenCode 2.3.2 wrote, and sessions it moved
+from an OpenCode 1 database (key names only; fixtures are synthetic). OpenCode
+1 kept its sessions in other tables (`session`, `message`, `part`) and is not
+supported: OpenCode 2 moves them into its own when it first opens the
+database. A Go client for OpenCode's HTTP API (`anomalyco/opencode-sdk-go`)
+exists but is archived and does not read the database.
+
+- **Ids.** A message's `id` (`msg_…`), which OpenCode keeps while it
+  rewrites the message (`native`). A message split into several records gets
+  `<id>:<kind>:<part index>` (`reasoning`, `assistant`, `tool_result`,
+  `system`).
+- **Active path.** The messages in order. A staged revert
+  (`info.revert.messageID`) hides the message it names and every later one,
+  as OpenCode does until it deletes them or the revert is undone; they are
+  not emitted. A compaction keeps the messages before it: a `completed`
+  `compaction` is a `system` record (phase `compaction`) carrying its
+  `summary`, whose `native` replacement window is not read; a running or
+  failed one emits nothing.
+- **Messages.** `user` is a `user` record holding `text`, what the person
+  typed; OpenCode keeps the context it adds in messages of its own. Each of
+  its `files` becomes an image placeholder for an `image/*` type, and a note
+  naming the file otherwise; a file's `data` (base64 bytes) or `uri` (a
+  `media:` reference to OpenCode's blob table) is never read. `assistant`
+  content splits at each `reasoning` part into a `reasoning` record (its
+  `text`; an empty one is dropped, and `native`, which holds the thinking
+  signature, is never read). `text` and `tool` parts merge into an assistant
+  record. OpenCode keeps a call and its result in one `tool` part: it becomes
+  a tool call (`id`, `name`, compacted `state.input`) and, once
+  `state.status` is `completed` or `error`, a `tool` record after the
+  assistant record, paired by `id`, carrying `state.content` (`text`; a
+  `file` item is a placeholder and its `uri` is never read) or the error's
+  `message`. A `text` part after a call starts a new assistant record after
+  the results. A result is an error by OpenCode's own rule
+  (`packages/session-ui/src/message/current-tool-state.ts`): `status:
+  error`, a `shell` call whose `metadata.exit` is non-zero or whose
+  `metadata.timeout` is true (a failed command completes with its exit code
+  in metadata), or an `execute` call whose `metadata.error` is true or one of
+  whose `metadata.toolCalls` failed. An assistant message's `error` follows
+  as a `system` record with its message (phase `interrupted` for type
+  `aborted`, else `error`). `synthetic` (a subagent's report, and other text
+  OpenCode adds), `system` (a notice to the model) and `skill` (a loaded
+  skill's instructions) become `system` records with the type as phase;
+  `shell`, a command the person ran directly, becomes a `system` record
+  (phase `shell`) with the command, its output, and a non-zero exit. `idle`,
+  `agent-switched`, `model-switched` and `location-switched` are bookkeeping
+  and emit nothing. Any other message type, part type or tool content item
+  becomes a notice.
+- **Model and times.** A record's model is its message's `model.id`; its
+  time is the message's `time.created` (epoch milliseconds).
+- **Session.** The export names no OpenCode version, so `SourceVersion` is
+  empty. A document without `messages`, a message without `id` or `type`, a
+  message that emits records without `time.created`, a mapped message or
+  part whose fields have the wrong type, or a `tool` part without `id` fails
+  the document.
+- **From the database.** A session is a `session_v2` row without a
+  `parent_id` (a subagent's session is not shipped; its report is in its
+  parent's) that has messages. Its document is built as OpenCode builds an
+  export: the row as `info` (`Session.Info` with the location's workspace
+  left out); then its `session_message` rows in `seq` order, each the row's
+  `data` with its `id` and `type`, an assistant message's `session_part` rows
+  (in `ordinal` order) ahead of the content kept in the row, and a message
+  still being written (an assistant without `time.completed`, a running
+  shell or compaction) left out. It differs from OpenCode's own export in
+  two ways the decoder never reads: a file kept in the blob table keeps its
+  `media:` reference instead of having its bytes put back, and the opaque
+  provider data of rows written before OpenCode 2.1 keeps its old names
+  (`state`, `providerState`, `recent`, `providerContext`), which the export
+  renames.
+
 ## `pi-session-jsonl` (decoder version 1)
 
 Pi's `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session>.jsonl` (the `pi`

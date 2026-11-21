@@ -43,7 +43,8 @@ type FileState struct {
 	Harness   string `json:"harness"`
 	SessionID string `json:"session_id"`
 	// Size and ModTime are the file's when it was last read; a file with
-	// both unchanged is not read again.
+	// both unchanged is not read again. For a session in a SessionStore they
+	// are its row count and last write.
 	Size    int64     `json:"size"`
 	ModTime time.Time `json:"mod_time"`
 	// Revision is the server's revision of the session, and SHA256 the hash
@@ -280,6 +281,16 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 // (Harness.sessionID). A last line still being written (one with no newline
 // yet) is left for the pass that sees it whole.
 func convert(harness Harness, file sessionFile) (string, []byte, error) {
+	if harness.Store != nil {
+		data, err := harness.Store.Document(file.real, file.sessionID)
+		if err != nil {
+			return "", nil, err
+		}
+		if int64(len(data)) > maxSourceBytes {
+			return "", nil, fmt.Errorf("the session is larger than %d bytes", maxSourceBytes)
+		}
+		return encode(harness, file, data)
+	}
 	f, err := os.Open(file.real)
 	if err != nil {
 		return "", nil, err
@@ -295,6 +306,12 @@ func convert(harness Harness, file sessionFile) (string, []byte, error) {
 		return "", nil, fmt.Errorf("the file is larger than %d bytes", maxSourceBytes)
 	}
 	data = data[:bytes.LastIndexByte(data, '\n')+1]
+	return encode(harness, file, data)
+}
+
+// encode decodes a session document with its harness's decoder and writes
+// the result as ATIF, with the ID the session is pushed under.
+func encode(harness Harness, file sessionFile, data []byte) (string, []byte, error) {
 	doc, records, err := sessiondecode.DecodeAll(harness.Decoder, data)
 	if err != nil {
 		return "", nil, err

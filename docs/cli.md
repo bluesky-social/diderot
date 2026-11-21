@@ -214,6 +214,7 @@ directory exists:
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
 | `copilot-cli` | `~/.copilot/session-state` (`$COPILOT_HOME/session-state` when that is set) | each `<session id>/events.jsonl`; subagents are in the same file |
 | `gemini-cli` | `~/.gemini/tmp` (`$GEMINI_CLI_HOME/.gemini/tmp` when that is set) | each `<project>/chats/session-*.jsonl`; subagent transcripts are not sent |
+| `opencode` | `~/.local/share/opencode/opencode.db` (`$OPENCODE_DB`, or `$XDG_DATA_HOME/opencode/opencode.db`, when that is set) | each session in that one database, which is only ever opened read-only; subagent sessions are not sent. OpenCode 2 only: OpenCode 1 kept its sessions in other tables, which are not read, so nothing is sent until OpenCode 2 has moved them into its own when it first runs |
 | `pi` | `~/.pi/agent/sessions` (`$PI_CODING_AGENT_DIR/sessions` when that is set, and `$PI_CODING_AGENT_SESSION_DIR` over both) | each `<timestamp>_<session id>.jsonl`; a session started with a `--session-id` that is not a UUID is not sent. A `sessionDir` in Pi's settings is not read: name it with `--path pi=<directory>` |
 | `polytoken` | `~/.local/share/polytoken` (`$POLYTOKEN_DATA_PATH`, or `$XDG_DATA_HOME/polytoken`, when that is set) | each `sessions-v1/<session id>/log.jsonl`, and `sessions/<session id>/log.jsonl` from older releases; subagent transcripts are not sent |
 
@@ -225,13 +226,14 @@ diderot sessions install \
   --exclude $HOME/.claude/projects/-Users-you-private-project
 ```
 
-`--path` replaces the directories found. `--path <harness>=<dir>` names
-that harness's root, a directory laid out like the one the table shows for
-it, not a directory below it: a session file is recognized by its path
-inside the root. `--exclude` leaves out every session whose file is really
-under a directory, including one reached through a symbolic link from
-somewhere else, so it is the way to ship only part of a root. Both repeat,
-and both belong to `diderot sessions install` alone.
+`--path` replaces the directories found. `--path <harness>=<path>` names
+that harness's root as the table shows it, not a directory below it, since a
+session is found by its place in the root; OpenCode's root is its database
+file or the directory holding it. `--exclude` leaves out every session whose
+file, or OpenCode database, is really under a directory, including one
+reached through a symbolic link from somewhere else, and each OpenCode
+session that ran in one, so it is the way to ship only part of a root. Both
+repeat, and both belong to `diderot sessions install` alone.
 
 **How it works.** Each session file is read and converted on your machine
 to [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md),

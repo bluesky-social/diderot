@@ -164,7 +164,7 @@ func isolateClientHome(t *testing.T) string {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	for _, key := range []string{"XDG_DATA_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "DIDEROT_TOKEN"} {
+	for _, key := range []string{"XDG_DATA_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "DIDEROT_TOKEN"} {
 		t.Setenv(key, "")
 	}
 	return home

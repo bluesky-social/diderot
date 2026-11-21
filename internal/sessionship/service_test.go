@@ -159,6 +159,7 @@ func TestDetect(t *testing.T) {
 	t.Setenv("CODEX_HOME", "")
 	t.Setenv("COPILOT_HOME", "")
 	t.Setenv("GEMINI_CLI_HOME", "")
+	t.Setenv("OPENCODE_DB", "")
 	t.Setenv("PI_CODING_AGENT_DIR", "")
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", "")
 	t.Setenv("POLYTOKEN_DATA_PATH", "")
@@ -213,10 +214,35 @@ func TestDetect(t *testing.T) {
 		{Harness: "polytoken", Dir: data},
 	}, found)
 
-	// Every harness in the table has a decoder and names its session files.
+	// OpenCode's source is its database file, which OPENCODE_DB names
+	// itself when absolute and under the data directory when not.
+	openCode := func() []Source {
+		found, err := Detect()
+		require.NoError(t, err)
+		var out []Source
+		for _, s := range found {
+			if s.Harness == "opencode" {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	ocDir := filepath.Join(elsewhere, "no-data-here", "opencode")
+	write(t, filepath.Join(ocDir, "opencode.db"), "")
+	assert.Equal(t, []Source{{Harness: "opencode", Dir: filepath.Join(ocDir, "opencode.db")}}, openCode())
+	t.Setenv("OPENCODE_DB", "other.db")
+	write(t, filepath.Join(ocDir, "other.db"), "")
+	assert.Equal(t, []Source{{Harness: "opencode", Dir: filepath.Join(ocDir, "other.db")}}, openCode())
+	t.Setenv("OPENCODE_DB", filepath.Join(data, "elsewhere.db"))
+	assert.Empty(t, openCode(), "a database that does not exist is not offered")
+
+	// Every harness in the table has a decoder and names its session files,
+	// or reads them from a database.
 	for _, h := range Harnesses {
 		assert.NotNil(t, h.Decoder, h.Name)
-		assert.Equal(t, 1, h.File.NumSubexp(), h.Name)
+		if h.Store == nil {
+			assert.Equal(t, 1, h.File.NumSubexp(), h.Name)
+		}
 	}
 	n, err := Source{Harness: "codex", Dir: filepath.Join(elsewhere, "missing")}.Count(nil)
 	require.NoError(t, err)
@@ -228,7 +254,7 @@ func TestDetect(t *testing.T) {
 func TestDetectPi(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "XDG_DATA_HOME"} {
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "XDG_DATA_HOME"} {
 		t.Setenv(key, "")
 	}
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".pi", "agent", "sessions"), 0o755))

@@ -346,6 +346,87 @@ func TestGeminiCLIFunctionResponses(t *testing.T) {
 	}
 }
 
+func TestOpenCodeFixture(t *testing.T) {
+	doc, records := assertFixture(t, OpenCode{}, "opencode", "basic")
+	const m = "msg_1f00000000"
+	want := []string{
+		m + "02SyntheticMsg02/user",
+		m + "03SyntheticMsg03:reasoning:0/reasoning",
+		m + "03SyntheticMsg03:assistant:1/assistant",
+		m + "03SyntheticMsg03:tool_result:2/tool",
+		m + "03SyntheticMsg03:tool_result:3/tool",
+		m + "03SyntheticMsg03:tool_result:4/tool",
+		m + "04SyntheticMsg04:assistant:0/assistant",
+		m + "04SyntheticMsg04:tool_result:0/tool",
+		m + "04SyntheticMsg04:assistant:1/assistant",
+		m + "07SyntheticMsg07/user",
+		m + "08SyntheticMsg08:assistant:1/assistant",
+		m + "08SyntheticMsg08:tool_result:1/tool",
+		m + "10SyntheticMsg10/system",
+		m + "11SyntheticMsg11/assistant",
+		m + "13SyntheticMsg13/system",
+		m + "14SyntheticMsg14/system",
+		m + "15SyntheticMsg15/system",
+		m + "17SyntheticMsg17/system",
+		m + "19SyntheticMsg19/user",
+		m + "20SyntheticMsg20:assistant:0/assistant",
+		m + "20SyntheticMsg20:tool_result:1/tool",
+		m + "20SyntheticMsg20:system:3/system",
+		m + "22SyntheticMsg22/user",
+		m + "23SyntheticMsg23/system",
+		m + "25SyntheticMsg25/system",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityNative {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "" || doc.Harness != "opencode" || doc.UserTurnCount != 4 || doc.WarningRecords != 3 {
+		t.Fatalf("document = %+v", doc)
+	}
+	// Three parallel calls, each paired with the result OpenCode keeps in
+	// the same part; a shell command that exited non-zero is a failure, as
+	// OpenCode shows it.
+	if len(records[2].ToolCalls) != 3 || records[2].ToolCalls[1].Args != `{"command":"ls missing-dir"}` ||
+		records[3].IsError || !records[4].IsError || records[5].IsError {
+		t.Fatal("parallel calls, call arguments, or error flags lost")
+	}
+	// Text after a call starts a new assistant record after its result.
+	if records[6].Content != nil || string(records[8].Content) != `"Fixed: add() now returns a + b."` {
+		t.Fatal("text after a tool call is not its own record")
+	}
+	if records[1].Model != "synthetic-sonnet" || records[10].Model != "synthetic-haiku" {
+		t.Fatal("record models lost across the model switch")
+	}
+	phases := map[int]string{12: "synthetic", 14: "system", 15: "skill", 16: "shell", 17: "compaction",
+		21: "interrupted", 23: "error", 24: "normalization"}
+	for i, phase := range phases {
+		if records[i].Role != "system" || records[i].Phase != phase {
+			t.Fatalf("record %d is %s/%s, want system/%s", i, records[i].Role, records[i].Phase, phase)
+		}
+	}
+	// An interrupted call is a failed result, and the step says it stopped.
+	if !records[20].IsError || string(records[21].Content) != `"Step interrupted"` {
+		t.Fatal("interrupted step lost")
+	}
+	// Attachments become placeholders: inline image bytes, a blob
+	// reference and a text file alike.
+	if got := string(records[0].Content); !strings.Contains(got, `{"type":"image","media_type":"image/png","available":false},{"type":"image","media_type":"image/jpeg","available":false}`) ||
+		!strings.Contains(got, `[Attached file notes.txt (text/plain) omitted from the searchable view.]`) {
+		t.Fatalf("user record with attachments = %s", got)
+	}
+	golden := goldenRecords(t, records)
+	for _, never := range []string{"iVBORw0KGgo", "U1lOVEhFVElD", "media:abab", "file:///home", "SIGNATURE-SYNTHETIC",
+		"CONTINUATION-SYNTHETIC", "REVERTED-SYNTHETIC", "Overloaded"} {
+		if bytes.Contains(golden, []byte(never)) {
+			t.Fatalf("%s reached a record", never)
+		}
+	}
+}
+
 func TestPiFixture(t *testing.T) {
 	doc, records := assertFixture(t, Pi{}, "pi", "basic")
 	want := []string{
@@ -577,6 +658,16 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 			`{"id":"",`+ts+`,"type":"gemini","content":"reply","thoughts":[{"subject":"s","description":"d"}]}`)},
 		{"gemini-cli everything rewound", GeminiCLI{}, cc(gcMeta,
 			`{"id":"u",`+ts+`,"type":"user","content":[{"text":"hi"}]}`, `{"$rewindTo":"u"}`)},
+		{"opencode unparseable document", OpenCode{}, []byte(`{"info":{},"messages":[`)},
+		{"opencode no messages", OpenCode{}, []byte(`{"info":{"id":"ses_x"}}`)},
+		{"opencode message without id", OpenCode{}, []byte(`{"messages":[{"type":"user","time":{"created":1793527200000},"text":"hi"}]}`)},
+		{"opencode message without time", OpenCode{}, []byte(`{"messages":[{"id":"msg_a","type":"user","text":"hi"}]}`)},
+		{"opencode tool part without id", OpenCode{}, []byte(`{"messages":[{"id":"msg_a","type":"assistant","time":{"created":1793527200000},` +
+			`"content":[{"type":"tool","name":"read","state":{"status":"completed","input":{},"content":[{"type":"text","text":"x"}]}}]}]}`)},
+		{"opencode known message of the wrong shape", OpenCode{}, []byte(`{"messages":[{"id":"msg_a","type":"user","time":{"created":1793527200000},"text":7}]}`)},
+		{"opencode duplicate message id", OpenCode{}, []byte(`{"messages":[{"id":"msg_a","type":"user","time":{"created":1793527200000},"text":"a"},` +
+			`{"id":"msg_a","type":"user","time":{"created":1793527200000},"text":"b"}]}`)},
+		{"opencode no conversation", OpenCode{}, []byte(`{"messages":[{"id":"msg_a","type":"idle","time":{"created":1793527200000},"outcome":"succeeded"}]}`)},
 		{"pi no session header", Pi{}, cc(
 			`{"type":"message","id":"a","parentId":null,` + ts + `,"message":{"role":"user","content":"hi"}}`)},
 		{"pi unparseable line", Pi{}, cc(piHeader, `{"type":`)},
@@ -699,6 +790,28 @@ func TestCopilotCLIEventShapes(t *testing.T) {
 
 const piHeader = `{"type":"session","version":3,"id":"019a3f00-0000-7000-8000-000000000002","timestamp":"2026-11-01T10:00:00.000Z","cwd":"/work"}`
 
+// TestOpenCodeToolFailures follows OpenCode's own rule for a failed call.
+func TestOpenCodeToolFailures(t *testing.T) {
+	for _, c := range []struct {
+		name, status, metadata string
+		failed                 bool
+	}{
+		{"read", "error", `{}`, true},
+		{"shell", "completed", `{"exit":0}`, false},
+		{"shell", "completed", `{"exit":127}`, true},
+		{"shell", "completed", `{"timeout":true}`, true},
+		{"read", "completed", `{"exit":1}`, false},
+		{"execute", "completed", `{"error":true}`, true},
+		{"execute", "completed", `{"toolCalls":[{"tool":"read","status":"completed"},{"tool":"shell","status":"error"}]}`, true},
+		{"execute", "completed", `{"toolCalls":[{"tool":"read","status":"completed"}]}`, false},
+	} {
+		got := ocToolFailed(c.name, ocToolState{Status: c.status, Metadata: json.RawMessage(c.metadata)})
+		if got != c.failed {
+			t.Fatalf("%s %s %s: failed = %v", c.name, c.status, c.metadata, got)
+		}
+	}
+}
+
 // TestPiActivePath: the live branch is the parent chain of the file's last
 // entry, whatever its type; a repeated id's later copy wins, and a parent
 // missing from the file ends the chain.
@@ -790,7 +903,7 @@ func TestPolytokenUnknownShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatPi, FormatPolytoken} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatOpenCode, FormatPi, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

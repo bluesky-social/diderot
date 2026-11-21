@@ -38,6 +38,10 @@ type Harness struct {
 	HashID bool
 	// Decoder reads the harness's session file.
 	Decoder sessiondecode.Decoder
+	// Store is set for a harness that keeps every session in one database
+	// file; File is then unused, and a source names the database or its
+	// directory.
+	Store SessionStore
 }
 
 const uuidPattern = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
@@ -104,6 +108,15 @@ var Harnesses = []Harness{
 		// is <project>/chats/<parent session ID>/<session ID>.jsonl.
 		File:    regexp.MustCompile(`(?:^|/)session-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-(?:\d+-)?([0-9a-f]{8})\.jsonl$`),
 		Decoder: sessiondecode.GeminiCLI{},
+	},
+	{
+		Name: "opencode",
+		Dirs: func(home string) []string { return []string{openCodeDB(home)} },
+		// OpenCode 2 keeps every session in one SQLite database. A
+		// subagent's session is not shipped; its report is in its parent's.
+		Store:   openCodeStore{},
+		HashID:  true,
+		Decoder: sessiondecode.OpenCode{},
 	},
 	{
 		Name: "pi",
@@ -176,7 +189,7 @@ func Detect() ([]Source, error) {
 	var found []Source
 	for _, h := range Harnesses {
 		for _, dir := range h.Dirs(home) {
-			if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			if info, err := os.Stat(dir); err == nil && (info.IsDir() || h.Store != nil && info.Mode().IsRegular()) {
 				found = append(found, Source{Harness: h.Name, Dir: dir})
 			}
 		}
@@ -190,8 +203,8 @@ type sessionFile struct {
 	// real is path with every link resolved: the file that was checked
 	// against the exclusions, and so the one that is read.
 	real string
-	// sessionID is what the harness's File captured; the session is pushed
-	// under the ID convert returns.
+	// sessionID is the harness's own ID as File captured it or its Store
+	// listed it; the session is pushed under the ID convert returns.
 	sessionID string
 	info      fs.FileInfo
 }
@@ -218,6 +231,9 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 		if real, err := filepath.EvalSymlinks(dir); err == nil && real != dir {
 			exclude = append(exclude[:len(exclude):len(exclude)], real)
 		}
+	}
+	if h.Store != nil {
+		return s.stored(h, root, exclude)
 	}
 	var found []sessionFile
 	err = filepath.WalkDir(root, func(resolved string, d fs.DirEntry, err error) error {
