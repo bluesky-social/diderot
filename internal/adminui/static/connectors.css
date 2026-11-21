@@ -22,3 +22,9 @@
 /* Removing a Notion page opens a small confirmation inside its row. */
 .notion-remove { display: inline-block; text-align: left; }
 .notion-remove > form { display: grid; gap: var(--space-2); justify-items: start; width: min(16rem, 70vw); white-space: normal; }
+
+/* Match the selected provider before the form script runs and without JavaScript. */
+#connector-settings:has(#field-provider option[value="tavily"]:checked) [data-search-provider="kagi"],
+#connector-settings:has(#field-provider option[value="kagi"]:checked) [data-search-provider="tavily"] {
+  display: none;
+}

@@ -379,13 +379,13 @@
       {
         "key": "kagi_api_key",
         "label": "Kagi API key",
-        "help": "From kagi.com/api/keys. Required when the provider is Kagi.",
+        "help": "Required when the provider is Kagi.",
         "kind": "secret"
       },
       {
         "key": "api_key",
         "label": "Tavily API key",
-        "help": "Starts with tvly-. From your account at app.tavily.com. Ask's web searches are sent to Tavily with it. Required when the provider is Tavily.",
+        "help": "Starts with tvly-. Required when the provider is Tavily.",
         "kind": "secret"
       },
       {

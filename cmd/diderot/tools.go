@@ -53,7 +53,7 @@ func (w webSearchTool) Fields() []settings.Field {
 		if fields[i].Key == tavily.FieldAPIKey {
 			fields[i].Label = "Tavily API key"
 			fields[i].Required = false
-			fields[i].Help += " Required when the provider is Tavily."
+			fields[i].Help = "Starts with tvly-. Required when the provider is Tavily."
 		}
 		if fields[i].Key == tavily.FieldBaseURL {
 			fields[i].Label = "Tavily API URL"
@@ -63,7 +63,7 @@ func (w webSearchTool) Fields() []settings.Field {
 		{Key: webProviderField, Label: "Provider", Kind: settings.KindEnum, Default: tavily.ConnectorName,
 			Options: []string{tavily.ConnectorName, kagiProvider}, Help: "Ask sends web searches and page fetches to this provider."},
 		{Key: kagiAPIKeyField, Label: "Kagi API key", Kind: settings.KindSecret,
-			Help: "From kagi.com/api/keys. Required when the provider is Kagi."},
+			Help: "Required when the provider is Kagi."},
 	}, fields...)
 }
 

@@ -100,3 +100,18 @@ function refreshScrollRegionFocus() {
 refreshScrollRegionFocus();
 window.addEventListener("resize", refreshScrollRegionFocus, { passive: true });
 document.addEventListener("toggle", refreshScrollRegionFocus, true);
+
+// Show and submit only the selected web search provider's fields.
+const searchProvider = document.querySelector("#connector-settings #field-provider");
+const searchProviderFields = document.querySelectorAll("#connector-settings [data-search-provider]");
+if (searchProvider && searchProviderFields.length) {
+  const updateSearchProvider = () => {
+    for (const fields of searchProviderFields) {
+      const inactive = fields.dataset.searchProvider !== searchProvider.value;
+      fields.hidden = inactive;
+      fields.disabled = inactive;
+    }
+  };
+  searchProvider.addEventListener("change", updateSearchProvider);
+  updateSearchProvider();
+}

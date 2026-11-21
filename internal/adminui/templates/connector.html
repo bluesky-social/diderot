@@ -48,7 +48,11 @@
   <form class="form" id="connector-settings" method="post" action="/admin/connectors/{{.View.Name}}">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <input type="hidden" name="version" value="{{.View.Version}}">
-    {{range .Fields}}{{template "connector-field" .}}{{else}}<p class="muted">It has nothing to set on this page.</p>{{end}}
+    {{range .Fields}}
+      {{if .SearchProvider}}<fieldset data-search-provider="{{.SearchProvider}}">{{end}}
+      {{template "connector-field" .}}
+      {{if .SearchProvider}}</fieldset>{{end}}
+    {{else}}<p class="muted">It has nothing to set on this page.</p>{{end}}
     <div class="form-actions">
       {{if .NeverSetUp}}
       <button class="button button-primary" type="submit" formaction="/admin/connectors/{{.View.Name}}/enable">Save and turn on</button>
@@ -129,6 +133,7 @@
     {{end}}
   {{if .Help}}<p class="help" id="field-{{.Key}}-help">{{.Help}}</p>{{end}}
   {{end}}
+  {{if .KeyPortalURL}}<p class="help"><a href="{{.KeyPortalURL}}">{{.KeyPortalLabel}}</a></p>{{end}}
   {{with .PromptVar}}<p class="help">Prompts can use it as <code>{{"{{"}}{{.}}{{"}}"}}</code>.</p>{{end}}
   {{with .Error}}<p class="error" role="alert">{{.}}</p>{{end}}
 </div>
