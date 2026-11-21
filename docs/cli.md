@@ -10,12 +10,13 @@ server:
 | `diderot ask "<question>"` | Asks Diderot and prints the answer with its citations. `--session` asks a follow-up in the same conversation. |
 | `diderot sessions ...` | Ships the sessions your coding agents keep on this machine to the server, from a background service `setup` offers to install. |
 
-Everything the first three do goes through the server's MCP endpoint,
-`/mcp`, with the same tools an agent uses; `sessions` also pushes to the
-server's session route beside it. The download is these commands alone,
-about 10 MB. The server's own commands (`serve`, `probe`, `qdrant-audit`,
-`reset-admin`) are in the server's container image, whose `diderot` has
-these four as well; the download says so if you run one of them.
+Everything the first three do goes through the server's MCP (Model Context
+Protocol) endpoint, `/mcp`, with the same tools an agent uses. `sessions`
+also pushes to the server's session route beside it. The download holds
+these four commands alone and is about 10 MB. The server's own commands
+(`serve`, `probe`, `qdrant-audit`, `reset-admin`) are in the server's
+container image, whose `diderot` has these four as well. Run one of them
+from the download and it says where they are.
 
 ## Install
 
@@ -46,8 +47,8 @@ tar -xzf "$archive" diderot
 install diderot ~/.local/bin/
 ```
 
-Download it this way rather than with a browser, which quarantines it, and
-macOS then refuses to run it. Each archive has a signed build provenance
+Download it with `curl` as above, not with a browser: a browser quarantines
+the file, and macOS then refuses to run it. Each archive has a signed build provenance
 attestation; with the GitHub CLI, check it with
 `gh attestation verify "$archive" --repo bluesky-social/diderot`.
 
@@ -75,13 +76,13 @@ diderot setup https://diderot.example.com --harness claude-code,codex
 `setup` works out how to sign in from the URL itself:
 
 - **A server that takes an API token** asks for it, without echoing it.
-  Off a terminal, pass it on stdin:
+  Off a terminal (in a script or a pipe), pass it on stdin:
   `printf %s "$TOKEN" | diderot setup <url> --harness cursor --token-stdin`.
-- **A server or gateway that signs in with OAuth** (one that publishes MCP
-  authorization metadata: a gateway that does, or a Diderot server in
-  `oidc` mode, [Authentication](auth.md#signing-in-to-mcp-in-oidc-mode))
-  opens your browser. Off a terminal it refuses rather than wait for a
-  browser; run it in a terminal. If the sign-in server does not let
+- **A server or gateway that signs in with OAuth** (a gateway that
+  publishes MCP authorization metadata, or a Diderot server in `oidc` mode,
+  [Authentication](auth.md#signing-in-to-mcp-in-oidc-mode)) opens your
+  browser. Off a terminal `setup` refuses rather than wait for a browser, so
+  run it in a terminal. If the sign-in server does not let
   programs register themselves, `setup` says so: ask your administrator for
   the OAuth client ID and add `--client-id <id>`.
 - **A server on your own machine in `none` mode** needs nothing.
@@ -91,9 +92,11 @@ It saves the sign-in in `~/.config/diderot/client.json` (under
 `doctor` use it, and renew an OAuth sign-in on their own; when it can no
 longer be renewed they say to run `setup` again.
 
-Then, for each harness you name (`--harness` with a comma-separated list; on
-a terminal without it, `setup` lists them, marks the ones it finds, and
-asks; `--harness none` only signs in):
+Then `setup` configures each harness you name. A harness is a coding
+agent's program: Claude Code, Codex, Cursor, OpenCode, or Pi. Name them with
+`--harness` and a comma-separated list. On a terminal without `--harness`,
+`setup` lists the harnesses, marks the ones it finds, and asks.
+`--harness none` only signs in.
 
 | Harness | How it is registered | Skill |
 |---|---|---|
@@ -116,8 +119,8 @@ How each harness authenticates:
   prints the harness's own sign-in command (`claude mcp login diderot`,
   `codex mcp login diderot`, `opencode mcp auth diderot`,
   `pi mcp login diderot`, or Cursor's MCP settings). `codex mcp add` starts
-  Codex's sign-in itself, so off a terminal `setup` leaves a Codex entry that
-  would change alone and exits 4.
+  Codex's sign-in itself. Off a terminal, `setup` therefore does not touch a
+  Codex entry that needs a change, and exits 4.
 - **API token.** The token goes into the harness's entry as an
   `Authorization` header. `setup` will not write it into an existing file
   other users can read; it says which file to `chmod 600`. Codex reads a
@@ -205,8 +208,8 @@ service ships only to the server you said yes for: if you later run
 `diderot setup` for another server, it sends nothing until you say yes again
 there, or run `diderot sessions install`.
 
-**Where sessions are found.** A harness is offered when its session
-directory exists:
+**Where sessions are found.** Sessions are shipped from Claude Code and
+Codex. Each is offered when its session directory exists:
 
 | Harness | Directory | Sessions |
 |---|---|---|
@@ -221,16 +224,16 @@ diderot sessions install \
   --exclude $HOME/.claude/projects/-Users-you-private-project
 ```
 
-`--path` replaces the directories found; `--exclude` leaves out every
-session whose file is really under a directory, including one reached
-through a symbolic link from somewhere else. Both repeat, and both belong to
-`diderot sessions install` alone.
+`--path` replaces the directories found. `--exclude` leaves out every
+session whose file resolves to a path under the directory, including one
+reached through a symbolic link from somewhere else. Both flags can be
+repeated, and only `diderot sessions install` takes them.
 
 **How it works.** Each session file is read and converted on your machine
 to [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md),
-an open format for agent sessions that the server already reads, and the
-converted session is what is sent: the server never sees the harness's own
-file. The session files are only ever read. A session that has grown is
+an open format for agent sessions that the server reads. The converted
+session is what is sent: the server never sees the harness's own file. The
+session files are only ever read, never changed. A session that has grown is
 sent again whole and replaces the server's copy, so one session on your
 machine is always one session on the server.
 
@@ -315,8 +318,8 @@ The server limits what one account may store
 ([Agent sessions](configuration.md#agent-sessions)): 4 GiB
 (`DIDEROT_SESSION_PUSH_OWNER_QUOTA_BYTES`) and 20,000 copies of sessions
 (`DIDEROT_SESSION_PUSH_OWNER_QUOTA_REVISIONS`), where every session is one
-copy and every later send of a session that grew is one more. The copies
-are what one person reaches first: starting 30 sessions a day, each sent
+copy and every later send of a session that grew is one more. One person
+reaches the limit on copies first: starting 30 sessions a day, each sent
 four times as it grows, uses 20,000 in about five and a half months. When a
 limit is reached, `status` says the quota is full and nothing more is sent
 until it is raised or earlier copies are let go. By default the server keeps
@@ -325,7 +328,7 @@ every earlier copy; with `DIDEROT_SESSION_PUSH_SUPERSEDED_RETENTION` set
 they stop counting. What you give up: a citation Diderot handed out to an
 earlier copy, older than that, expands to a note naming the session's
 current copy instead of the records it pointed at. On a server of your own,
-set it.
+set `DIDEROT_SESSION_PUSH_SUPERSEDED_RETENTION`.
 
 ## Scripts and agents
 
@@ -346,7 +349,8 @@ Progress goes to stderr. Nothing prompts off a terminal. Exit codes:
 
 A sign-in server that offers neither dynamic client registration nor a
 registration of its own at the MCP URL (a gateway can offer one) needs a
-client ID from your administrator: MCP gives a server no way to publish one.
+client ID from your administrator, passed with `--client-id <id>`: MCP gives
+a server no way to publish one.
 
 For an OAuth client ID shared by several harnesses, the identity provider
 must accept loopback redirects to `http://127.0.0.1:<port>/callback` and
