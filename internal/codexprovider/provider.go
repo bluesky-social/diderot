@@ -16,6 +16,9 @@ import (
 // A 25 MiB attachment expands by a third when encoded as a data URL.
 const maxRequestBytes = 36 << 20
 
+// Leave room for all generation probes in an admin model test to queue together.
+const maxQueuedRequests = 8
+
 // Config is the configuration of the adapter process.
 type Config struct {
 	AuthFile      string
@@ -43,6 +46,7 @@ func NewHandler(cfg Config) http.Handler {
 
 func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 	slots := make(chan struct{}, cfg.MaxConcurrent)
+	admitted := make(chan struct{}, cfg.MaxConcurrent+maxQueuedRequests)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/models", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), cfg.Timeout)
@@ -54,16 +58,31 @@ func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": models})
 	})
-	mux.HandleFunc("POST /v1/responses", func(w http.ResponseWriter, h *http.Request) {
+	mux.HandleFunc("POST /v1/responses", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case admitted <- struct{}{}:
+			defer func() { <-admitted }()
+		default:
+			writeError(w, http.StatusServiceUnavailable, "Codex request queue is full")
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), cfg.Timeout)
+		defer cancel()
 		select {
 		case slots <- struct{}{}:
 			defer func() { <-slots }()
-		default:
-			writeError(w, http.StatusTooManyRequests, "all Codex requests are busy")
+		case <-ctx.Done():
+			writeBackendError(w, ctx, ctx.Err())
 			return
 		}
+		if ctx.Err() != nil {
+			writeBackendError(w, ctx, ctx.Err())
+			return
+		}
+
 		var req request
-		decoder := json.NewDecoder(http.MaxBytesReader(w, h.Body, maxRequestBytes))
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBytes))
 		if err := decoder.Decode(&req); err != nil || decoder.Decode(new(json.RawMessage)) != io.EOF {
 			writeError(w, http.StatusBadRequest, "invalid or oversized JSON request")
 			return
@@ -73,8 +92,6 @@ func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(h.Context(), cfg.Timeout)
-		defer cancel()
 		result, err := respond(ctx, req)
 		if err != nil || ctx.Err() != nil {
 			writeBackendError(w, ctx, err)

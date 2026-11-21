@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
@@ -25,6 +26,60 @@ import (
 
 func testConfig() Config {
 	return Config{Model: "test-model", Token: "test-token", Timeout: time.Second, MaxConcurrent: 1}
+}
+
+func TestResponsesQueueWaitsForActiveRequests(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		cfg := testConfig()
+		release := make(chan struct{})
+		calls := 0
+		handler := newHandler(cfg, func(context.Context, request) (json.RawMessage, error) {
+			calls++
+			<-release
+			return json.RawMessage(`{"status":"completed"}`), nil
+		}, nil)
+
+		send := func(ctx context.Context) *httptest.ResponseRecorder {
+			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/v1/responses",
+				strings.NewReader(`{"model":"test-model","input":"Hello"}`))
+			req.Header.Set("Authorization", "Bearer "+cfg.Token)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			return rec
+		}
+
+		ctx := context.Background()
+		completed := make(chan int, 1+maxQueuedRequests)
+		go func() { completed <- send(ctx).Code }()
+		synctest.Wait()
+		waiting, cancel := context.WithCancel(ctx)
+		defer cancel()
+		canceled := make(chan int, 1)
+		go func() { canceled <- send(waiting).Code }()
+		for range maxQueuedRequests - 1 {
+			go func() { completed <- send(ctx).Code }()
+		}
+		synctest.Wait()
+
+		assert.Equal(t, 1, calls)
+		assert.Empty(t, completed)
+		assert.Empty(t, canceled)
+		overflow := send(ctx)
+		assert.Equal(t, http.StatusServiceUnavailable, overflow.Code)
+		assert.Contains(t, overflow.Body.String(), "Codex request queue is full")
+
+		cancel()
+		synctest.Wait()
+		assert.Equal(t, 1, calls)
+		assert.Equal(t, http.StatusGatewayTimeout, <-canceled)
+
+		close(release)
+		for range maxQueuedRequests {
+			assert.Equal(t, http.StatusOK, <-completed)
+		}
+		assert.Equal(t, maxQueuedRequests, calls)
+	})
 }
 
 func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {

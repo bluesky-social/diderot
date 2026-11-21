@@ -404,6 +404,8 @@ Diderot executes corpus functions itself. The Codex backend receives the
 questions, excerpts and transcripts passed to whichever jobs use it.
 The adapter does not pass through public API output caps or cache retention
 settings. Its backend is a ChatGPT client interface and may change.
+The adapter sends up to two requests at a time by default. It queues up to
+eight more, including model tests, within each request's deadline.
 
 ## What leaves the machine
 

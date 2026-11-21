@@ -47,7 +47,7 @@ func codexProviderCmd() *cobra.Command {
 			defer cancel()
 			server := &http.Server{
 				Handler: codexprovider.NewHandler(cfg), ReadHeaderTimeout: 5 * time.Second,
-				ReadTimeout: 30 * time.Second, IdleTimeout: 30 * time.Second,
+				ReadTimeout: cfg.Timeout, IdleTimeout: 30 * time.Second,
 				WriteTimeout: cfg.Timeout + 30*time.Second,
 				BaseContext:  func(net.Listener) context.Context { return ctx },
 			}
