@@ -159,6 +159,8 @@ func TestDetect(t *testing.T) {
 	t.Setenv("CODEX_HOME", "")
 	t.Setenv("COPILOT_HOME", "")
 	t.Setenv("GEMINI_CLI_HOME", "")
+	t.Setenv("PI_CODING_AGENT_DIR", "")
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", "")
 	t.Setenv("POLYTOKEN_DATA_PATH", "")
 	t.Setenv("XDG_DATA_HOME", "")
 	found, err := Detect()
@@ -219,6 +221,33 @@ func TestDetect(t *testing.T) {
 	n, err := Source{Harness: "codex", Dir: filepath.Join(elsewhere, "missing")}.Count(nil)
 	require.NoError(t, err)
 	assert.Zero(t, n)
+}
+
+// Pi keeps its sessions in its agent directory unless its own session
+// directory override names another.
+func TestDetectPi(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "XDG_DATA_HOME"} {
+		t.Setenv(key, "")
+	}
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".pi", "agent", "sessions"), 0o755))
+	found, err := Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: filepath.Join(home, ".pi", "agent", "sessions")}}, found)
+
+	agent := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(agent, "sessions"), 0o755))
+	t.Setenv("PI_CODING_AGENT_DIR", agent)
+	found, err = Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: filepath.Join(agent, "sessions")}}, found)
+
+	sessions := t.TempDir()
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", sessions)
+	found, err = Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: sessions}}, found)
 }
 
 func TestSettingsAndPaths(t *testing.T) {

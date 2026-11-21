@@ -21,6 +21,7 @@ outside Diderot should depend on it.
 | `codex-rollout-jsonl` | Codex CLI's `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Push |
 | `copilot-cli-events-jsonl` | GitHub Copilot CLI's `~/.copilot/session-state/<session>/events.jsonl` | Push |
 | `gemini-cli-session-jsonl` | Gemini CLI's `~/.gemini/tmp/<project>/chats/session-*.jsonl` | Push |
+| `pi-session-jsonl` | Pi's `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session>.jsonl` | Push |
 | `polytoken-jsonl` | Polytoken's `~/.local/share/polytoken/sessions-v1/<session>/log.jsonl` | Push |
 | `atif-json` | ATIF trajectory (Harbor's Agent Trajectory Interchange Format, v1.8) | Push |
 | `hf-sts-jsonl` | Hugging Face Session Trace Simple Format | Push |
@@ -39,8 +40,8 @@ which branch of a session is kept.
 ### From your own machine
 
 `diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Claude Code, Codex, Copilot CLI, Gemini CLI, and Polytoken sessions on a
-person's machine, from a background service that `diderot setup` offers to
+the Claude Code, Codex, Copilot CLI, Gemini CLI, Pi, and Polytoken sessions on
+a person's machine, from a background service that `diderot setup` offers to
 install. It reads each session file with the same decoder the server has for
 that harness, converts the result to ATIF on that machine, and pushes it as
 `atif-json`, so the server stores and decodes ATIF and never receives the

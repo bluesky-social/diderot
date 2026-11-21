@@ -223,6 +223,64 @@ same format.
   the metadata's `sessionId`; `diderot sessions` pushes the session under
   it, since the file name holds only its first eight characters.
 
+## `pi-session-jsonl` (decoder version 1)
+
+Pi's `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session>.jsonl` (the `pi`
+coding agent, `github.com/earendil-works/pi`). Mapped from the vendor's
+`packages/coding-agent/docs/session-format.md` and the code that
+writes and reads the file, `packages/coding-agent/src/core/session-manager.ts`,
+at tag `v1.6.0` (commit `faac585`), and verified against the entry shapes Pi
+0.72.1 and 1.6.0 write (session format version 3; key names only; fixtures
+are synthetic).
+
+- **Ids.** Every entry after the header has an `id`; ids are `native`
+  because Pi only appends entries and never edits one. An entry that becomes
+  one record keeps the bare id. An entry split into several records gets
+  `<id>:<kind>:<block index>` for each part (`user`, `reasoning`,
+  `assistant`, `system`).
+- **Active path.** Line 1 must be the `session` header, as Pi requires. Pi's
+  current position when it reopens a session is the last entry in the file,
+  of any type (a label or a thinking-level change too), and the live branch
+  is that entry's `parentId` chain back to a root. Entries on other branches
+  (the ones left behind when the person went back to an earlier point) are
+  not emitted. A parent missing from the file ends the path; a parent cycle
+  fails the document; when an id appears twice, the later line wins.
+  Compaction does not cut the path: the entries a `compaction` summarized
+  stay on it, and the compaction itself is a `system` record (phase
+  `compaction`) carrying its summary. An entry without an `id` (a version 1
+  file, which Pi rewrites the first time it opens one) fails the document.
+- **Messages.** A `message` entry maps by `message.role`. `user` becomes a
+  user record (string content, or text and image blocks). `assistant` splits
+  at each `thinking` block (a `reasoning` record); its text and `toolCall`
+  blocks merge into one assistant record whose `tool_calls` carry the native
+  `id`, `name`, and `arguments` JSON, and the message's `model` is the
+  record's model. An assistant message that stopped with `error` or
+  `aborted` adds a `system` record (the stop reason as phase) carrying its
+  `errorMessage`, or the stop reason when it has none. `toolResult` becomes
+  a `tool` record paired by `toolCallId`, with `isError`; its `details` are
+  not kept. `bashExecution` (a command the person ran with `!`) becomes a
+  user record, worded as Pi words it for the model. `custom` becomes
+  `system` (phase `custom`).
+  `system` messages, which hold the prompt sections and tool declarations Pi
+  sends, emit nothing.
+- **Other entries.** `custom_message` becomes `system` (phase `custom`) and
+  `branch_summary` becomes `system` (phase `branch_summary`). `model_change`,
+  `thinking_level_change`, `usage`, `custom`, `label`, `session_info`, and
+  `context_edit` emit nothing; a `context_edit` changes only what later model
+  calls see. Any other entry type, message role, or content block becomes a
+  notice.
+- **User text.** Pi stores a `/skill:<name> <args>` prompt expanded: a
+  `<skill name=… location=…>` block holding the skill file, then the
+  arguments. A text block that is exactly that shape (Pi's own parser) is
+  mapped back to `/skill:<name> <args>` in the user record, and the skill
+  file's text inside the block follows as a `system` record with phase
+  `meta`, as Claude Code's injected skill text is. Files attached with
+  `@<path>` on the command line are stored as `<file name="…">…</file>`
+  text ahead of the prompt, with no boundary Pi marks, and are kept.
+- **Session.** `SourceVersion` is the header's `version` (the session format
+  version; Pi records no program version). Times are the entries' ISO
+  `timestamp`, not the messages' millisecond one.
+
 ## `polytoken-jsonl` (decoder version 1)
 
 Polytoken's `sessions-v1/<session>/log.jsonl` under its data directory

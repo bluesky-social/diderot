@@ -214,6 +214,7 @@ directory exists:
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
 | `copilot-cli` | `~/.copilot/session-state` (`$COPILOT_HOME/session-state` when that is set) | each `<session id>/events.jsonl`; subagents are in the same file |
 | `gemini-cli` | `~/.gemini/tmp` (`$GEMINI_CLI_HOME/.gemini/tmp` when that is set) | each `<project>/chats/session-*.jsonl`; subagent transcripts are not sent |
+| `pi` | `~/.pi/agent/sessions` (`$PI_CODING_AGENT_DIR/sessions` when that is set, and `$PI_CODING_AGENT_SESSION_DIR` over both) | each `<timestamp>_<session id>.jsonl`; a session started with a `--session-id` that is not a UUID is not sent. A `sessionDir` in Pi's settings is not read: name it with `--path pi=<directory>` |
 | `polytoken` | `~/.local/share/polytoken` (`$POLYTOKEN_DATA_PATH`, or `$XDG_DATA_HOME/polytoken`, when that is set) | each `sessions-v1/<session id>/log.jsonl`, and `sessions/<session id>/log.jsonl` from older releases; subagent transcripts are not sent |
 
 To ship from somewhere else, or only part of it:

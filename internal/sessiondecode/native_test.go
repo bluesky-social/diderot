@@ -346,6 +346,68 @@ func TestGeminiCLIFunctionResponses(t *testing.T) {
 	}
 }
 
+func TestPiFixture(t *testing.T) {
+	doc, records := assertFixture(t, Pi{}, "pi", "basic")
+	want := []string{
+		"10000004/user",
+		"10000005/assistant",
+		"10000008/system",
+		"1000000a:user:0/user",
+		"1000000a:system:0/system",
+		"1000000b:reasoning:0/reasoning",
+		"1000000b:assistant:1/assistant",
+		"1000000c/tool",
+		"1000000d/tool",
+		"1000000e/assistant",
+		"1000000f/tool",
+		"10000010/assistant",
+		"10000012/user",
+		"10000013:reasoning:0/reasoning",
+		"10000013:assistant:1/assistant",
+		"10000014/tool",
+		"10000015/assistant",
+		"10000016/user",
+		"10000017:reasoning:0/reasoning",
+		"10000017:assistant:1/assistant",
+		"10000017:system:2/system",
+		"10000018/user",
+		"10000019/system",
+		"1000001d/system",
+		"1000001f/user",
+		"10000020/system",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("active path ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityNative {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "3" || doc.Harness != "pi" || doc.UserTurnCount != 6 || doc.WarningRecords != 0 {
+		t.Fatalf("document = %+v", doc)
+	}
+	phases := []string{records[2].Phase, records[4].Phase, records[20].Phase, records[22].Phase, records[23].Phase, records[25].Phase}
+	if strings.Join(phases, ",") != "branch_summary,meta,aborted,custom,compaction,error" {
+		t.Fatalf("system phases = %v", phases)
+	}
+	// A skill prompt is what the person typed, and the skill file Pi sent
+	// in its place is kept beside it.
+	if string(records[3].Content) != `"/skill:release-notes for the next tag"` ||
+		!strings.HasSuffix(rawString(records[4].Content), "Write release notes from the git log since the last tag.") {
+		t.Fatalf("skill invocation = %s, then %s", records[3].Content, records[4].Content)
+	}
+	if !records[8].IsError || records[6].ToolCalls[1].Args != `{"command":"go test ./..."}` || records[14].Model != "claude-synthetic-2" {
+		t.Fatal("tool error flag, call arguments, or switched model lost")
+	}
+	if !strings.Contains(string(records[21].Content), "Command exited with code 1") {
+		t.Fatalf("bash execution = %s", records[21].Content)
+	}
+	if bytes.Contains(goldenRecords(t, records), []byte("iVBORw0KGgo")) {
+		t.Fatal("inline image bytes reached a record")
+	}
+}
+
 func TestPolytokenFixture(t *testing.T) {
 	doc, records := assertFixture(t, Polytoken{}, "polytoken", "basic")
 	const a, b, c = "AAAAAAAAAAAAAAAAAAAAAA:", "BBBBBBBBBBBBBBBBBBBBBB:", "CCCCCCCCCCCCCCCCCCCCCC:"
@@ -515,6 +577,23 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 			`{"id":"",`+ts+`,"type":"gemini","content":"reply","thoughts":[{"subject":"s","description":"d"}]}`)},
 		{"gemini-cli everything rewound", GeminiCLI{}, cc(gcMeta,
 			`{"id":"u",`+ts+`,"type":"user","content":[{"text":"hi"}]}`, `{"$rewindTo":"u"}`)},
+		{"pi no session header", Pi{}, cc(
+			`{"type":"message","id":"a","parentId":null,` + ts + `,"message":{"role":"user","content":"hi"}}`)},
+		{"pi unparseable line", Pi{}, cc(piHeader, `{"type":`)},
+		{"pi entry without id", Pi{}, cc(piHeader,
+			`{"type":"message",`+ts+`,"message":{"role":"user","content":"hi"}}`)},
+		{"pi parent cycle", Pi{}, cc(piHeader,
+			`{"type":"message","id":"a","parentId":"b",`+ts+`,"message":{"role":"user","content":"hi"}}`,
+			`{"type":"message","id":"b","parentId":"a",`+ts+`,"message":{"role":"user","content":"hi"}}`)},
+		{"pi missing timestamp", Pi{}, cc(piHeader,
+			`{"type":"message","id":"a","parentId":null,"message":{"role":"user","content":"hi"}}`)},
+		{"pi orphan tool result", Pi{}, cc(piHeader,
+			`{"type":"message","id":"a","parentId":null,`+ts+`,"message":{"role":"toolResult","toolCallId":"nope","content":[{"type":"text","text":"x"}],"isError":false}}`)},
+		{"pi tool call without id", Pi{}, cc(piHeader,
+			`{"type":"message","id":"a","parentId":null,`+ts+`,"message":{"role":"assistant","content":[{"type":"toolCall","name":"bash","arguments":{}}]}}`)},
+		{"pi message entry without message", Pi{}, cc(piHeader, `{"type":"message","id":"a","parentId":null,`+ts+`}`)},
+		{"pi no conversation", Pi{}, cc(piHeader,
+			`{"type":"model_change","id":"a","parentId":null,`+ts+`,"provider":"anthropic","modelId":"m"}`)},
 		{"polytoken orphan tool result", Polytoken{}, cc(
 			`{"type":"tool_result","results":[{"tool_use_id":"nope","content":{"text":"x"},"is_error":false}],` + pt + `}`)},
 		{"polytoken unparseable line", Polytoken{}, cc(
@@ -618,6 +697,70 @@ func TestCopilotCLIEventShapes(t *testing.T) {
 	}
 }
 
+const piHeader = `{"type":"session","version":3,"id":"019a3f00-0000-7000-8000-000000000002","timestamp":"2026-11-01T10:00:00.000Z","cwd":"/work"}`
+
+// TestPiActivePath: the live branch is the parent chain of the file's last
+// entry, whatever its type; a repeated id's later copy wins, and a parent
+// missing from the file ends the chain.
+func TestPiActivePath(t *testing.T) {
+	const ts = `"timestamp":"2026-11-01T10:00:00.000Z"`
+	user := func(id, parent, text string) string {
+		return `{"type":"message","id":"` + id + `","parentId":` + parent + `,` + ts + `,"message":{"role":"user","content":[{"type":"text","text":"` + text + `"}]}}`
+	}
+	data := []byte(strings.Join([]string{
+		piHeader,
+		user("u1", `"gone"`, "first"),
+		`{"type":"message","id":"a1","parentId":"u1",` + ts + `,"message":{"role":"assistant","content":[{"type":"text","text":"ok"}]}}`,
+		user("u2", `"a1"`, "abandoned"),
+		user("u3", `"a1"`, "draft"),
+		user("u3", `"a1"`, "kept"),
+		`{"type":"label","id":"l1","parentId":"u3",` + ts + `,"targetId":"u2","label":"old"}`,
+	}, "\n") + "\n")
+	_, records := assertContract(t, Pi{}, data)
+	if got := strings.Join(ids(records), ","); got != "u1/user,a1/assistant,u3/user" {
+		t.Fatalf("path = %s", got)
+	}
+	if string(records[2].Content) != `"kept"` {
+		t.Fatalf("repeated id: %s", records[2].Content)
+	}
+}
+
+func TestPiEntryShapes(t *testing.T) {
+	const ts = `"timestamp":"2026-11-01T10:00:00.000Z"`
+	data := []byte(strings.Join([]string{
+		piHeader,
+		`{"type":"message","id":"s1","parentId":null,` + ts + `,"message":{"role":"system","content":"","sections":{"preamble":"x"},"timestamp":1}}`,
+		`{"type":"message","id":"u1","parentId":"s1",` + ts + `,"message":{"role":"user","content":[{"type":"text","text":"<skill name=\"lint\" location=\"/s/lint/SKILL.md\">\nReferences are relative to /s/lint.\n\nRun the linter.\n</skill>"},{"type":"audio","data":"AAAA"}]}}`,
+		`{"type":"message","id":"c1","parentId":"u1",` + ts + `,"message":{"role":"custom","customType":"ext","content":[{"type":"text","text":"injected"},{"type":"future_block","text":{"nested":true}}],"display":false}}`,
+		`{"type":"message","id":"h1","parentId":"c1",` + ts + `,"message":{"role":"hookMessage","content":"old"}}`,
+		`{"type":"future_kind","id":"f1","parentId":"h1",` + ts + `}`,
+		`{"type":"message","id":"u2","parentId":"f1",` + ts + `,"message":{"role":"user","content":"<skill name=\"x\">not a skill block"}}`,
+		`{"type":"message","id":"a1","parentId":"u2",` + ts + `,"message":{"role":"assistant","content":[],"stopReason":"aborted"}}`,
+	}, "\n") + "\n")
+	doc, records := assertContract(t, Pi{}, data)
+	if got := strings.Join(ids(records), ","); got != "u1:user:0/user,u1:system:0/system,c1/system,h1/system,f1/system,u2/user,a1/system" {
+		t.Fatalf("records = %s", got)
+	}
+	if records[6].Phase != "aborted" {
+		t.Fatalf("a cancelled turn with no message left no record: %+v", records[6])
+	}
+	if !strings.Contains(string(records[0].Content), `"text":"/skill:lint"`) || bytes.Contains(records[0].Content, []byte("Run the linter")) {
+		t.Fatalf("skill block = %s", records[0].Content)
+	}
+	if records[1].Phase != "meta" || rawString(records[1].Content) != "References are relative to /s/lint.\n\nRun the linter." {
+		t.Fatalf("skill file = %+v", records[1])
+	}
+	if records[2].Phase != "custom" || records[3].Phase != "normalization" || records[4].Phase != "normalization" {
+		t.Fatalf("phases: %+v", records)
+	}
+	if rawString(records[5].Content) != `<skill name="x">not a skill block` {
+		t.Fatalf("text that is not a skill block changed: %s", records[5].Content)
+	}
+	if doc.WarningRecords != 4 || bytes.Contains(goldenRecords(t, records), []byte("AAAA")) {
+		t.Fatalf("warnings = %d, or audio bytes kept", doc.WarningRecords)
+	}
+}
+
 // TestPolytokenUnknownShapes: an event or block of a kind the decoder does
 // not know becomes a notice whatever its fields hold, and an event with no
 // time of its own takes the envelope's.
@@ -647,7 +790,7 @@ func TestPolytokenUnknownShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatPolytoken} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatPi, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

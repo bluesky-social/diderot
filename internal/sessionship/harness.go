@@ -106,6 +106,19 @@ var Harnesses = []Harness{
 		Decoder: sessiondecode.GeminiCLI{},
 	},
 	{
+		Name: "pi",
+		Dirs: func(home string) []string {
+			if dir := os.Getenv("PI_CODING_AGENT_SESSION_DIR"); dir != "" {
+				return []string{dir}
+			}
+			return []string{filepath.Join(envOr("PI_CODING_AGENT_DIR", filepath.Join(home, ".pi", "agent")), "sessions")}
+		},
+		// <timestamp>_<session id>.jsonl. A session given a --session-id
+		// that is not a UUID is left out: the push route takes only UUIDs.
+		File:    regexp.MustCompile(`(?:^|/)\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_(` + uuidPattern + `)\.jsonl$`),
+		Decoder: sessiondecode.Pi{},
+	},
+	{
 		Name: "polytoken",
 		Dirs: func(home string) []string {
 			return []string{envOr("POLYTOKEN_DATA_PATH", filepath.Join(envOr("XDG_DATA_HOME", filepath.Join(home, ".local", "share")), "polytoken"))}

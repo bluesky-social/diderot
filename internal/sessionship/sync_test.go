@@ -257,6 +257,29 @@ func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }
 
+func TestPassSendsPiSessions(t *testing.T) {
+	const piSession = "019a3f00-0000-7000-8000-000000000001"
+	f := newFixture(t)
+	pi, err := os.ReadFile("../sessiondecode/testdata/pi/basic.jsonl")
+	require.NoError(t, err)
+	dir := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(f.claude))), "pi")
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources, Source{Harness: "pi", Dir: dir})
+	project := filepath.Join(dir, "--work-demo--")
+	session := filepath.Join(project, "2026-11-01T10-00-00-000Z_"+piSession+".jsonl")
+	write(t, session, string(pi))
+	// Not pushable: a session with a custom id, and a renamed copy.
+	write(t, filepath.Join(project, "2026-11-01T10-00-00-000Z_my-session.jsonl"), string(pi))
+	write(t, filepath.Join(project, "2026-11-01T10-00-00-000Z_"+piSession+"-1.jsonl"), string(pi))
+
+	result := f.pass(t)
+	require.Len(t, result.Sent, 2)
+	assert.Equal(t, Outcome{Harness: "pi", SessionID: piSession, Path: session, Action: "created"}, result.Sent[1])
+	assert.Empty(t, result.Skipped)
+	_, want, err := sessiondecode.DecodeAll(sessiondecode.Pi{}, pi)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(piSession), len(want))
+}
+
 // TestPassSendsPolytokenSessions: a Polytoken session is its directory's
 // log, in the current layout or the older one, pushed under a UUID derived
 // from its own ID. Nothing else under the data directory is read, and a
