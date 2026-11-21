@@ -385,14 +385,11 @@ diderot codex-provider \
 ```
 
 ChatGPT may require you to enable device code login in account security
-settings first. In Kubernetes, run the login command in the adapter's
-container so it can write to the credentials volume directly.
+settings first.
 
 In **Models → Inference providers**, add an **OpenAI-compatible** provider
 with base URL `http://127.0.0.1:9460/v1` for a standalone server on the
-same host. Paste the provider token as its API key. In Kubernetes, keep the
-auth file on a private writable volume, bind `--listen` to the private
-service interface, and use the Service's `*.svc.cluster.local` URL.
+same host. Paste the provider token as its API key.
 
 The provider lists the selectable models for its signed-in account, with
 their supported and default reasoning efforts for direct inference. Codex
