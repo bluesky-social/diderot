@@ -13,7 +13,8 @@ import (
 	"time"
 )
 
-const maxRequestBytes = 8 << 20
+// A 25 MiB attachment expands by a third when encoded as a data URL.
+const maxRequestBytes = 36 << 20
 
 // Config is the configuration of the adapter process.
 type Config struct {
@@ -54,6 +55,13 @@ func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": models})
 	})
 	mux.HandleFunc("POST /v1/responses", func(w http.ResponseWriter, h *http.Request) {
+		select {
+		case slots <- struct{}{}:
+			defer func() { <-slots }()
+		default:
+			writeError(w, http.StatusTooManyRequests, "all Codex requests are busy")
+			return
+		}
 		var req request
 		decoder := json.NewDecoder(http.MaxBytesReader(w, h.Body, maxRequestBytes))
 		if err := decoder.Decode(&req); err != nil || decoder.Decode(new(json.RawMessage)) != io.EOF {
@@ -64,13 +72,7 @@ func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		select {
-		case slots <- struct{}{}:
-			defer func() { <-slots }()
-		default:
-			writeError(w, http.StatusTooManyRequests, "all Codex requests are busy")
-			return
-		}
+
 		ctx, cancel := context.WithTimeout(h.Context(), cfg.Timeout)
 		defer cancel()
 		result, err := respond(ctx, req)

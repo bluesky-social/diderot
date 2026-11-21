@@ -15,13 +15,14 @@ const maxCatalogBytes = 8 << 20
 // listedModel is an OpenAI-shaped listing entry carrying Codex's model
 // metadata in the fields Diderot reads.
 type listedModel struct {
-	ID            string   `json:"id"`
-	Object        string   `json:"object"`
-	Name          string   `json:"name,omitempty"`
-	OwnedBy       string   `json:"owned_by"`
-	ContextWindow int      `json:"context_window,omitempty"`
-	Efforts       []string `json:"reasoning_efforts,omitempty"`
-	DefaultEffort string   `json:"default_reasoning_effort,omitempty"`
+	ID            string                   `json:"id"`
+	Object        string                   `json:"object"`
+	Protocols     []modelregistry.Protocol `json:"protocols"`
+	Name          string                   `json:"name,omitempty"`
+	OwnedBy       string                   `json:"owned_by"`
+	ContextWindow int                      `json:"context_window,omitempty"`
+	Efforts       []string                 `json:"reasoning_efforts,omitempty"`
+	DefaultEffort string                   `json:"default_reasoning_effort,omitempty"`
 	Architecture  struct {
 		InputModalities []string `json:"input_modalities,omitempty"`
 	} `json:"architecture,omitzero"`
@@ -58,7 +59,7 @@ func (b *codexBackend) models(ctx context.Context, selected string) ([]listedMod
 		}
 		entry := listedModel{
 			ID: model.Slug, Object: "model", Name: model.Name, OwnedBy: "openai",
-			ContextWindow: model.ContextWindow,
+			ContextWindow: model.ContextWindow, Protocols: []modelregistry.Protocol{modelregistry.ProtocolResponses},
 		}
 		entry.Architecture.InputModalities = model.InputModalities
 		// The catalog also advertises harness presets such as Ultra. Offer

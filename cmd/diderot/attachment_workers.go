@@ -73,7 +73,7 @@ func registerCaptionWorker(
 	// session feed runs.
 	imageFetchers["agent_session"] = files.NewAgentSessionFetcher(mirror)
 	if !captionsEnabled(models) {
-		logger.Error("caption worker disabled: needs a configured model registry provider serving chat")
+		logger.Error("caption worker disabled: needs a configured model registry provider serving captions")
 		return
 	}
 	captioner, err := newCaptioner(models.caption)
@@ -106,7 +106,7 @@ func registerDocumentWorker(
 	var pdfModel docs.Extractor
 	if !documentExtractionEnabled(models) {
 		logger.Error("PDF model unavailable; local document processing remains enabled",
-			"err", "needs a configured model registry provider serving chat")
+			"err", "needs a configured model registry provider serving document extraction")
 	} else if extractor, err := newDocumentExtractor(models.docExtract, logger.With("component", "doc-extractor")); err != nil {
 		logger.Error("PDF model unavailable; local document processing remains enabled", "err", err)
 	} else {
@@ -137,7 +137,7 @@ func registerDocumentWorker(
 func newCaptioner(model boundModel) (*files.GatewayCaptioner, error) {
 	return files.NewGatewayCaptioner(files.GatewayCaptionerConfig{
 		BaseURL: model.endpoint.BaseURL, APIKey: model.endpoint.APIKey, Auth: model.endpoint.Auth, Headers: model.endpoint.Headers,
-		ModelID: model.ID, TokenParam: model.ChatTokenParam,
+		ModelID: model.ID, TokenParam: model.ChatTokenParam, Responses: model.usesResponsesForText(),
 		ReasoningTokenAllowance: model.ChatReasoningTokenAllowance,
 		OmitTemperature:         model.ChatOmitTemperature, ExtraBody: model.ChatFields(),
 	})
@@ -146,7 +146,7 @@ func newCaptioner(model boundModel) (*files.GatewayCaptioner, error) {
 func newDocumentExtractor(model boundModel, logger *slog.Logger) (*docs.GatewayExtractor, error) {
 	return docs.NewGatewayExtractor(docs.GatewayExtractorConfig{
 		BaseURL: model.endpoint.BaseURL, APIKey: model.endpoint.APIKey, Auth: model.endpoint.Auth, Headers: model.endpoint.Headers,
-		ModelID: model.ID, TokenParam: model.ChatTokenParam,
+		ModelID: model.ID, TokenParam: model.ChatTokenParam, Responses: model.usesResponsesForText(),
 		ReasoningTokenAllowance: model.ChatReasoningTokenAllowance, ExtraBody: model.ChatFields(),
 	}, logger)
 }

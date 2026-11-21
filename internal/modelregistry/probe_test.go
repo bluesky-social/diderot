@@ -488,3 +488,38 @@ func TestTitlesTestDoesNotReadTheAnswer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(testTokens), fake.last().Body["max_output_tokens"])
 }
+
+func TestResponsesTextRoleProbesFollowPublishedProtocol(t *testing.T) {
+	for _, test := range []struct {
+		role      Role
+		inputType string
+	}{
+		{RoleImageCaptions, "input_image"},
+		{RoleDocumentExtraction, "input_file"},
+		{RoleThreadSummaries, ""},
+	} {
+		t.Run(string(test.role), func(t *testing.T) {
+			fake := &fakeProvider{
+				answer: func(path string, body map[string]any) int {
+					assert.Equal(t, "/v1/responses", path)
+					if test.inputType != "" {
+						items := body["input"].([]any)
+						parts := items[0].(map[string]any)["content"].([]any)
+						assert.Equal(t, test.inputType, parts[0].(map[string]any)["type"])
+					}
+					return http.StatusOK
+				},
+				reply: proseReply,
+			}
+			server := fake.serve(t)
+			model := NewEntry("p", "vision").WithPublished(Published{Provider: Facts{
+				Protocols: []Protocol{ProtocolResponses},
+			}}, false)
+			learned, err := TestForRole(t.Context(), testProvider(KindOpenAI, server, "/v1"), model, test.role, TestOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, []string{"/v1/responses"}, fake.paths())
+			assert.True(t, learned.ServesRole(test.role))
+			assert.Equal(t, SourceProvider, learned.SourceOf(FactProtocols))
+		})
+	}
+}

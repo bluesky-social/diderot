@@ -3,6 +3,7 @@ package modelregistry
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -125,7 +126,7 @@ func TestForRole(ctx context.Context, p Provider, m Model, role Role, opts TestO
 	case RoleSessionSummaryMap, RoleSessionSummaryReduce:
 		err = t.summaries(&learned)
 	case RoleImageCaptions, RoleDocumentExtraction, RoleThreadSummaries:
-		err = t.chat(&learned, NeedsImages(role), false)
+		err = t.textJob(&learned, role)
 	default:
 		return m, &TestError{Reason: "unknown job"}
 	}
@@ -390,6 +391,52 @@ func (t tester) forcedResponses(m *Model, tokens int, called bool) error {
 		if err := send(""); err != nil {
 			return err
 		}
+	}
+	addProtocol(m, ProtocolResponses)
+	return nil
+}
+
+//go:embed vision-probe.b64
+var textProbePDF string
+
+func (t tester) textJob(m *Model, role Role) error {
+	protocol, known := m.RoleProtocol(role)
+	if known && protocol == ProtocolResponses &&
+		(m.SourceOf(FactProtocols) != SourceTest || slices.Contains(m.TestedFor, role)) {
+		return t.responsesTextJob(m, role)
+	}
+	err := t.chat(m, NeedsImages(role), false)
+	if !m.Supports(ProtocolChat) && refused(err, http.StatusNotFound, http.StatusMethodNotAllowed) &&
+		m.learnable(FactProtocols) && slices.Contains(t.provider.Kind.Protocols(), ProtocolResponses) {
+		return t.responsesTextJob(m, role)
+	}
+	return err
+}
+
+func (t tester) responsesTextJob(m *Model, role Role) error {
+	if NeedsImages(role) && !m.Images && !m.learnable(FactImages) {
+		return &TestError{Reason: "its entry says it does not accept images, which this job needs"}
+	}
+	body := llmclient.ResponsesTextRequest{Model: m.ID, Input: testPrompt, MaxOutputTokens: forcedTestTokens}
+	switch role {
+	case RoleImageCaptions:
+		body.Input = []llmclient.ResponsesMessage{{Role: "user", Content: []llmclient.ResponsesPart{
+			{Type: "input_image", ImageURL: testImage},
+			{Type: "input_text", Text: "Describe this image in one word."},
+		}}}
+	case RoleDocumentExtraction:
+		body.Input = []llmclient.ResponsesMessage{{Role: "user", Content: []llmclient.ResponsesPart{
+			{Type: "input_file", Filename: "test.pdf", FileData: "data:application/pdf;base64," + strings.TrimSpace(textProbePDF)},
+			{Type: "input_text", Text: "Read the text on this page."},
+		}}}
+	}
+	*t.requests++
+	if _, err := t.client.TextResponse(t.ctx, body, 1<<20); err != nil {
+		return classify(t.ctx, err)
+	}
+	if NeedsImages(role) && !m.Images {
+		m.Images = true
+		m.learn(FactImages)
 	}
 	addProtocol(m, ProtocolResponses)
 	return nil

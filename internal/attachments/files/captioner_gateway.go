@@ -16,14 +16,15 @@ import (
 	"github.com/bluesky-social/diderot/internal/safehttp"
 )
 
-// GatewayCaptionerConfig configures the chat-completions transport used for
-// image captioning.
+// GatewayCaptionerConfig configures the provider used for image captioning.
 type GatewayCaptionerConfig struct {
 	BaseURL string
 	APIKey  string
 	// Auth selects the credential header; empty means bearer.
 	Auth    llmclient.AuthStyle
 	ModelID string
+	// Responses selects the native Responses endpoint for this model.
+	Responses bool
 	// TokenParam is the model registry's chat_token_param for ModelID: the
 	// field that carries the output limit. Empty means max_tokens.
 	TokenParam llmclient.ChatTokenParam
@@ -88,8 +89,8 @@ type Captioner interface {
 	ModelID() string
 }
 
-// GatewayCaptioner sends OpenAI-compatible multimodal chat-completions
-// requests to the configured chat endpoint.
+// GatewayCaptioner sends an inline image and a prompt using the model’s
+// configured protocol.
 type GatewayCaptioner struct {
 	cfg    GatewayCaptionerConfig
 	client *llmclient.Client
@@ -116,8 +117,10 @@ func NewGatewayCaptioner(cfg GatewayCaptionerConfig) (*GatewayCaptioner, error) 
 	captioner := &GatewayCaptioner{cfg: cfg, client: client}
 	// Reject a registry extra field that collides with a caption field here,
 	// so a configuration error cannot poison every image row at request time.
-	if _, err := llmclient.WithExtraFields(captioner.request(nil), cfg.ExtraBody); err != nil {
-		return nil, fmt.Errorf("gateway captioner: %w", err)
+	if !cfg.Responses {
+		if _, err := llmclient.WithExtraFields(captioner.request(nil), cfg.ExtraBody); err != nil {
+			return nil, fmt.Errorf("gateway captioner: %w", err)
+		}
 	}
 	return captioner, nil
 }
@@ -138,8 +141,24 @@ func (c *GatewayCaptioner) Caption(ctx context.Context, mediaType string, data [
 		return nil, fmt.Errorf("gateway captioner: non-image mediaType %q", mediaType)
 	}
 
+	imageURL := "data:" + mediaType + ";base64," + base64.StdEncoding.EncodeToString(data)
+	if c.cfg.Responses {
+		body := llmclient.ResponsesTextRequest{
+			Model: c.cfg.ModelID, MaxOutputTokens: captionMaxTokens + c.cfg.ReasoningTokenAllowance,
+			Instructions: CaptionPrompt(), Input: []llmclient.ResponsesMessage{{Role: "user", Content: []llmclient.ResponsesPart{
+				{Type: "input_image", ImageURL: imageURL},
+				{Type: "input_text", Text: "Describe and transcribe the image."},
+			}}},
+		}
+		result, err := c.client.TextResponse(ctx, body, 4<<20)
+		if err != nil {
+			return nil, captionRequestError(err)
+		}
+		return c.parse(result.Text), nil
+	}
+
 	reqBody := c.request([]gatewayCaptionContent{
-		{Type: "image_url", ImageURL: &gatewayImageURL{URL: "data:" + mediaType + ";base64," + base64.StdEncoding.EncodeToString(data)}},
+		{Type: "image_url", ImageURL: &gatewayImageURL{URL: imageURL}},
 		{Type: "text", Text: CaptionPrompt()},
 	})
 	payload, err := llmclient.WithExtraFields(reqBody, c.cfg.ExtraBody)
@@ -148,11 +167,7 @@ func (c *GatewayCaptioner) Caption(ctx context.Context, mediaType string, data [
 	}
 	respBytes, err := c.client.PostJSON(ctx, "/chat/completions", payload, 4<<20)
 	if err != nil {
-		var statusError *llmclient.HTTPError
-		if errors.As(err, &statusError) {
-			return nil, classifyHTTPStatus(statusError.StatusCode, err)
-		}
-		return nil, classifyGatewayCaptionError(fmt.Errorf("gateway captioner: request: %w", err))
+		return nil, captionRequestError(err)
 	}
 
 	var gr gatewayCaptionResponse
@@ -170,9 +185,21 @@ func (c *GatewayCaptioner) Caption(ctx context.Context, mediaType string, data [
 		}
 		return nil, err
 	}
-	parsed := parseCaptionResponse(text)
-	parsed.ModelID = c.cfg.ModelID
-	return parsed, nil
+	return c.parse(text), nil
+}
+
+func (c *GatewayCaptioner) parse(text string) *CaptionResult {
+	result := parseCaptionResponse(strings.TrimSpace(text))
+	result.ModelID = c.cfg.ModelID
+	return result
+}
+
+func captionRequestError(err error) error {
+	var statusError *llmclient.HTTPError
+	if errors.As(err, &statusError) {
+		return classifyHTTPStatus(statusError.StatusCode, err)
+	}
+	return classifyGatewayCaptionError(fmt.Errorf("gateway captioner: request: %w", err))
 }
 
 // captionMaxTokens bounds one caption response.

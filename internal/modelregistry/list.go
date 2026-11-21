@@ -21,6 +21,8 @@ import (
 type Listed struct {
 	ID   string `json:"id"`
 	Name string `json:"name,omitempty"`
+	// Protocols names the transports advertised by the provider, if any.
+	Protocols []Protocol `json:"protocols,omitempty"`
 	// ContextTokens is the context window.
 	ContextTokens int `json:"context,omitempty"`
 	// Images is whether the listing says the model takes image input; nil
@@ -120,6 +122,7 @@ type openAIModel struct {
 	// Capabilities is read only when it is an object of flags; servers use
 	// the name for other shapes too.
 	Capabilities        json.RawMessage            `json:"capabilities"`
+	Protocols           []Protocol                 `json:"protocols"`
 	ReasoningEfforts    []string                   `json:"reasoning_efforts"`
 	DefaultEffort       string                     `json:"default_reasoning_effort"`
 	SupportedParameters []string                   `json:"supported_parameters"`
@@ -131,6 +134,11 @@ type openAIModel struct {
 
 func (m openAIModel) listed() Listed {
 	listed := Listed{ID: m.ID, Name: firstNonEmpty(m.Name, m.DisplayName)}
+	for _, p := range m.Protocols {
+		if slices.Contains(KindOpenAI.Protocols(), p) && !slices.Contains(listed.Protocols, p) {
+			listed.Protocols = append(listed.Protocols, p)
+		}
+	}
 	if listed.Name == m.ID {
 		listed.Name = ""
 	}

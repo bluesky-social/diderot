@@ -39,6 +39,11 @@ type boundModel struct {
 	endpoint llmclient.Endpoint
 }
 
+func (b boundModel) usesResponsesForText() bool {
+	protocol, _ := b.TextProtocol()
+	return protocol == modelregistry.ProtocolResponses
+}
+
 // fingerprint is what the role's clients are built from: two equal
 // fingerprints build the same clients. It is the provider's address and
 // key and what the entry makes the role send, and nothing else: a save
@@ -773,7 +778,7 @@ func summarizerConfig(model boundModel, systemPrompt string) askchat.SummarizerC
 	return askchat.SummarizerConfig{
 		SystemPrompt: systemPrompt,
 		BaseURL:      model.endpoint.BaseURL, APIKey: model.endpoint.APIKey, Auth: model.endpoint.Auth, Headers: model.endpoint.Headers,
-		ModelID: model.ID, TokenParam: model.ChatTokenParam,
+		ModelID: model.ID, TokenParam: model.ChatTokenParam, Responses: model.usesResponsesForText(),
 		ReasoningTokenAllowance: model.ChatReasoningTokenAllowance, ExtraBody: model.ChatFields(),
 	}
 }

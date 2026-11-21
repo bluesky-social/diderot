@@ -396,7 +396,9 @@ their supported and default reasoning efforts for direct inference. Codex
 harness modes such as Ultra are omitted. Use `--model` to limit the
 provider to one model, or **Models offered** to limit the picker in Diderot.
 Choose a listed model for **Ask**, **Titles**, or the two session summary
-jobs. Keep your separate provider for **Embeddings**. The adapter consumes
+jobs. Models with vision input can serve **Image captions** and
+**Document extraction**. Codex also serves **Thread summaries**. These jobs
+use native Responses. Keep your separate provider for **Embeddings**. The adapter consumes
 the Codex event stream and gives Diderot a complete Responses result.
 Diderot executes corpus functions itself. The Codex backend receives the
 questions, excerpts and transcripts passed to whichever jobs use it.
