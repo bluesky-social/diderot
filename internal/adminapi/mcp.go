@@ -115,9 +115,7 @@ func (s *Server) mcpAuthed(next http.Handler, gatewayToken string, gatewayIdenti
 		if caller != nil {
 			email = strings.ToLower(strings.TrimSpace(caller.Email))
 			if email != "" {
-				scopes = s.scopesForEmail(r.Context(), email)
-				decision := s.authorizationForGroups(r.Context(), caller.Groups)
-				scopes = s.grantScopes(r.Context(), append(append([]string(nil), scopes...), decision.CorpusScopes()...))
+				scopes = s.scopesForPrincipal(r.Context(), caller)
 				admin = s.principalIsAdmin(caller)
 			}
 		}

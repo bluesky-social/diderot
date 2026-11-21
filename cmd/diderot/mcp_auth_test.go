@@ -77,6 +77,8 @@ type mcpAuthCase struct {
 	// wantEmail is the identity tools run as; empty with a 204 means the
 	// request may only discover.
 	wantEmail string
+	// unverifiedEmail marks a caller admitted by an OIDC verification opt-out.
+	unverifiedEmail bool
 	// wantZendesk says the caller's groups grant the policy's corpus scope.
 	wantZendesk bool
 	// wantChallenge is the WWW-Authenticate header of a 401.
@@ -130,6 +132,9 @@ func runMCPAuthCases(t *testing.T, stack *mcpStack, cases []mcpAuthCase) {
 			}
 			assert.Equal(t, []string{c.wantEmail}, stack.scopes.emails)
 			want := []string{"public", "internal", "slack-channel:CPRIVATE"}
+			if !c.unverifiedEmail {
+				want = append(want, "owner:"+c.wantEmail)
+			}
 			if c.wantZendesk {
 				want = append(want, "corpus:zendesk")
 			}
@@ -260,16 +265,16 @@ func TestMCPAuthOIDCMode(t *testing.T) {
 		{name: "token signed by another issuer's key", authorization: "Bearer " + forged,
 			user: "operator@example.com", wantCode: http.StatusUnauthorized, wantChallenge: invalidBearer},
 		{name: "access token", authorization: "Bearer " + accessToken(t, idp, "operator@example.com", "admins"),
-			wantCode: http.StatusNoContent, wantEmail: "operator@example.com"},
+			wantCode: http.StatusNoContent, wantEmail: "operator@example.com", unverifiedEmail: true},
 		{name: "access token with groups", authorization: "Bearer " + accessToken(t, idp, "Support@Example.com", "support-team"),
-			wantCode: http.StatusNoContent, wantEmail: "support@example.com", wantZendesk: true},
+			wantCode: http.StatusNoContent, wantEmail: "support@example.com", wantZendesk: true, unverifiedEmail: true},
 		{name: "access token, header naming another user", authorization: "Bearer " + accessToken(t, idp, "operator@example.com"),
 			user: "support@example.com", groups: "support-team",
-			wantCode: http.StatusNoContent, wantEmail: "operator@example.com"},
+			wantCode: http.StatusNoContent, wantEmail: "operator@example.com", unverifiedEmail: true},
 		{name: "access token, header from the trusted gateway peer", peer: gatewayPeer,
 			authorization: "Bearer " + accessToken(t, idp, "operator@example.com"),
 			user:          "support@example.com", groups: "support-team",
-			wantCode: http.StatusNoContent, wantEmail: "operator@example.com"},
+			wantCode: http.StatusNoContent, wantEmail: "operator@example.com", unverifiedEmail: true},
 		// A token without an email authenticates but names nobody: it can
 		// discover, and every tool refuses it.
 		{name: "access token without an email", authorization: "Bearer " + accessToken(t, idp, "", "support-team"),

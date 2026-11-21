@@ -7,7 +7,8 @@ This document describes Diderot as it is built. Settings are listed in the
 
 Diderot answers questions about an organization's written knowledge.
 Connectors ingest Slack, Discord, coding-agent sessions, Notion, Linear,
-Zendesk, and a folder of Markdown files into one typed Postgres event log. An embedder worker chunks and embeds
+Zendesk, Markdown folders, IMAP mail, and CalDAV calendars and journals into
+one typed Postgres event log. An embedder worker chunks and embeds
 every event into Qdrant. An agent loop answers questions by calling
 retrieval tools over that corpus, plus optional web, code, and MCP tools,
 and replies with citations. People reach it through `@diderot`
@@ -30,6 +31,13 @@ the matched text. There is no reranker and no lexical (BM25) leg.
 | `zendesk` | `internal/connector/zendesk` | Tickets, individual comments, Help Center articles, and attachment text. Only tickets in configured groups are indexed. A ticket that moves out of them is removed. |
 | `discord` | `internal/connector/discord` | The chosen channels of every server the bot is in: a REST read of each channel's and public thread's history, gateway events for live messages, edits, deletes, reactions and threads, a tail every five minutes after each stream's newest message, and a daily re-read of the last seven days. Channels and who may read each are chosen on the connector's page. |
 | `markdown` | `internal/connector/markdown` | A scan, every rescan interval, of the folder the deployment mounts at `DIDEROT_MARKDOWN_DIR`: one event per Markdown file, keyed by its path. After a scan that read the whole folder, the events of files that are gone are removed. |
+| `imap` | `internal/connector/personal` | Periodic read-only mailbox snapshots. Each poll lists UIDs, fetches a bounded batch of new messages, and removes mail that left the mailbox. IDs include the account, mailbox, UIDVALIDITY, and UID. |
+| `caldav` | `internal/connector/personal` | Read-only collection queries for events and journal entries, keyed by account, collection, UID, and recurrence ID. Successful polls reconcile edits and deletes. |
+
+Both personal connectors index into the configured owner's scope and expand
+from the stored body. API and MCP callers receive their own scope when their
+identity has a verified email. Shared chat answers use the chat's audience
+scopes.
 
 Source identifiers are sticky: they appear in migrations, indexes, retrieval
 filters, the tools' `sources` enum, and tests.
@@ -46,6 +54,8 @@ flowchart LR
     zendesk[Zendesk sync]
     markdown[Markdown folder scan]
     discord[Discord gateway + history]
+    imap[IMAP mailbox poll]
+    caldav[CalDAV calendar and journal poll]
   end
   sources --> sink["events sink<br/>(idempotent on source + external_id)"]
   sink --> pg[("Postgres<br/>events, event_chunks,<br/>ask_*, prompt_*")]
@@ -591,8 +601,9 @@ range an index scan. Replies are marked `is_reply`.
 `expand` dispatches by source on the server. Slack returns the full thread,
 or ±20 messages / ±30 minutes of channel context for a standalone message.
 `agent_session` returns the verbatim record range. Notion, Linear, and the
-Markdown folder return the whole stored page, issue, or file, Zendesk
-the ticket conversation or article, and Discord the thread, or for a message
+Markdown folder return the whole stored page, issue, or file. IMAP and CalDAV
+return the indexed message, calendar event, or journal note. Zendesk returns
+the ticket conversation or article. Discord returns the thread, or for a message
 outside one the 15 messages either side of it in its channel and the message
 it replies to. Expansion re-applies the per-event scope
 check.

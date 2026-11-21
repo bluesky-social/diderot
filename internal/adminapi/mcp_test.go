@@ -92,6 +92,7 @@ func TestMCPBackendAuthenticationAndIdentity(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, rr.Code)
 	require.True(t, f.called)
 	require.Equal(t, "alice@example.com", f.resolver.email)
+	require.Contains(t, f.scopes, "owner:alice@example.com")
 }
 
 // TestMCPIgnoresIdentityHeadersWithoutTrustedProxy pins that the gateway
@@ -135,7 +136,7 @@ func TestMCPAcceptsTheAPIBearerAsItsOwnIdentity(t *testing.T) {
 			rr := f.serve(bearer("secret-token"))
 			require.Equal(t, http.StatusNoContent, rr.Code)
 			assert.Equal(t, "operator@example.com", f.resolver.email)
-			assert.Equal(t, []string{"public", "internal", "slack-channel:C1"}, f.scopes)
+			assert.Equal(t, []string{"public", "internal", "slack-channel:C1"}, f.scopes, "the test principal has an unverified email")
 
 			// httptest's default peer is inside proxyMCPIdentity's CIDR.
 			rr = f.serve(func(r *http.Request) {

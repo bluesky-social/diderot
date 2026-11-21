@@ -390,6 +390,36 @@ with more than 10,000 Markdown files is not indexed.
 |---|---|---|
 | `DIDEROT_MARKDOWN_DIR` | none | The folder's path. Read where it is used: unset, the connector's test and run fail with "No folder is mounted for this deployment." Diderot only reads the folder, so it can be mounted read-only. |
 
+## IMAP and CalDAV
+
+Set up personal sources on their connector pages at
+`/admin/connectors/imap` and `/admin/connectors/caldav`. Both take the
+owner's verified Diderot sign-in email, the upstream account username and
+password or app password, and a polling interval that defaults to five
+minutes. Credentials use the usual connector secret settings.
+
+- IMAP uses implicit TLS at a configured host and port (normally port 993).
+  It reads one mailbox, `INBOX` by default. Each poll fetches up to 300
+  messages that still need indexing, starting with the newest UIDs. It
+  indexes decoded inline text from the first 512 KiB of each message and
+  skips attachment content. Moves out of the configured mailbox and
+  expunges are reflected in the index on the next successful poll.
+- CalDAV accepts a calendar collection URL for `VEVENT` and a notes
+  collection URL for `VJOURNAL`. Set either or both and include the
+  trailing slash. It periodically re-reads the selected HTTPS collections
+  with a 32 MiB limit per response. Recurrence rules and explicit
+  exceptions are searchable as stored entries. Series are indexed
+  without generating each occurrence.
+
+Both use TLS certificate verification. The indexed text is processed through
+the usual embedding and Ask providers. Turning off a connector stops future
+polling. Its existing entries stay in the corpus under their owner scope.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `DIDEROT_IMAP_PASSWORD` | none | Secret override for the IMAP account password or app password. |
+| `DIDEROT_CALDAV_PASSWORD` | none | Secret override for the CalDAV account password or app password. |
+
 ## Agent sessions
 
 Agent-session summaries come from a session source.
