@@ -212,6 +212,7 @@ directory exists:
 |---|---|---|
 | `claude-code` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` when that is set) | each `<session id>.jsonl`; subagent transcripts are not sent |
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
+| `copilot-cli` | `~/.copilot/session-state` (`$COPILOT_HOME/session-state` when that is set) | each `<session id>/events.jsonl`; subagents are in the same file |
 | `polytoken` | `~/.local/share/polytoken` (`$POLYTOKEN_DATA_PATH`, or `$XDG_DATA_HOME/polytoken`, when that is set) | each `sessions-v1/<session id>/log.jsonl`, and `sessions/<session id>/log.jsonl` from older releases; subagent transcripts are not sent |
 
 To ship from somewhere else, or only part of it:

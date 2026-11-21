@@ -158,6 +158,77 @@ func TestCodexFixture(t *testing.T) {
 	}
 }
 
+func TestCopilotCLIFixture(t *testing.T) {
+	doc, records := assertFixture(t, CopilotCLI{}, "copilot-cli", "basic")
+	const p = "c0000000-0000-4000-8000-0000000000"
+	want := []string{
+		p + "04/user",
+		p + "08:reasoning:0/reasoning",
+		p + "08:assistant:1/assistant",
+		p + "0b/tool",
+		p + "0c/tool",
+		p + "0f/assistant",
+		p + "12/tool",
+		p + "13/tool",
+		p + "15/assistant",
+		p + "18/tool",
+		p + "19/tool",
+		p + "1a/assistant",
+		p + "1e/user",
+		p + "1f/assistant",
+		p + "20/tool",
+		p + "21/assistant",
+		p + "22/user",
+		p + "23/assistant",
+		p + "2d/tool",
+		p + "2e/assistant",
+		p + "2f/user",
+		p + "30/system",
+		p + "31/user",
+		p + "34/assistant",
+		p + "37/system",
+		p + "39/system",
+		p + "3c/tool",
+		p + "3e/user",
+		p + "3f/system",
+		p + "40/assistant",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityNative {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "1.0.114" || doc.Harness != "copilot-cli" || doc.UserTurnCount != 6 || doc.WarningRecords != 1 {
+		t.Fatalf("document = %+v", doc)
+	}
+	byID := map[string]Record{}
+	for _, r := range records {
+		byID[strings.TrimPrefix(r.ID, p)] = r
+	}
+	if string(byID["04"].Content) != `"Read notes.txt and calc.py, run calc.py, and fix it."` {
+		t.Fatalf("user record kept the harness's wrapper: %s", byID["04"].Content)
+	}
+	if byID["08:assistant:1"].Phase != "commentary" || len(byID["08:assistant:1"].ToolCalls) != 2 || byID["1f"].Model != "synthetic-model-b" {
+		t.Fatal("assistant phase, parallel tool calls, or the switched model lost")
+	}
+	if !byID["19"].IsError || byID["12"].IsError || !strings.HasPrefix(byID["15"].ToolCalls[0].Args, "*** Begin Patch\n") {
+		t.Fatal("tool error flag or patch arguments lost")
+	}
+	if byID["30"].Phase != "tool_result" || byID["37"].Phase != "abort" || byID["39"].Phase != "compaction" ||
+		byID["3f"].Phase != "normalization" || !byID["3c"].IsError {
+		t.Fatal("a user-run tool's result, the abort, the compaction, the notice, or the interrupted call lost its shape")
+	}
+	got := goldenRecords(t, records)
+	for _, leaked := range []string{"iVBORw0KGgo", "synthetic classifier", "wc -l", "As a sub-agent", "synthetic system prompt", "sandbox guidance"} {
+		if bytes.Contains(got, []byte(leaked)) {
+			t.Fatalf("%q reached a record: image bytes, side model calls, sub-agent events, and harness prompts never do", leaked)
+		}
+	}
+}
+
 func TestPolytokenFixture(t *testing.T) {
 	doc, records := assertFixture(t, Polytoken{}, "polytoken", "basic")
 	const a, b, c = "AAAAAAAAAAAAAAAAAAAAAA:", "BBBBBBBBBBBBBBBBBBBBBB:", "CCCCCCCCCCCCCCCCCCCCCC:"
@@ -294,6 +365,22 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 		{"codex duplicate item id", Codex{}, cc(
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"a"}}`,
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"b"}}`)},
+		{"copilot-cli unparseable line", CopilotCLI{}, cc(
+			`{"type":"user.message","data":{"content":"hi"},"id":"a",`+ts+`}`, `{"type":`)},
+		{"copilot-cli event without type", CopilotCLI{}, cc(`{"data":{"content":"hi"},"id":"a",` + ts + `}`)},
+		{"copilot-cli missing timestamp", CopilotCLI{}, cc(`{"type":"user.message","data":{"content":"hi"},"id":"a"}`)},
+		{"copilot-cli conversation event without id", CopilotCLI{}, cc(`{"type":"user.message","data":{"content":"hi"},` + ts + `}`)},
+		{"copilot-cli message without data", CopilotCLI{}, cc(`{"type":"assistant.message","id":"a",` + ts + `}`)},
+		{"copilot-cli orphan tool result", CopilotCLI{}, cc(
+			`{"type":"tool.execution_complete","data":{"toolCallId":"nope","success":true,"result":{"content":"x"}},"id":"a",` + ts + `}`)},
+		{"copilot-cli tool request without id", CopilotCLI{}, cc(
+			`{"type":"assistant.message","data":{"content":"","toolRequests":[{"name":"bash","arguments":{}}]},"id":"a",` + ts + `}`)},
+		{"copilot-cli duplicate event id", CopilotCLI{}, cc(
+			`{"type":"user.message","data":{"content":"a"},"id":"a",`+ts+`}`,
+			`{"type":"user.message","data":{"content":"b"},"id":"a",`+ts+`}`)},
+		{"copilot-cli no conversation", CopilotCLI{}, cc(
+			`{"type":"session.start","data":{"copilotVersion":"1.0.114"},"id":"a",`+ts+`}`,
+			`{"type":"session.error","data":{"errorType":"query","message":"Model is not available."},"id":"b",`+ts+`}`)},
 		{"polytoken orphan tool result", Polytoken{}, cc(
 			`{"type":"tool_result","results":[{"tool_use_id":"nope","content":{"text":"x"},"is_error":false}],` + pt + `}`)},
 		{"polytoken unparseable line", Polytoken{}, cc(
@@ -376,6 +463,27 @@ func TestClaudeCodeEntryShapes(t *testing.T) {
 	}
 }
 
+// TestCopilotCLIEventShapes: what the fixture does not show. A binary result
+// that is not an image is a notice, a failed compaction changed nothing, and
+// an event outside the conversation namespaces is skipped however it is
+// shaped.
+func TestCopilotCLIEventShapes(t *testing.T) {
+	const ts = `"timestamp":"2026-11-01T10:00:00Z"`
+	data := []byte(`{"type":"user.message","data":{"content":"hi"},"id":"a",` + ts + `}
+{"type":"assistant.message","data":{"content":"","toolRequests":[{"toolCallId":"c1","name":"fetch","arguments":{}}]},"id":"c",` + ts + `}
+{"type":"tool.execution_complete","data":{"toolCallId":"c1","success":true,"result":{"content":"","binaryResultsForLlm":[{"type":"resource","mimeType":"application/pdf","data":"JVBERi0x"}]}},"id":"d",` + ts + `}
+{"type":"session.compaction_complete","data":{"success":false,"error":"failed"},"id":"e",` + ts + `}
+{"type":"future.kind","data":7,"id":"f",` + ts + `}
+`)
+	doc, records := assertContract(t, CopilotCLI{}, data)
+	if got := strings.Join(ids(records), " "); got != "a/user c/assistant d/tool" {
+		t.Fatalf("records = %s", got)
+	}
+	if doc.WarningRecords != 1 || bytes.Contains(goldenRecords(t, records), []byte("JVBERi0x")) {
+		t.Fatalf("binary resource: %+v, warnings %d", records, doc.WarningRecords)
+	}
+}
+
 // TestPolytokenUnknownShapes: an event or block of a kind the decoder does
 // not know becomes a notice whatever its fields hold, and an event with no
 // time of its own takes the envelope's.
@@ -405,7 +513,7 @@ func TestPolytokenUnknownShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatPolytoken} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

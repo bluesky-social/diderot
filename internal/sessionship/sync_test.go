@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	claudeSession = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
-	codexSession  = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	claudeSession  = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
+	codexSession   = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	copilotSession = "8d2f1e3a-5b6c-4d7e-9f80-a1b2c3d4e5f6"
 )
 
 // claudeTurn is one synthetic Claude Code user or assistant line; each line
@@ -162,6 +163,7 @@ func newFixture(t *testing.T) *fixture {
 		Settings: Settings{Sources: []Source{
 			{Harness: "claude-code", Dir: filepath.Join(root, "claude")},
 			{Harness: "codex", Dir: filepath.Join(root, "codex")},
+			{Harness: "copilot-cli", Dir: filepath.Join(root, "copilot")},
 		}},
 		StatePath: filepath.Join(root, "state", "sessions-state.json"), ServerURL: pusher.MCPURL,
 		Put: pusher.Put, Now: func() time.Time { return f.now },
@@ -183,26 +185,34 @@ func (f *fixture) pass(t *testing.T) Result {
 	return result
 }
 
-func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
+func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	f := newFixture(t)
 	codex, err := os.ReadFile("../sessiondecode/testdata/codex/basic.jsonl")
 	require.NoError(t, err)
 	codexDir := f.syncer.Settings.Sources[1].Dir
 	write(t, filepath.Join(codexDir, "2026", "11", "01", "rollout-2026-11-01T11-00-00-"+codexSession+".jsonl"), string(codex))
+	copilot, err := os.ReadFile("../sessiondecode/testdata/copilot-cli/basic.jsonl")
+	require.NoError(t, err)
+	copilotDir := filepath.Join(f.syncer.Settings.Sources[2].Dir, copilotSession)
+	write(t, filepath.Join(copilotDir, "events.jsonl"), string(copilot))
 	// Files that are not sessions are never read: a subagent's transcript,
 	// even one whose name ends in a session ID, a file whose name matches
-	// only together with the directory above it, and anything else a
-	// harness keeps beside its sessions.
+	// only together with the directory above it, a rotated log's archive,
+	// and anything else a harness keeps beside its sessions.
 	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-a1b2c3.jsonl"), "not a session\n")
 	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-"+codexSession+".jsonl"), "not a session\n")
 	write(t, filepath.Join(codexDir, "rollout-old", "notes-"+codexSession+".jsonl"), "not a session\n")
 	write(t, filepath.Join(filepath.Dir(f.claude), "notes.txt"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "events.1.jsonl"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "workspace.yaml"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "files", copilotSession, "events.jsonl"), "not a session\n")
 
 	result := f.pass(t)
-	require.Len(t, result.Sent, 2)
+	require.Len(t, result.Sent, 3)
 	assert.Equal(t, Outcome{Harness: "claude-code", SessionID: claudeSession, Path: f.claude, Action: "created"}, result.Sent[0])
 	assert.Equal(t, "codex", result.Sent[1].Harness)
 	assert.Equal(t, codexSession, result.Sent[1].SessionID)
+	assert.Equal(t, Outcome{Harness: "copilot-cli", SessionID: copilotSession, Path: filepath.Join(copilotDir, "events.jsonl"), Action: "created"}, result.Sent[2])
 	assert.Empty(t, result.Skipped)
 
 	// The server's decoder gets back what the harness's own decoder reads.
@@ -210,6 +220,9 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	got := f.server.records(codexSession)
 	require.Len(t, got, len(want))
+	_, want, err = sessiondecode.DecodeAll(sessiondecode.CopilotCLI{}, copilot)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(copilotSession), len(want))
 	assert.Len(t, f.server.records(claudeSession), 2)
 
 	info, err := os.Stat(f.syncer.StatePath)

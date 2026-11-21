@@ -73,6 +73,17 @@ var Harnesses = []Harness{
 		Decoder: sessiondecode.Codex{},
 	},
 	{
+		Name: "copilot-cli",
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("COPILOT_HOME", filepath.Join(home, ".copilot")), "session-state")}
+		},
+		// Each session directory's live event log. Sub-agents write into the
+		// same log; the numbered archive a rotated log leaves beside it is
+		// not sent.
+		File:    regexp.MustCompile(`^(` + uuidPattern + `)/events\.jsonl$`),
+		Decoder: sessiondecode.CopilotCLI{},
+	},
+	{
 		Name: "polytoken",
 		Dirs: func(home string) []string {
 			return []string{envOr("POLYTOKEN_DATA_PATH", filepath.Join(envOr("XDG_DATA_HOME", filepath.Join(home, ".local", "share")), "polytoken"))}

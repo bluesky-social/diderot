@@ -91,6 +91,69 @@ synthetic). The pre-wrapper rollout form is rejected.
   `system` notice. The model comes from the latest `turn_context`.
 - **Session.** `SourceVersion` is `session_meta.cli_version`.
 
+## `copilot-cli-events-jsonl` (decoder version 1)
+
+GitHub Copilot CLI's `~/.copilot/session-state/<session id>/events.jsonl`
+(`$COPILOT_HOME/session-state` when that is set): one session event per
+line, `{"type","data","id","timestamp","parentId"}`, plus `agentId` on a
+sub-agent's events. GitHub publishes no description of the file itself;
+the event shapes are the `session-events.schema.json` inside the Copilot
+CLI 1.0.114 release (the `@github/copilot-<platform>` binary unpacks it to
+`pkg/<platform>/1.0.114/schemas/` in Copilot's cache directory), and
+`github.com/microsoft/copilot-sdk` (MIT) publishes types generated from
+the same schema (`go/zsession_events.go`,
+`nodejs/src/generated/session-events.ts`; commit `d73005f`, built against
+CLI 1.0.115-6). The file layout and everything the schema leaves open were
+read from sessions Copilot CLI 1.0.114 wrote (key names only; fixtures are
+synthetic).
+
+- **Ids.** Every event has a UUID `id`; ids are `native`. An event that
+  becomes one record keeps the bare id. An `assistant.message` that carries
+  reasoning text splits into `<id>:reasoning:0` and `<id>:assistant:1`.
+- **Active path.** The events in file order. A rewind rewrites the file
+  without the rewound events, so the file is always the live branch;
+  `parentId` is not followed (side events hang off the chain, and
+  interactive model-call events start their own). A sub-agent's events
+  share the file under its `agentId` and are skipped; the parent's `task`
+  tool call and result carry what it returned. The schema describes log
+  rotation: a numbered archive beside `events.jsonl`, whose new head
+  replays retained history marked `checkpoint` after a
+  `session.journal_link`. The decoder reads the one file it is given and
+  keeps checkpoint events; no rotation was seen in real files.
+- **Events.** `user.message` is a user record from `content`, which is what
+  the person typed (`transformedContent`, the same text wrapped in the
+  context the harness adds, is not read); attachments with an `image/*`
+  `mimeType` become image placeholders, and other attachments are left
+  out. `assistant.message` emits `reasoningText` as a reasoning record, then
+  `content` and `toolRequests` (`toolCallId`, `name`, `arguments`: a JSON
+  object, or the text of a custom tool's input) as one assistant record
+  with `model` and `phase`; `reasoningOpaque`, `encryptedContent`, and
+  `reasoningBlocks` are not read. `tool.execution_complete` is a `tool`
+  record paired by `toolCallId`, with `result.content` (else
+  `error.message`) as text, each `result.binaryResultsForLlm` image as a
+  placeholder, and `success: false` marking an error; a shell command that
+  exits non-zero still has `success: true`. A completion marked
+  `isUserRequested` (a tool the person ran with `!`) answers no model
+  request, so it is a `system` record (phase `tool_result`); the
+  `tool.user_requested` before it is a user record
+  `[<toolName>] <arguments>`. `abort` is a `system` record
+  (phase `abort`) naming its `reason`. A successful
+  `session.compaction_complete` is a `system` record (phase `compaction`)
+  carrying `summaryContent`; history before it stays.
+  `assistant.turn_start`, `assistant.turn_end`, `tool.execution_start` (it
+  repeats the request), and `system.message` (the harness's system prompt)
+  emit nothing; any other `user.*`, `assistant.*`, `tool.*`, or `system.*`
+  event becomes a notice. Every other namespace (`session.*` apart from
+  the two above, `model.*`, `instruction.*`, `hook.*`, `permission.*`,
+  `subagent.*`, `skill.*`, `mcp.*`, ...) is harness state, injected
+  context, or telemetry and emits nothing. `session.binary_asset` holds
+  image bytes and is never read. An emitted event without an `id`, a tool
+  request without a `toolCallId`, or an event without a `type` fails the
+  document.
+- **Session.** `SourceVersion` is `session.start`'s `copilotVersion`; the
+  harness is `copilot-cli`. A session that ended before any conversation
+  (a refused model, say) has no records and fails as such.
+
 ## `polytoken-jsonl` (decoder version 1)
 
 Polytoken's `sessions-v1/<session>/log.jsonl` under its data directory

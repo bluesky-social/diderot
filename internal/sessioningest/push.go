@@ -25,7 +25,7 @@ import (
 // feed's format; its envelope carries its own owner and revision, which push
 // takes from the authenticated principal and the transport instead.
 func PushFormats() *sessiondecode.Registry {
-	return sessiondecode.NewRegistry(sessiondecode.ClaudeCode{}, sessiondecode.Codex{}, sessiondecode.Polytoken{}, sessiondecode.ATIF{}, sessiondecode.STS{})
+	return sessiondecode.NewRegistry(sessiondecode.ClaudeCode{}, sessiondecode.Codex{}, sessiondecode.CopilotCLI{}, sessiondecode.Polytoken{}, sessiondecode.ATIF{}, sessiondecode.STS{})
 }
 
 // PushConfig bounds push ingest. Every limit is required when push is on.
