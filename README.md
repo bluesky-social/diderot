@@ -2,10 +2,10 @@
 
 Diderot answers questions about what your organization has written down. It
 ingests Slack, Discord, coding-agent sessions, Notion, Linear, Zendesk, and
-folders of Markdown files into one Postgres event log, embeds everything into Qdrant, and runs an agent that
-searches that corpus and answers with citations: in Slack, and as an MCP
-server for your own agents and tools. You run one server, and administer it
-in the browser at `/admin`.
+folders of Markdown files into one Postgres event log and embeds everything
+into Qdrant. An agent searches that corpus and answers with citations, in
+Slack and Discord and as an MCP server for your own agents and tools. You
+run one server and administer it in the browser at `/admin`.
 
 Retrieval is vector-only: the question is embedded, Qdrant returns the nearest
 chunks the caller is allowed to see, and results are deduplicated per event.
@@ -16,22 +16,23 @@ There is no reranker and no keyword index.
 - **Sources.** Slack, with live Socket Mode events and a continuous sync that
   catches anything missed during restarts; image attachments are captioned and
   PDF, DOCX, and XLSX attachments are extracted to text. Coding-agent sessions
-  (Claude Code, Codex, ATIF, Hugging Face STS), pushed over HTTP or polled from
-  a session feed, summarized and expandable to the exact records behind a hit.
-  Discord channels, threads and forum posts, over the gateway with a daily
-  re-read. Notion page trees, Linear issues and comments, Zendesk tickets,
-  comments, and Help Center articles, and the Markdown files in a mounted
-  folder. A new
-  source is one Go package and one registration line
-  ([Adding a source](docs/adding-a-source.md)).
+  (Claude Code, Codex, and the ATIF and Hugging Face STS formats,
+  [Formats](docs/session-ingest.md#formats)), pushed over HTTP or polled from
+  a session feed. Each session is summarized, and a hit expands to the exact
+  records behind it. Discord channels, threads and forum posts, over the
+  gateway with a daily re-read. Notion page trees. Linear issues and
+  comments. Zendesk tickets, comments, and Help Center articles. The Markdown
+  files in a mounted folder. A new source is one Go package and one
+  registration line ([Adding a source](docs/adding-a-source.md)).
 - **Permissions.** Every event carries a scope. Private Slack channels are
   visible only to their members, sessions can be owner-only, and a policy file
   grants groups access to restricted content. Every search is filtered to the
   caller's scopes.
 - **Ask.** An agent that calls `retrieve`, `list`, and `expand` over the
   corpus and answers with inline citations. Mention `@diderot` in a Slack
-  channel (each thread is one conversation) or DM it, or use the MCP `ask`
-  tool or the HTTP API. Optional tools: web search (Tavily), code search
+  channel (each thread is one conversation), DM it, mention the bot in
+  Discord ([Ask in Discord](docs/discord.md#ask-in-discord)), or use the MCP
+  `ask` tool or the HTTP API. Optional tools: web search (Tavily), code search
   (Sourcebot), and the read-only tools of any MCP servers you configure
   (deployment history, say), on Ask itself or on a delegated observability
   investigator.
@@ -42,9 +43,10 @@ There is no reranker and no keyword index.
   delivered to Slack, and optional investigations of PagerDuty alerts posted in
   the alert's thread.
 - **Any model provider.** Add OpenAI, Anthropic, or any OpenAI-compatible
-  endpoint (a gateway, a local vLLM or Ollama) in the admin UI; Diderot
-  lists its models, and each job (embeddings, Ask, summaries, captions,
-  document extraction) gets the one you choose, tested before it is saved.
+  endpoint (a gateway, a local vLLM or Ollama) in the admin UI. Diderot
+  lists the provider's models. You choose a model for each job (embeddings,
+  Ask, summaries, captions, document extraction), and each choice is tested
+  before it is saved.
 - **Authentication.** OIDC bearer tokens from your IdP, static tokens, or a
   loopback-only no-auth mode for local use. The browser UI signs in through
   your IdP, sits behind an authenticating proxy, or signs in locally with a
@@ -58,11 +60,20 @@ There is no reranker and no keyword index.
 
 [docs/quickstart.md](docs/quickstart.md) runs Diderot on one machine with
 Docker Compose: Postgres, Qdrant, a local embedding model, and the server.
-You need Docker and an OpenAI or Anthropic API key; Ask sends each question,
-and the corpus text it reads to answer it, to that provider. To ingest your
-own data, add a Linear API key, a Notion integration, a Slack app, or a
-folder of Markdown files; out of the box it can index Diderot's own
-documentation.
+You need Docker and an API key for a model provider (OpenAI, Anthropic, or
+another the quickstart lists). Ask sends each question, and the corpus text
+it reads to answer it, to that provider. Start the stack:
+
+```sh
+git clone https://github.com/bluesky-social/diderot.git
+cd diderot
+docker compose -f compose.quickstart.yaml up -d --wait
+```
+
+Then open <http://localhost:9091/admin>, sign in as `admin` / `admin`, and
+continue from step 2 of the quickstart. To ingest your own data, add a
+Linear API key, a Notion integration, a Slack app, or a folder of Markdown
+files. With none of those, it can index Diderot's own documentation.
 
 ## Documentation
 
@@ -74,7 +85,7 @@ documentation.
   needs, how replicas and leadership behave, and a Kubernetes example.
 - [Upgrading](docs/upgrading.md): moving an existing install to a newer
   release.
-- [Design](docs/design.md): how Diderot works, as built.
+- [Design](docs/design.md): how Diderot works.
 - [Configuration reference](docs/configuration.md): every environment
   variable.
 - [Authentication and authorization](docs/auth.md): identity, scopes, the
@@ -100,7 +111,7 @@ documentation.
 Docker Compose, or [in production](docs/production.md) from the container
 image.
 
-**Use** it from Slack (`@diderot`, or a DM) and over MCP. On your own
+**Use** it from Slack (`@diderot`, or a DM), from Discord, and over MCP. On your own
 machine, the [`diderot` command](docs/cli.md) connects your coding agents
 (Claude Code, Codex, Cursor, OpenCode, Pi) to a server, installs the agent
 skill, and asks questions from the shell:
@@ -124,17 +135,16 @@ token works on the plain HTTP API: `POST /v1/ask`, `/v1/retrieve`,
 [`skills/diderot`](skills/diderot/SKILL.md) is the agent skill that teaches a
 coding agent when and how to use those tools; `diderot setup` installs it.
 
-**Administer** it in the browser at `/admin`, the one place an install is
-set up and run from.
+**Administer** it in the browser at `/admin`. Setup and every later
+administrator task are there.
 
 ## What the `diderot` binary does
 
-The container image holds one binary, `diderot`: the server, its
-maintenance commands, and the client commands `setup`, `doctor`, `ask`, and
-`sessions`.
-[Releases](docs/cli.md#install) carry a small `diderot` for people's
-machines with the client commands alone, which reach a server over MCP and
-can ship the machine's coding-agent sessions to it
+The container image's `diderot` binary is the server, its maintenance
+commands, and the client commands `setup`, `doctor`, `ask`, and `sessions`.
+[Releases](docs/cli.md#install) carry a smaller `diderot` for your own
+machine, with the client commands alone. Those reach a server over MCP, and
+`sessions` ships the machine's coding-agent sessions to it
 ([The `diderot` command](docs/cli.md)). The server commands below run where
 the server runs (`docker compose exec diderot diderot ...`,
 `kubectl exec deploy/diderot -- diderot ...`) because they read the server's
@@ -145,7 +155,7 @@ own configuration.
 | `diderot serve` | Runs the server: the API, `/mcp`, the admin UI, and every background worker. It applies pending database migrations as it starts. | Always; it is the container's command. |
 | `diderot probe <healthz\|readyz>` | Asks the local server whether it is up, or ready, and exits non-zero if not. | As a container health check or a Kubernetes exec probe ([production](docs/production.md)). |
 | `diderot qdrant-audit` | Compares the vector index with the database and queues what is missing or wrong for the server's workers to repair. | After changing the embedding model, restoring a backup, or losing the Qdrant volume. |
-| `diderot reset-admin` | Turns the bootstrap admin sign-in (`admin` / `admin`) back on. | When no administrator can sign in any more. Turn it off again from the setup checklist. |
+| `diderot reset-admin` | Turns the bootstrap admin sign-in (`admin` / `admin`) back on. | When no administrator can sign in. Turn it off again from the setup checklist. |
 
 Two more commands, `ui-dev` and `session-dev`, serve parts of the UI from
 fixtures for people working on Diderot itself
