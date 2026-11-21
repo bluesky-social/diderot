@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/bluesky-social/diderot/internal/client"
 	"github.com/bluesky-social/diderot/internal/sessiondecode"
 )
@@ -26,13 +28,29 @@ type Harness struct {
 	// environment override.
 	Dirs func(home string) []string
 	// File matches a session file's slash-separated path relative to its
-	// source directory and captures its session ID.
+	// source directory and captures the harness's own session ID.
 	File *regexp.Regexp
+	// HashID is set for a harness whose own session IDs are not UUIDs, which
+	// the push route requires: the session is pushed under a name-based UUID
+	// (version 5) of the harness's name and its own ID.
+	HashID bool
 	// Decoder reads the harness's session file.
 	Decoder sessiondecode.Decoder
 }
 
 const uuidPattern = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
+
+// hashIDNamespace is the namespace of the UUIDs HashID derives. Changing it
+// gives every such session a new ID on the server.
+var hashIDNamespace = uuid.MustParse("28015b4e-8083-4614-8b26-bfa81fb58087")
+
+// sessionID is the ID a session is pushed under, from the ID File captured.
+func (h Harness) sessionID(captured string) string {
+	if !h.HashID {
+		return captured
+	}
+	return uuid.NewSHA1(hashIDNamespace, []byte(h.Name+"/"+captured)).String()
+}
 
 // Harnesses is every harness sessions are shipped from. Adding one is an
 // entry here; it needs a decoder in sessiondecode.
@@ -53,6 +71,21 @@ var Harnesses = []Harness{
 		},
 		File:    regexp.MustCompile(`(?:^|/)rollout-[^/]*-(` + uuidPattern + `)\.jsonl$`),
 		Decoder: sessiondecode.Codex{},
+	},
+	{
+		Name: "polytoken",
+		Dirs: func(home string) []string {
+			return []string{envOr("POLYTOKEN_DATA_PATH", filepath.Join(envOr("XDG_DATA_HOME", filepath.Join(home, ".local", "share")), "polytoken"))}
+		},
+		// Each session directory's own log, in the current layout
+		// (sessions-v1) or the one older releases wrote (sessions) until
+		// Polytoken migrates a session on resume; so the source is the data
+		// directory, which holds both. A subagent's transcript
+		// (subagent-*.jsonl), trace, usage and shell output are not sessions,
+		// and nor is the copy a migration keeps under sessions-migration.
+		File:    regexp.MustCompile(`^sessions(?:-v1)?/([^/]+)/log\.jsonl$`),
+		HashID:  true,
+		Decoder: sessiondecode.Polytoken{},
 	},
 }
 
@@ -175,7 +208,7 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 		if err != nil || !info.Mode().IsRegular() {
 			return nil // gone since the listing
 		}
-		found = append(found, sessionFile{path: path, real: real, sessionID: m[1], info: info})
+		found = append(found, sessionFile{path: path, real: real, sessionID: h.sessionID(m[1]), info: info})
 		return nil
 	})
 	return found, err

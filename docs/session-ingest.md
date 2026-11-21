@@ -19,6 +19,7 @@ outside Diderot should depend on it.
 | `bsky.session.v1` | NDJSON from a session service's feed | The session feed |
 | `claude-code-jsonl` | Claude Code's `~/.claude/projects/<project>/<session>.jsonl` | Push |
 | `codex-rollout-jsonl` | Codex CLI's `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Push |
+| `polytoken-jsonl` | Polytoken's `~/.local/share/polytoken/sessions-v1/<session>/log.jsonl` | Push |
 | `atif-json` | ATIF trajectory (Harbor's Agent Trajectory Interchange Format, v1.8) | Push |
 | `hf-sts-jsonl` | Hugging Face Session Trace Simple Format | Push |
 
@@ -36,31 +37,34 @@ which branch of a session is kept.
 ### From your own machine
 
 `diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Claude Code and Codex sessions on a person's machine, from a background
-service that `diderot setup` offers to install. It reads each session file
-with the same decoder the server has for that harness, converts the result
-to ATIF on that machine, and pushes it as `atif-json`, so the server stores
-and decodes ATIF and never receives the harness's own file. Each record
-becomes one ATIF step. A record ID that came from the harness travels in the
-step's `extra.stable_step_id`, so it is the same ID as a push of the file
-itself would give; a positional ID becomes the step's ordinal. The harness's
-name and version are the trajectory's `agent`. ATIF has no field for two
-things, which are left out: the flag that marks a tool result as an error
+the Claude Code, Codex, and Polytoken sessions on a person's machine, from a
+background service that `diderot setup` offers to install. It reads each
+session file with the same decoder the server has for that harness, converts
+the result to ATIF on that machine, and pushes it as `atif-json`, so the
+server stores and decodes ATIF and never receives the harness's own file. Each
+record becomes one ATIF step. A record ID that came from the harness travels
+in the step's `extra.stable_step_id`, so it is the same ID as a push of the
+file itself would give; a positional ID becomes the step's ordinal. The
+harness's name and version are the trajectory's `agent`. ATIF has no field for
+two things, which are left out: the flag that marks a tool result as an error
 (its output is still there), and the phase of a record that is not a system
 record. Images are left out as every decoder leaves them out: a pasted
 screenshot or an image a tool returned is a placeholder with its media type,
-and here its bytes never leave the machine. A tool call whose arguments are not a JSON object (a patch passed as
-text) is carried as `{"input": "<the text>"}`.
+and here its bytes never leave the machine. A tool call whose arguments are
+not a JSON object (a patch passed as text) is carried as
+`{"input": "<the text>"}`.
 
 It follows the [push protocol](#push-protocol) as any client does: the
-session's ID is the one in the file's name, a session is created with
-`If-None-Match: *`, and one that grew is sent again whole with `If-Match`
+session's ID is the one in the file's path (for a harness whose own IDs are
+not UUIDs, such as Polytoken, a name-based UUID of the harness's name and
+that ID, so the same session always has the same ID), a session is created
+with `If-None-Match: *`, and one that grew is sent again whole with `If-Match`
 naming the revision it replaces. It sends a growing session once its file
 has gone five minutes without a write, so that a session in progress is one
 new revision each time its agent pauses and not one a minute, and never
 sends a last line that has no newline yet: that line goes with the next
-push, once it is complete. When the server holds a revision other than the one it
-remembers (its state file was lost, or an answer was), it takes the current
+push, once it is complete. When the server holds a revision other than the one
+it remembers (its state file was lost, or an answer was), it takes the current
 revision from the 412 and replaces that. Nothing is redacted on the way:
 [redaction](#redaction-is-the-producers-job) is still the producer's job,
 and here the producer is the person whose sessions they are.

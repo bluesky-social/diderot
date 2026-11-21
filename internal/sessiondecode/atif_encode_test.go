@@ -28,6 +28,7 @@ func TestEncodeATIFRoundTrips(t *testing.T) {
 	}{
 		{ClaudeCode{}, "claude-code/basic.jsonl"},
 		{Codex{}, "codex/basic.jsonl"},
+		{Polytoken{}, "polytoken/basic.jsonl"},
 	} {
 		t.Run(tc.decoder.Format(), func(t *testing.T) {
 			data, err := os.ReadFile(filepath.Join("testdata", tc.fixture))
@@ -83,8 +84,12 @@ func TestEncodeATIFRoundTrips(t *testing.T) {
 				!gotDoc.StartedAt.Equal(doc.StartedAt) || !gotDoc.UpdatedAt.Equal(doc.UpdatedAt) {
 				t.Fatalf("document = %+v, want the harness, turns and times of %+v", gotDoc, doc)
 			}
-			if !bytes.Contains(encoded, []byte(`"version":"`+doc.SourceVersion+`"`)) {
-				t.Fatalf("the harness version %q is not in the trajectory", doc.SourceVersion)
+			wantVersion := doc.SourceVersion
+			if wantVersion == "" {
+				wantVersion = "unknown"
+			}
+			if !bytes.Contains(encoded, []byte(`"version":"`+wantVersion+`"`)) {
+				t.Fatalf("the harness version %q is not in the trajectory", wantVersion)
 			}
 		})
 	}

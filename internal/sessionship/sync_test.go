@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -214,6 +215,60 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	info, err := os.Stat(f.syncer.StatePath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
+
+// TestPassSendsPolytokenSessions: a Polytoken session is its directory's
+// log, in the current layout or the older one, pushed under a UUID derived
+// from its own ID. Nothing else under the data directory is read, and a
+// session Polytoken migrates to the current layout stays one session.
+func TestPassSendsPolytokenSessions(t *testing.T) {
+	f := newFixture(t)
+	data := t.TempDir()
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources, Source{Harness: "polytoken", Dir: data})
+	basic, err := os.ReadFile("../sessiondecode/testdata/polytoken/basic.jsonl")
+	require.NoError(t, err)
+	legacy, err := os.ReadFile("../sessiondecode/testdata/polytoken/legacy.jsonl")
+	require.NoError(t, err)
+	// Only the older layout exists yet.
+	older := filepath.Join(data, "sessions", "0abc34-older", "log.jsonl")
+	write(t, older, string(legacy))
+	result := f.pass(t)
+	require.Len(t, result.Sent, 2)
+	olderID := uuid.NewSHA1(hashIDNamespace, []byte("polytoken/0abc34-older")).String()
+	assert.Equal(t, Outcome{Harness: "polytoken", SessionID: olderID, Path: older, Action: "created"}, result.Sent[1])
+
+	session := filepath.Join(data, "sessions-v1", "0abc12-demo")
+	write(t, filepath.Join(session, "log.jsonl"), string(basic))
+	for _, name := range []string{"subagent-general-purpose_describe-swatch.jsonl", "trace.jsonl", "log.jsonl.usage",
+		"log.jsonl.corrupt-20261101T100000Z", "shell/job-1.stdout", "attachments/artifact-1.bin"} {
+		write(t, filepath.Join(session, name), "not a session\n")
+	}
+	for _, name := range []string{"public-spool/0abc12-demo/checkpoint-1.jsonl", "logs/2026-11-01T10-00-00Z-100.log"} {
+		write(t, filepath.Join(data, name), "not a session\n")
+	}
+	// The empty directory a newer release leaves in the older layout.
+	require.NoError(t, os.MkdirAll(filepath.Join(data, "sessions", "0abc12-demo"), 0o755))
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Empty(t, result.Skipped)
+	polytoken, _ := Lookup("polytoken")
+	id := polytoken.sessionID("0abc12-demo")
+	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("polytoken/0abc12-demo")).String(), id)
+	assert.Equal(t, id, result.Sent[0].SessionID)
+	_, want, err := sessiondecode.DecodeAll(sessiondecode.Polytoken{}, basic)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(id), len(want))
+
+	// Resuming the older session migrates it: the log moves to the current
+	// layout and the original is kept aside, which is never read.
+	require.NoError(t, os.MkdirAll(filepath.Join(data, "sessions-migration", "0abc34-older"), 0o755))
+	require.NoError(t, os.Rename(filepath.Dir(older), filepath.Join(data, "sessions-migration", "0abc34-older", "legacy-backup")))
+	write(t, filepath.Join(data, "sessions-v1", "0abc34-older", "log.jsonl"), string(basic))
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Equal(t, olderID, result.Sent[0].SessionID)
+	assert.Len(t, f.server.sessions, 3, "a migrated session is still one session")
+	assert.Len(t, f.server.records(olderID), len(want))
 }
 
 func TestPassIsIncremental(t *testing.T) {

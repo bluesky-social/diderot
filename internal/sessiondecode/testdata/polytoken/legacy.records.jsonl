@@ -1,0 +1,6 @@
+{"fidelity":"positional","record":{"index":0,"id":"line:3","role":"user","content":"What is in notes.txt?","timestamp":"2026-11-01T10:00:01.000000Z"}}
+{"fidelity":"positional","record":{"index":1,"id":"line:4","role":"system","content":"Consider tracking this work as todos.","timestamp":"2026-11-01T10:00:01.000500Z","phase":"system_reminder"}}
+{"fidelity":"positional","record":{"index":2,"id":"line:5:reasoning:0","role":"reasoning","content":"Read it.","timestamp":"2026-11-01T10:00:02.000000Z","model":"synthetic-claude"}}
+{"fidelity":"positional","record":{"index":3,"id":"line:5:assistant:1","role":"assistant","timestamp":"2026-11-01T10:00:02.000000Z","model":"synthetic-claude","tool_calls":[{"id":"toolu_synthetic_11","name":"file_read","args":"{\"path\":\"notes.txt\"}"}]}}
+{"fidelity":"positional","record":{"index":4,"id":"line:6","role":"tool","content":"1 | alpha\n","timestamp":"2026-11-01T10:00:03.000000Z","tool_call_id":"toolu_synthetic_11"}}
+{"fidelity":"positional","record":{"index":5,"id":"line:8","role":"assistant","content":"One line: alpha.","timestamp":"2026-11-01T10:00:04.000000Z","model":"synthetic-claude"}}

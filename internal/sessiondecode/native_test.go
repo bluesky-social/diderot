@@ -158,9 +158,113 @@ func TestCodexFixture(t *testing.T) {
 	}
 }
 
+func TestPolytokenFixture(t *testing.T) {
+	doc, records := assertFixture(t, Polytoken{}, "polytoken", "basic")
+	const a, b, c = "AAAAAAAAAAAAAAAAAAAAAA:", "BBBBBBBBBBBBBBBBBBBBBB:", "CCCCCCCCCCCCCCCCCCCCCC:"
+	want := []string{
+		a + "3/user",
+		a + "4/system",
+		a + "6/system",
+		a + "7:reasoning:0/reasoning",
+		a + "7:assistant:1/assistant",
+		a + "9:tool_result:0/tool",
+		a + "9:tool_result:1/tool",
+		a + "9:tool_result:2/tool",
+		a + "10/assistant",
+		a + "11/tool",
+		a + "12/assistant",
+		a + "13/user",
+		a + "14/assistant",
+		a + "15/tool",
+		a + "17/user",
+		a + "18/assistant",
+		a + "20/user",
+		a + "21/assistant",
+		a + "22/tool",
+		a + "23:reasoning:0/reasoning",
+		a + "23:assistant:1/assistant",
+		a + "25/tool",
+		a + "26/system",
+		a + "27/assistant",
+		a + "28/user",
+		a + "29/assistant",
+		a + "30/tool",
+		a + "31/system",
+		b + "33/system",
+		b + "34/system",
+		b + "35/assistant",
+		b + "36/system",
+		c + "37/system",
+		c + "38/user",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityNative {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "" || doc.Harness != "polytoken" || doc.UserTurnCount != 6 || doc.WarningRecords != 2 {
+		t.Fatalf("document = %+v", doc)
+	}
+	// Three parallel calls in one assistant record, paired with one result
+	// event; a failed command and a cancelled one are errors.
+	if len(records[4].ToolCalls) != 3 || records[4].ToolCalls[2].Args != `{"command":"ls -la"}` || !records[9].IsError || !records[26].IsError {
+		t.Fatal("parallel calls, call arguments, or error flags lost")
+	}
+	// The model in force when each record was written, across a switch.
+	if records[3].Model != "synthetic-claude" || records[20].Model != "synthetic-gpt" || records[0].Model != "" {
+		t.Fatal("record models lost")
+	}
+	phases := map[int]string{1: "system_reminder", 2: "system_reminder", 22: "subagent_complete", 27: "compaction",
+		28: "system_reminder", 29: "reiterated", 31: "context_cleared", 32: "normalization"}
+	for i, phase := range phases {
+		if records[i].Role != "system" || records[i].Phase != phase {
+			t.Fatalf("record %d is %s/%s, want system/%s", i, records[i].Role, records[i].Phase, phase)
+		}
+	}
+	// A pasted image joins its prompt's user record; the copy re-attached
+	// after the compaction is not shown again.
+	if got := string(records[14].Content); got != `[{"type":"text","text":"What colour is this?"},{"type":"image","media_type":"image/png","available":false}]` {
+		t.Fatalf("user record with image = %s", got)
+	}
+	if got := string(records[18].Content); got != `[{"type":"image","media_type":"image/png","available":false}]` {
+		t.Fatalf("tool result image = %s", got)
+	}
+	golden := goldenRecords(t, records)
+	for _, never := range []string{"iVBORw0KGgo", "SIGNATURE-SYNTHETIC", "OPAQUE-SYNTHETIC", "CONTINUATION-SYNTHETIC", "pasted-image-1.png", "ARTIFACTSYNTHETIC"} {
+		if bytes.Contains(golden, []byte(never)) {
+			t.Fatalf("%s reached a record", never)
+		}
+	}
+}
+
+// TestPolytokenOlderLayout: a log written before the envelope existed holds
+// the bare events; ids are line numbers and the model comes from the switch.
+func TestPolytokenOlderLayout(t *testing.T) {
+	doc, records := assertFixture(t, Polytoken{}, "polytoken", "legacy")
+	want := []string{"line:3/user", "line:4/system", "line:5:reasoning:0/reasoning", "line:5:assistant:1/assistant", "line:6/tool", "line:8/assistant"}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityPositional {
+			t.Fatalf("%s fidelity %s", r.ID, r.Fidelity)
+		}
+	}
+	if records[5].Model != "synthetic-claude" || doc.UserTurnCount != 1 || doc.WarningRecords != 0 {
+		t.Fatalf("model %q, document %+v", records[5].Model, doc)
+	}
+	if bytes.Contains(goldenRecords(t, records), []byte("SIGNATURE-SYNTHETIC")) {
+		t.Fatal("a thinking signature reached a record")
+	}
+}
+
 func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 	cc := func(lines ...string) []byte { return []byte(strings.Join(lines, "\n") + "\n") }
 	const ts = `"timestamp":"2026-11-01T10:00:00Z"`
+	const pt = `"emitted_at":"2026-11-01T10:00:00Z"`
 	cases := []struct {
 		name string
 		d    Decoder
@@ -190,6 +294,23 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 		{"codex duplicate item id", Codex{}, cc(
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"a"}}`,
 			`{`+ts+`,"type":"response_item","payload":{"type":"message","id":"m","role":"user","content":"b"}}`)},
+		{"polytoken orphan tool result", Polytoken{}, cc(
+			`{"type":"tool_result","results":[{"tool_use_id":"nope","content":{"text":"x"},"is_error":false}],` + pt + `}`)},
+		{"polytoken unparseable line", Polytoken{}, cc(
+			`{"type":"user","content":"hi","kind":"human",`+pt+`}`, `{"type":`)},
+		{"polytoken missing timestamp", Polytoken{}, cc(`{"type":"user","content":"hi","kind":"human"}`)},
+		{"polytoken tool call without id", Polytoken{}, cc(
+			`{"type":"assistant","blocks":[{"type":"tool_use","name":"shell_exec","input":{}}],` + pt + `}`)},
+		{"polytoken tool result without call id", Polytoken{}, cc(
+			`{"type":"tool_result","results":[{"content":{"text":"x"},"is_error":false}],` + pt + `}`)},
+		{"polytoken no conversation", Polytoken{}, cc(`{"type":"session_lifecycle","kind":"created","session_id":"s",` + pt + `}`)},
+		{"polytoken event without a type", Polytoken{}, cc(`{"content":"hi",` + pt + `}`)},
+		{"polytoken known event of the wrong shape", Polytoken{}, cc(`{"type":"user","content":7,"kind":"human",` + pt + `}`)},
+		{"polytoken envelope without a lineage", Polytoken{}, cc(
+			`{"index":0,"committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"hi","kind":"human",` + pt + `}}`)},
+		{"polytoken duplicate envelope", Polytoken{}, cc(
+			`{"index":0,"lineage":"L","committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"a","kind":"human",`+pt+`}}`,
+			`{"index":0,"lineage":"L","committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"b","kind":"human",`+pt+`}}`)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -255,9 +376,36 @@ func TestClaudeCodeEntryShapes(t *testing.T) {
 	}
 }
 
+// TestPolytokenUnknownShapes: an event or block of a kind the decoder does
+// not know becomes a notice whatever its fields hold, and an event with no
+// time of its own takes the envelope's.
+func TestPolytokenUnknownShapes(t *testing.T) {
+	data := []byte(`{"index":0,"lineage":"L","committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"hi","kind":"human","emitted_at":"2026-11-01T10:00:00Z"}}
+{"index":1,"lineage":"L","committed_at":"2026-11-01T10:00:02Z","message":{"type":"future_event","content":7,"blocks":"x","results":{},"reminder":[]}}
+{"index":2,"lineage":"L","committed_at":"2026-11-01T10:00:03Z","message":{"type":"assistant","blocks":[{"type":"future_block","text":{"nested":true}}],"emitted_at":"2026-11-01T10:00:03Z"}}
+{"index":3,"lineage":"L","committed_at":"2026-11-01T10:00:04Z","message":{"type":"tool_result","results":[],"emitted_at":"2026-11-01T10:00:04Z"}}
+`)
+	doc, records := assertContract(t, Polytoken{}, data)
+	if len(records) != 3 || doc.WarningRecords != 2 || records[1].Phase != "normalization" || records[1].Timestamp != "2026-11-01T10:00:02Z" {
+		t.Fatalf("records = %+v, document = %+v", records, doc)
+	}
+	// A bare event's own fields never pass for an envelope's.
+	bare := []byte(`{"type":"user","content":"hi","kind":"human","emitted_at":"2026-11-01T10:00:00Z"}
+{"type":"future_event","message":"notice","index":"x","attribution":"y","lineage":7,"emitted_at":"2026-11-01T10:00:01Z"}
+`)
+	doc, records = assertContract(t, Polytoken{}, bare)
+	if len(records) != 2 || records[1].ID != "line:2" || records[1].Phase != "normalization" || doc.WarningRecords != 1 {
+		t.Fatalf("records = %+v, document = %+v", records, doc)
+	}
+	content := ptResultContent(json.RawMessage(`{"blob":{"data":"iVBORw0KGgo"}}`), &Document{})
+	if bytes.Contains(content, []byte("iVBORw0KGgo")) {
+		t.Fatal("inline payload in an unknown tool result reached a record")
+	}
+}
+
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex} {
+	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

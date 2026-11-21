@@ -91,6 +91,73 @@ synthetic). The pre-wrapper rollout form is rejected.
   `system` notice. The model comes from the latest `turn_context`.
 - **Session.** `SourceVersion` is `session_meta.cli_version`.
 
+## `polytoken-jsonl` (decoder version 1)
+
+Polytoken's `sessions-v1/<session>/log.jsonl` under its data directory
+(`$POLYTOKEN_DATA_PATH`, else `$XDG_DATA_HOME/polytoken`, else
+`~/.local/share/polytoken`). Polytoken documents where this file lives and
+what it is for (`docs.polytoken.dev/using-polytoken/troubleshooting/`,
+"Inspecting a session on disk") but not its record format. The event kinds
+and fields the decoder reads were taken from session files written by
+Polytoken 0.9.10 and by releases up to 0.8.9 (key names only; fixtures are
+synthetic). The meaning of a user event's `kind` (`human`, `reiterated`) is
+`MessageUserKind` in the 0.9.10 daemon's OpenAPI document (`polytoken print
+openapi`).
+
+- **Lines.** A current line is an envelope (`index`, `lineage`,
+  `committed_at`, `attribution`, `public_payload`, `message`) whose `message`
+  is one session event. Releases up to 0.8.9 wrote the bare event, under
+  `sessions/<session>/log.jsonl`, until Polytoken migrates the session on
+  resume; such a line is decoded the same way. `public_payload`, the
+  daemon's public projection of the same event, is not read.
+- **Ids.** An envelope's event is `<lineage>:<index>` (`native`: the lineage
+  namespaces the index across rewind, clear and compaction). A bare event is
+  `line:<n>` (`positional`). An event split into several records gets
+  `<base>:<kind>:<position>` (`reasoning`, `assistant`, `tool_result`).
+- **Active path.** The file in order: a rewind removes the later events from
+  the file, and a compaction or clear keeps what came before it.
+- **Events.** `user` with `kind: human` is a `user` record holding what the
+  person typed; Polytoken keeps injected context in events of its own. A
+  prompt's images are logged as `image_reference` events with the same
+  `prompt_id` just before it and become image placeholders in that record;
+  the image's `data` and `path` are never read, and an `image_reference`
+  that meets no later user event of its prompt (the copy re-attached after a
+  compaction) is dropped. Any other `kind` (`reiterated`: a goal continuation
+  or a parent's input to a subagent) becomes `system` with the kind as phase.
+  `assistant` splits at each `thinking` or `open_ai_reasoning_opaque` block
+  into a `reasoning` record: the thinking block's `text`, or the opaque
+  block's readable `summary` when it has one. A thinking block's `signature`
+  and an opaque block's `data` are provider continuation state and are never
+  read. `text` and `tool_use` blocks merge into one assistant record whose
+  tool calls carry the native `id`, `name`, and `input` JSON. `tool_result`
+  has one `results` entry per call; each becomes a `tool` record paired by
+  `tool_use_id`, with `is_error`, and a cancelled call is an ordinary error
+  result. Result content is an object with `text`, `image` (a placeholder;
+  its `data` is dropped), or both; any other shape is kept as JSON text
+  without inline payloads and counts as a warning. `system_reminder`
+  (`reminder.body`) and `tool_exposure_reminder` (`text`) are what the harness
+  tells the model, project instruction files included: `system` records,
+  phase `system_reminder`. `compaction_fencepost` becomes `system` (phase
+  `compaction`) carrying its `summary`; its `continuation_prompt`, which
+  repeats the conversation, is not read. `context_cleared` becomes `system`
+  (phase `context_cleared`), and `subagent_complete` becomes `system` (phase
+  `subagent_complete`) carrying `result_summary`; a subagent's own transcript
+  is a separate file (`subagent-*.jsonl`) and is not decoded. Bookkeeping
+  emits nothing: `state_update`, `session_lifecycle`, `model_switch_v2`,
+  `facet_switch`, `subagent_spawn_v1`/`subagent_spawn_v2` (the launch its tool
+  call already shows), `notification` (which a reminder delivers), and
+  `classifier_decision_v1`. Any other event kind or block type becomes a
+  notice.
+- **Model and times.** The model is the envelope's `attribution.model`; for a
+  bare event, the `selection.to_model` of the latest `model_switch_v2`. A
+  record's time is the event's `emitted_at`, a reminder's own
+  `reminder.emitted_at`, or else the envelope's `committed_at`.
+- **Session.** The file declares no Polytoken version, so `SourceVersion` is
+  empty. A log holding only `session_lifecycle` (a session opened and never
+  used) has no records and is rejected. An envelope without `lineage` or
+  `index`, an event without `type`, or a mapped event whose fields have the
+  wrong type fails the document.
+
 ## `atif-json` (decoder version 1)
 
 Harbor's Agent Trajectory Interchange Format, one JSON document per run.
