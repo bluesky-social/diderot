@@ -847,7 +847,9 @@ key.
 
 The optional [Codex provider](quickstart.md#signed-in-codex) sends
 Diderot's Responses requests directly to the ChatGPT Codex backend using
-the configured account's OAuth credentials. It consumes the event stream
+the configured account's OAuth credentials. Its model listing reads that
+account's Codex catalog and publishes the selectable models and their
+reasoning efforts. It consumes the event stream
 and returns a complete Responses result, preserving native function calls
 and replayable reasoning. Ask executes functions in Diderot with the
 requester's permissions and replays their results in the next model call.

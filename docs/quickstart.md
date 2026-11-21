@@ -381,7 +381,7 @@ directly over HTTPS.
 
 ```sh
 (umask 077; openssl rand -hex 32 > codex-provider.token)
-diderot codex-provider --model gpt-6.2-sol \
+diderot codex-provider \
   --auth-file /path/to/dedicated/codex/auth.json --token-file codex-provider.token
 ```
 
@@ -391,7 +391,11 @@ same host. Paste the provider token as its API key. In Kubernetes, keep the
 auth file on a private writable volume, bind `--listen` to the private
 service interface, and use the Service's `*.svc.cluster.local` URL.
 
-Choose the listed model for **Ask**, **Titles**, or the two session summary
+The provider lists the selectable models for its signed-in account, with
+their supported and default reasoning efforts for direct inference. Codex
+harness modes such as Ultra are omitted. Use `--model` to limit the
+provider to one model, or **Models offered** to limit the picker in Diderot.
+Choose a listed model for **Ask**, **Titles**, or the two session summary
 jobs. Keep your separate provider for **Embeddings**. The adapter consumes
 the Codex event stream and gives Diderot a complete Responses result.
 Diderot executes corpus functions itself. The Codex backend receives the

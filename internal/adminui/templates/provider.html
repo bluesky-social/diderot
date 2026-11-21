@@ -103,7 +103,9 @@
       <tbody>
       {{range .Menu.Models}}
         <tr>
-          <th scope="row"><span class="mono">{{.ID}}</span>{{with .Name}} <span class="sub">{{.}}</span>{{end}}{{if .Embedding}} <span class="sub">embeddings</span>{{end}}</th>
+          <th scope="row"><span class="mono">{{.ID}}</span>{{with .Name}} <span class="sub">{{.}}</span>{{end}}{{if .Embedding}} <span class="sub">embeddings</span>{{end}}
+            {{if .Efforts}}<span class="sub">Effort: {{range $i, $effort := .Efforts}}{{if $i}}, {{end}}{{$effort}}{{end}}{{with .DefaultEffort}} (default: {{.}}){{end}}</span>{{else}}{{with .DefaultEffort}}<span class="sub">Default effort: {{.}}</span>{{end}}{{end}}
+          </th>
           <td>{{if .ContextTokens}}{{count .ContextTokens}} tokens{{end}}</td>
           <td>{{$.ImageInput .}}</td>
           <td>{{$.Price .}}</td>

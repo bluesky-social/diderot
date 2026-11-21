@@ -34,7 +34,7 @@ func newTestProvider(t *testing.T) *httptest.Server {
 		}
 		require.Equal(t, "/v1/models", r.URL.Path)
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
-			{"id": "chat-model", "name": "Chat Model", "context_length": 200000, "pricing": map[string]string{"prompt": "0.000002", "completion": "0.00001"}},
+			{"id": "chat-model", "name": "Chat Model", "context_length": 200000, "reasoning_efforts": []string{"low", "high"}, "default_reasoning_effort": "low", "pricing": map[string]string{"prompt": "0.000002", "completion": "0.00001"}},
 			{"id": "old-model", "shutdown_date": "2027-01-15"},
 		}})
 	}))
@@ -115,6 +115,7 @@ func TestModelProviderIsAddedListedChangedAndRemoved(t *testing.T) {
 
 	body := browserRequest(t, mux, http.MethodGet, "https://diderot.test/admin/settings/providers/lab", nil, "").Body.String()
 	assert.Contains(t, body, `<span class="mono">chat-model</span> <span class="sub">Chat Model</span>`)
+	assert.Contains(t, body, `Effort: low, high (default: low)`)
 	assert.Contains(t, body, "200.0K tokens")
 	assert.Contains(t, body, "$2 in, $10 out per million tokens")
 	assert.Contains(t, body, "retires 2027-01-15")

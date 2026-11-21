@@ -24,9 +24,10 @@ func codexProviderCmd() *cobra.Command {
 		Short: "Serve a Diderot inference provider backed by signed-in Codex",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if cfg.Timeout <= 0 || cfg.MaxConcurrent < 1 || strings.TrimSpace(cfg.Model) == "" {
-				return errors.New("set a model, a positive timeout and a positive concurrency limit")
+			if cfg.Timeout <= 0 || cfg.MaxConcurrent < 1 {
+				return errors.New("set a positive timeout and a positive concurrency limit")
 			}
+			cfg.Model = strings.TrimSpace(cfg.Model)
 			token, err := os.ReadFile(tokenFile)
 			if err != nil {
 				return fmt.Errorf("read provider token: %w", err)
@@ -73,11 +74,10 @@ func codexProviderCmd() *cobra.Command {
 	cmd.Flags().StringVar(&listen, "listen", "127.0.0.1:9460", "HTTP listen address")
 	cmd.Flags().StringVar(&tokenFile, "token-file", "", "File containing the provider bearer token")
 	cmd.Flags().StringVar(&cfg.AuthFile, "auth-file", "", "Path to a dedicated Codex ChatGPT auth.json")
-	cmd.Flags().StringVar(&cfg.Model, "model", "", "Codex model to expose in Diderot")
+	cmd.Flags().StringVar(&cfg.Model, "model", "", "Expose only this model (default: all selectable account models)")
 	cmd.Flags().DurationVar(&cfg.Timeout, "timeout", 90*time.Second, "Deadline for a Codex request")
-	cmd.Flags().IntVar(&cfg.MaxConcurrent, "max-concurrent", 2, "Maximum simultaneous Codex invocations")
+	cmd.Flags().IntVar(&cfg.MaxConcurrent, "max-concurrent", 2, "Maximum simultaneous Codex inference requests")
 	_ = cmd.MarkFlagRequired("token-file")
 	_ = cmd.MarkFlagRequired("auth-file")
-	_ = cmd.MarkFlagRequired("model")
 	return cmd
 }

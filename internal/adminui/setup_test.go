@@ -58,7 +58,7 @@ type pageCatalog struct {
 
 func (c *pageCatalog) Roles(_ context.Context, saved settings.Models) ([]setup.RoleView, error) {
 	ask := setup.RoleView{ModelRole: setup.ModelRole{Key: "ask", Title: "Ask", Description: "Answers questions.", Options: []setup.ModelOption{
-		{Ref: "openai/model-a", ID: "model-a", Provider: "openai", ReasoningEfforts: []string{"low", "high"}, InputPrice: ptr(2.0), OutputPrice: ptr(10.0)},
+		{Ref: "openai/model-a", ID: "model-a", Provider: "openai", ReasoningEfforts: []string{"low", "high"}, DefaultEffort: "low", InputPrice: ptr(2.0), OutputPrice: ptr(10.0)},
 		{Ref: "openai/model-b", ID: "model-b", Provider: "openai"},
 	}}, Saved: saved.Roles["ask"]}
 	if ask.Saved != "" {
@@ -366,8 +366,9 @@ func TestModelsPage(t *testing.T) {
 	body := w.Body.String()
 	assert.Contains(t, body, `<h3 id="role-ask-title">Ask</h3>`)
 	assert.Contains(t, body, `<select id="role-ask" name="role.ask">`)
+	assert.Contains(t, body, `<option value="openai/model-a" data-reasoning-efforts="low high " data-default-effort="low">model-a</option>`)
 	assert.Contains(t, body, `<option value="" selected>Off: no model</option>`, "nothing is chosen for an administrator")
-	assert.Contains(t, body, `<optgroup label="openai"><option value="openai/model-a">model-a</option><option value="openai/model-b">model-b</option></optgroup>`)
+	assert.Contains(t, body, `<optgroup label="openai"><option value="openai/model-a" data-reasoning-efforts="low high " data-default-effort="low">model-a</option><option value="openai/model-b">model-b</option></optgroup>`)
 	assert.Contains(t, body, "<dt>Image captions</dt><dd>This needs file storage. Set DIDEROT_IMAGES_BUCKET in the deployment.</dd>",
 		"a job that is off is listed once, with what would turn it on")
 	assert.NotContains(t, body, `name="role.image_captions"`, "a role that is off has no choice")
@@ -397,7 +398,7 @@ func TestModelsPage(t *testing.T) {
 	assert.Contains(t, w.Header().Get("Location"), "error=Someone+changed+this", "the form's version is stale")
 
 	body = h.get("/admin/settings/models", false).Body.String()
-	assert.Contains(t, body, `<option value="openai/model-a" selected>model-a</option>`)
+	assert.Contains(t, body, `<option value="openai/model-a" selected data-reasoning-efforts="low high " data-default-effort="low">model-a</option>`)
 	assert.Contains(t, body, "$2 in, $10 out per million tokens", "the model in use shows its listed price")
 	assert.Contains(t, body, `<option value="high" selected>high</option>`)
 	assert.Contains(t, body, `<a class="mono" href="/admin/settings/models/model?ref=openai%2fmodel-a">model-a</a>`)

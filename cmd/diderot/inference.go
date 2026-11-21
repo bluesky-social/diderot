@@ -585,6 +585,7 @@ func roleOption(registry *modelregistry.Registry, facts *factsView, role modelre
 	entry, ok := registry.Lookup(option.Ref)
 	option.Tested = ok && entry.ServesRole(role) && slices.Contains(entry.TestedFor, role)
 	if role == modelregistry.RoleAsk {
+		option.DefaultEffort = listed.DefaultEffort
 		published, _ := facts.of(provider, listed.ID)
 		// A model with an entry takes the efforts its entry says, none
 		// included: what is published now is not what its requests are

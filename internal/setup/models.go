@@ -42,6 +42,8 @@ type ModelOption struct {
 	// ReasoningEfforts are the efforts the model is known to take, from its
 	// entry or the provider's listing; only Ask's options carry them.
 	ReasoningEfforts []string `json:"reasoning_efforts,omitempty"`
+	// DefaultEffort is the provider's published choice for an omitted effort.
+	DefaultEffort string `json:"default_effort,omitempty"`
 	// Images is what the listing says about image input; nil when silent.
 	Images *bool `json:"images,omitempty"`
 	// InputPrice and OutputPrice are USD per million tokens, when the

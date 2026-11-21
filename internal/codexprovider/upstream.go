@@ -14,12 +14,14 @@ import (
 
 const (
 	codexResponsesURL = "https://chatgpt.com/backend-api/codex/responses"
+	codexModelsURL    = "https://chatgpt.com/backend-api/codex/models?client_version=0.170.0"
 	maxStreamBytes    = 32 << 20
 )
 
 type codexBackend struct {
 	client      *http.Client
 	url         string
+	modelsURL   string
 	credentials *credentialStore
 }
 
@@ -35,11 +37,22 @@ func (b *codexBackend) respond(ctx context.Context, body request) (json.RawMessa
 	if err != nil {
 		return nil, err
 	}
+	resp, err := b.do(ctx, http.MethodPost, b.url, payload)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	resp.Body = limitedBody{Reader: io.LimitReader(resp.Body, maxStreamBytes), Closer: resp.Body}
+	return readResponse(ssestream.NewDecoder(resp))
+}
+
+func (b *codexBackend) do(ctx context.Context, method, url string, payload []byte) (*http.Response, error) {
 	credential, err := b.credentials.get(ctx, "")
 	if err != nil {
 		return nil, err
 	}
-	resp, err := b.send(ctx, payload, credential)
+	resp, err := b.send(ctx, method, url, payload, credential)
 	if err != nil {
 		return nil, err
 	}
@@ -49,31 +62,33 @@ func (b *codexBackend) respond(ctx context.Context, body request) (json.RawMessa
 		if err != nil {
 			return nil, err
 		}
-		resp, err = b.send(ctx, payload, credential)
+		resp, err = b.send(ctx, method, url, payload, credential)
 		if err != nil {
 			return nil, err
 		}
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		return nil, upstreamStatus(resp.StatusCode)
 	}
-
-	resp.Body = limitedBody{Reader: io.LimitReader(resp.Body, maxStreamBytes), Closer: resp.Body}
-	return readResponse(ssestream.NewDecoder(resp))
+	return resp, nil
 }
 
-func (b *codexBackend) send(ctx context.Context, payload []byte, credential accessCredential) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.url, bytes.NewReader(payload))
+func (b *codexBackend) send(ctx context.Context, method, url string, payload []byte, credential accessCredential) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+credential.access)
 	req.Header.Set("ChatGPT-Account-Id", credential.account)
 	req.Header.Set("Originator", "diderot")
-	req.Header.Set("OpenAI-Beta", "responses=experimental")
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("Content-Type", "application/json")
+	if method == http.MethodPost {
+		req.Header.Set("OpenAI-Beta", "responses=experimental")
+		req.Header.Set("Accept", "text/event-stream")
+		req.Header.Set("Content-Type", "application/json")
+	} else {
+		req.Header.Set("Accept", "application/json")
+	}
 	return b.client.Do(req)
 }
 

@@ -100,3 +100,24 @@ function refreshScrollRegionFocus() {
 refreshScrollRegionFocus();
 window.addEventListener("resize", refreshScrollRegionFocus, { passive: true });
 document.addEventListener("toggle", refreshScrollRegionFocus, true);
+
+// Use the selected Ask model's published or tested efforts when available.
+// The form still submits and validates normally without JavaScript.
+const askModel = document.getElementById("role-ask");
+const askEffort = document.getElementById("ask-reasoning-effort");
+if (askModel && askEffort) {
+  const updateEfforts = () => {
+    const model = askModel.selectedOptions[0];
+    const known = (model?.dataset.reasoningEfforts || "").trim().split(/\s+/).filter(Boolean);
+    const defaultEffort = model?.dataset.defaultEffort;
+    askEffort.options[0].textContent = defaultEffort ? `Model default (${defaultEffort})` : "Model default";
+    for (const option of askEffort.options) {
+      option.disabled = known.length > 0 && option.value !== "" && !known.includes(option.value) && !option.selected;
+    }
+    const unsupported = known.length > 0 && askEffort.value !== "" && !known.includes(askEffort.value);
+    askEffort.setCustomValidity(unsupported ? "Choose a reasoning effort supported by this model." : "");
+  };
+  askModel.addEventListener("change", updateEfforts);
+  askEffort.addEventListener("change", updateEfforts);
+  updateEfforts();
+}

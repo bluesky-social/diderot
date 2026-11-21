@@ -27,6 +27,7 @@ type Config struct {
 type request map[string]json.RawMessage
 
 type backend func(context.Context, request) (json.RawMessage, error)
+type catalog func(context.Context, string) ([]listedModel, error)
 
 // NewHandler authenticates Diderot with the adapter token. A separate user
 // OAuth credential authenticates the adapter to the Codex backend.
@@ -35,17 +36,22 @@ func NewHandler(cfg Config) http.Handler {
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
 	store := &credentialStore{path: cfg.AuthFile, client: client, tokenURL: codexTokenURL}
-	upstream := &codexBackend{client: client, url: codexResponsesURL, credentials: store}
-	return newHandler(cfg, upstream.respond)
+	upstream := &codexBackend{client: client, url: codexResponsesURL, modelsURL: codexModelsURL, credentials: store}
+	return newHandler(cfg, upstream.respond, upstream.models)
 }
 
-func newHandler(cfg Config, respond backend) http.Handler {
+func newHandler(cfg Config, respond backend, list catalog) http.Handler {
 	slots := make(chan struct{}, cfg.MaxConcurrent)
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/models", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": []map[string]any{
-			{"id": cfg.Model, "object": "model", "owned_by": "codex", "created": 0},
-		}})
+	mux.HandleFunc("GET /v1/models", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), cfg.Timeout)
+		defer cancel()
+		models, err := list(ctx, cfg.Model)
+		if err != nil {
+			writeBackendError(w, ctx, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": models})
 	})
 	mux.HandleFunc("POST /v1/responses", func(w http.ResponseWriter, h *http.Request) {
 		var req request
@@ -68,17 +74,8 @@ func newHandler(cfg Config, respond backend) http.Handler {
 		ctx, cancel := context.WithTimeout(h.Context(), cfg.Timeout)
 		defer cancel()
 		result, err := respond(ctx, req)
-		if ctx.Err() != nil {
-			writeError(w, http.StatusGatewayTimeout, "Codex request ended before it completed")
-			return
-		}
-		if err != nil {
-			var upstream *backendError
-			if errors.As(err, &upstream) {
-				writeError(w, upstream.status, upstream.message)
-			} else {
-				writeError(w, http.StatusBadGateway, "Codex backend request failed")
-			}
+		if err != nil || ctx.Err() != nil {
+			writeBackendError(w, ctx, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, result)
@@ -94,7 +91,7 @@ func newHandler(cfg Config, respond backend) http.Handler {
 
 func (r request) prepare(model string) error {
 	var requested string
-	if json.Unmarshal(r["model"], &requested) != nil || requested != model {
+	if json.Unmarshal(r["model"], &requested) != nil || strings.TrimSpace(requested) == "" || (model != "" && requested != model) {
 		return errors.New("unknown model")
 	}
 	if string(r["stream"]) == "true" || string(r["store"]) == "true" ||
@@ -188,6 +185,19 @@ func liftInstructions(instructions string, input []json.RawMessage) (string, []j
 
 func present(raw json.RawMessage) bool {
 	return len(raw) > 0 && string(raw) != "null" && string(raw) != `""`
+}
+
+func writeBackendError(w http.ResponseWriter, ctx context.Context, err error) {
+	if ctx.Err() != nil {
+		writeError(w, http.StatusGatewayTimeout, "Codex request ended before it completed")
+		return
+	}
+	var upstream *backendError
+	if errors.As(err, &upstream) {
+		writeError(w, upstream.status, upstream.message)
+		return
+	}
+	writeError(w, http.StatusBadGateway, "Codex backend request failed")
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {

@@ -34,6 +34,18 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer "+fresh, r.Header.Get("Authorization"))
 		assert.Equal(t, "test-account", r.Header.Get("ChatGPT-Account-Id"))
+		if r.Method == http.MethodGet {
+			assert.Equal(t, "/codex/models", r.URL.Path)
+			assert.Equal(t, "0.170.0", r.URL.Query().Get("client_version"))
+			assert.Equal(t, "application/json", r.Header.Get("Accept"))
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"models":[
+				{"slug":"test-model","display_name":"Test model","visibility":"list","context_window":500000,"input_modalities":["text","image"],"default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low"},{"effort":"high"},{"effort":"ultra"}]},
+				{"slug":"other-visible","visibility":"list"},
+				{"slug":"hidden-model","visibility":"hide"}
+			]}`)
+			return
+		}
 		assert.Equal(t, "text/event-stream", r.Header.Get("Accept"))
 		var body request
 		if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&body)) {
@@ -53,6 +65,7 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 			assert.Equal(t, "Follow the evidence.", jsonString(body["instructions"]))
 			assert.NotContains(t, string(body["input"]), "Follow the evidence.")
 			assert.Contains(t, string(body["input"]), "function_call_output")
+			assert.JSONEq(t, `{"effort":"high"}`, string(body["reasoning"]))
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		fmt.Fprintf(w, "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":%s}\n\n", item)
@@ -60,8 +73,13 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 	}))
 	defer upstream.Close()
 	cfg := testConfig()
-	bridge := &codexBackend{client: upstream.Client(), url: upstream.URL, credentials: &credentialStore{path: authFile}}
-	server := httptest.NewServer(newHandler(cfg, bridge.respond))
+	bridge := &codexBackend{
+		client: upstream.Client(), url: upstream.URL + "/codex/responses",
+		modelsURL:   upstream.URL + "/codex/models?client_version=0.170.0",
+		credentials: &credentialStore{path: authFile},
+	}
+	cfg.Model = ""
+	server := httptest.NewServer(newHandler(cfg, bridge.respond, bridge.models))
 	defer server.Close()
 
 	ctx := context.Background()
@@ -71,10 +89,24 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 	}
 	models, err := modelregistry.List(ctx, server.Client(), provider)
 	require.NoError(t, err)
-	require.Len(t, models, 1)
-	require.Equal(t, cfg.Model, models[0].ID)
+	require.Len(t, models, 2)
+	require.Equal(t, "other-visible", models[0].ID)
+	require.Equal(t, "test-model", models[1].ID)
+	require.Equal(t, 500000, models[1].ContextTokens)
+	require.True(t, *models[1].Images)
+	require.Equal(t, []string{"low", "high"}, models[1].Efforts)
+	require.Equal(t, "low", models[1].DefaultEffort)
 
-	entry := modelregistry.NewEntry(provider.Name, cfg.Model)
+	pinned, err := bridge.models(ctx, "test-model")
+	require.NoError(t, err)
+	require.Len(t, pinned, 1)
+	require.Equal(t, "test-model", pinned[0].ID)
+	_, err = bridge.models(ctx, "hidden-model")
+	require.ErrorContains(t, err, "not selectable")
+
+	entry := modelregistry.NewEntry(provider.Name, "test-model").
+		WithPublished(modelregistry.Published{Provider: models[1].Facts()}, false)
+	require.Equal(t, modelregistry.SourceProvider, entry.SourceOf(modelregistry.FactEfforts))
 	for _, role := range []modelregistry.Role{modelregistry.RoleAsk, modelregistry.RoleSessionSummaryMap, modelregistry.RoleSessionSummaryReduce, modelregistry.RoleTitles} {
 		entry, err = modelregistry.TestForRole(ctx, provider, entry, role, modelregistry.TestOptions{})
 		require.NoError(t, err, string(role))
@@ -82,8 +114,9 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 	}
 
 	model, err := ask.NewResponsesModel(ctx, ask.ResponsesConfig{
-		BaseURL: server.URL + "/v1", APIKey: cfg.Token, ModelID: cfg.Model,
-		MaxRetries: ask.NoResponsesRetries, MaxTokens: 1024, PromptCacheRetention: "in_memory",
+		BaseURL: server.URL + "/v1", APIKey: cfg.Token, ModelID: "test-model",
+		ReasoningEffort: "high",
+		MaxRetries:      ask.NoResponsesRetries, MaxTokens: 1024, PromptCacheRetention: "in_memory",
 	})
 	require.NoError(t, err)
 	result, err := model.Generate(ctx, []*schema.AgenticMessage{
@@ -138,7 +171,7 @@ func TestProviderRejectsUnauthorizedAndStatefulRequests(t *testing.T) {
 	handler := newHandler(cfg, func(_ context.Context, _ request) (json.RawMessage, error) {
 		t.Error("request reached the backend")
 		return nil, nil
-	})
+	}, nil)
 	for _, tc := range []struct {
 		name, token, body string
 		code              int
