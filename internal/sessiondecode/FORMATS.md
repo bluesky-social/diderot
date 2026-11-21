@@ -91,6 +91,36 @@ synthetic). The pre-wrapper rollout form is rejected.
   `system` notice. The model comes from the latest `turn_context`.
 - **Session.** `SourceVersion` is `session_meta.cli_version`.
 
+## `antigravity-jsonl` (decoder version 1)
+
+Antigravity's `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript_full.jsonl`
+(written by Antigravity IDE/App under `~/.gemini/antigravity/brain`,
+Antigravity CLI under `~/.gemini/antigravity-cli/brain`, and T3 Code's
+Antigravity provider under `~/.t3/userdata/providers/antigravity`).
+
+- **Ids.** Always `positional`: `step:<step_index>`. A `PLANNER_RESPONSE`
+  carrying both `thinking` and assistant output splits into
+  `step:<step_index>:reasoning:0` and `step:<step_index>:assistant:1`.
+  Duplicate or missing `step_index` fails the document.
+- **Active path.** Steps are sorted ascending by `step_index` before emission,
+  because concurrent steps may be flushed to the file out of `step_index`
+  order.
+- **Steps.** `USER_INPUT` becomes a `user` record (with `media` images mapped
+  to image placeholders; local `uri` paths are never followed).
+  `PLANNER_RESPONSE` emits a `reasoning` record for `thinking` and an
+  `assistant` record for `content` and `tool_calls` (with synthetic call ids
+  `step:<step_index>:call:<n>` because Antigravity tool calls carry no native
+  id); an empty `PLANNER_RESPONSE` is skipped. Tool execution steps
+  (`RUN_COMMAND`, `AGENCY_TOOL_CALL`, `GENERIC`, `MCP_TOOL`, `SEARCH_WEB`,
+  `READ_URL_CONTENT`, `INVOKE_SUBAGENT`) pair in FIFO order with the pending
+  calls of the preceding `PLANNER_RESPONSE`; an unpaired tool step fails the
+  document. `CHECKPOINT` becomes `system` (phase `compaction`),
+  `SYSTEM_MESSAGE` becomes `system`, and `ERROR_MESSAGE` becomes `system`
+  (phase `error`, `is_error: true`). Unknown step types become a `system`
+  notice and increment `WarningRecords`.
+- **Session.** The format carries no version field, so `SourceVersion` is
+  empty; the harness is `antigravity`.
+
 ## `atif-json` (decoder version 1)
 
 Harbor's Agent Trajectory Interchange Format, one JSON document per run.

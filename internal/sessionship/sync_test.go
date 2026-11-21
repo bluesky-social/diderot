@@ -26,8 +26,9 @@ import (
 )
 
 const (
-	claudeSession = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
-	codexSession  = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	claudeSession      = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
+	codexSession       = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	antigravitySession = "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
 )
 
 // claudeTurn is one synthetic Claude Code user or assistant line; each line
@@ -161,6 +162,7 @@ func newFixture(t *testing.T) *fixture {
 		Settings: Settings{Sources: []Source{
 			{Harness: "claude-code", Dir: filepath.Join(root, "claude")},
 			{Harness: "codex", Dir: filepath.Join(root, "codex")},
+			{Harness: "antigravity", Dir: filepath.Join(root, "antigravity")},
 		}},
 		StatePath: filepath.Join(root, "state", "sessions-state.json"), ServerURL: pusher.MCPURL,
 		Put: pusher.Put, Now: func() time.Time { return f.now },
@@ -188,16 +190,25 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	codexDir := f.syncer.Settings.Sources[1].Dir
 	write(t, filepath.Join(codexDir, "2026", "11", "01", "rollout-2026-11-01T11-00-00-"+codexSession+".jsonl"), string(codex))
+	ag, err := os.ReadFile("../sessiondecode/testdata/antigravity/basic.jsonl")
+	require.NoError(t, err)
+	agDir := f.syncer.Settings.Sources[2].Dir
+	agLogs := filepath.Join(agDir, "abc123", "antigravity-acp", "brain", antigravitySession, ".system_generated", "logs")
+	write(t, filepath.Join(agLogs, "transcript_full.jsonl"), string(ag))
+	// The truncated copy beside transcript_full.jsonl is never read.
+	write(t, filepath.Join(agLogs, "transcript.jsonl"), "not a session\n")
 	// Files that are not sessions are never read: a subagent's transcript,
 	// and anything else a harness keeps beside its sessions.
 	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-a1b2c3.jsonl"), "not a session\n")
 	write(t, filepath.Join(filepath.Dir(f.claude), "notes.txt"), "not a session\n")
 
 	result := f.pass(t)
-	require.Len(t, result.Sent, 2)
+	require.Len(t, result.Sent, 3)
 	assert.Equal(t, Outcome{Harness: "claude-code", SessionID: claudeSession, Path: f.claude, Action: "created"}, result.Sent[0])
 	assert.Equal(t, "codex", result.Sent[1].Harness)
 	assert.Equal(t, codexSession, result.Sent[1].SessionID)
+	assert.Equal(t, "antigravity", result.Sent[2].Harness)
+	assert.Equal(t, antigravitySession, result.Sent[2].SessionID)
 	assert.Empty(t, result.Skipped)
 
 	// The server's decoder gets back what the harness's own decoder reads.
@@ -205,6 +216,9 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	got := f.server.records(codexSession)
 	require.Len(t, got, len(want))
+	_, wantAG, err := sessiondecode.DecodeAll(sessiondecode.Antigravity{}, ag)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(antigravitySession), len(wantAG))
 	assert.Len(t, f.server.records(claudeSession), 2)
 
 	info, err := os.Stat(f.syncer.StatePath)

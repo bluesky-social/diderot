@@ -163,11 +163,17 @@ func TestDetect(t *testing.T) {
 
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".claude", "projects"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".codex", "sessions"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".gemini", "antigravity", "brain"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".gemini", "antigravity-cli", "brain"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".t3", "userdata", "providers", "antigravity"), 0o755))
 	found, err = Detect()
 	require.NoError(t, err)
 	assert.Equal(t, []Source{
 		{Harness: "claude-code", Dir: filepath.Join(home, ".claude", "projects")},
 		{Harness: "codex", Dir: filepath.Join(home, ".codex", "sessions")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".gemini", "antigravity", "brain")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".gemini", "antigravity-cli", "brain")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".t3", "userdata", "providers", "antigravity")},
 	}, found)
 
 	// Each harness's own override moves its directory.
@@ -177,7 +183,12 @@ func TestDetect(t *testing.T) {
 	t.Setenv("CODEX_HOME", elsewhere)
 	found, err = Detect()
 	require.NoError(t, err)
-	assert.Equal(t, []Source{{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")}}, found)
+	assert.Equal(t, []Source{
+		{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".gemini", "antigravity", "brain")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".gemini", "antigravity-cli", "brain")},
+		{Harness: "antigravity", Dir: filepath.Join(home, ".t3", "userdata", "providers", "antigravity")},
+	}, found)
 
 	// Every harness in the table has a decoder and names its session files.
 	for _, h := range Harnesses {

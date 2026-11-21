@@ -212,6 +212,7 @@ directory exists:
 |---|---|---|
 | `claude-code` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` when that is set) | each `<session id>.jsonl`; subagent transcripts are not sent |
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
+| `antigravity` | `~/.gemini/antigravity/brain`, `~/.gemini/antigravity-cli/brain`, and `~/.t3/userdata/providers/antigravity` | each `<session id>/.system_generated/logs/transcript_full.jsonl` |
 
 To ship from somewhere else, or only part of it:
 
