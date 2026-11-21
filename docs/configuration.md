@@ -406,9 +406,13 @@ minutes. Credentials use the usual connector secret settings.
   each copy is indexed separately. Message expunges and removed mailboxes
   are reconciled after a successful account poll.
 - CalDAV accepts a calendar collection URL for `VEVENT` and a notes
-  collection URL for `VJOURNAL`. Set either or both and include the
-  trailing slash. It periodically re-reads the selected HTTPS collections
-  with a 32 MiB limit per response. Recurrence rules and explicit
+  collection URL for `VJOURNAL`. A server URL such as
+  `https://caldav.fastmail.com/` discovers every accessible collection
+  that supports the requested entry type. Set either field or both. For
+  Fastmail, use your full account address and an app password with CalDAV
+  access. Fastmail's built-in Notes are messages in its IMAP Notes folder.
+  CalDAV periodically re-reads the selected HTTPS collections with a 32 MiB
+  limit per response. Recurrence rules and explicit
   exceptions are searchable as stored entries. Series are indexed
   without generating each occurrence.
 

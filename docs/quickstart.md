@@ -154,7 +154,7 @@ you entered stays saved and the page says what to fix.
    server and port, login, and password or app password. Diderot discovers
    and indexes all selectable mailboxes, including nested folders.
 2. Open **CalDAV calendar and notes** at `/admin/connectors/caldav`. Enter
-   your CalDAV login and the full HTTPS collection URL for your calendar,
+   your CalDAV login and the HTTPS collection URL for your calendar,
    your journal notes, or both. A notes collection must expose its notes as
    `VJOURNAL` entries.
 3. On both pages, set **Diderot owner email** to the verified email you
@@ -163,7 +163,8 @@ you entered stays saved and the page says what to fix.
    the last email about a project said, or ask for your notes from a
    particular meeting.
 
-See [IMAP and CalDAV settings](configuration.md#imap-and-caldav).
+Use a CalDAV server URL, such as `https://caldav.fastmail.com/`, to discover
+all accessible calendars. See [IMAP and CalDAV settings](configuration.md#imap-and-caldav).
 
 ### Markdown folder
 

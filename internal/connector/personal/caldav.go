@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -42,16 +43,16 @@ func (CalDAV) Info() source.Info {
 func (CalDAV) Fields() []settings.Field {
 	return append(accountFields(),
 		settings.Field{Key: fieldCalendarURL, Label: "Calendar collection URL", Kind: settings.KindText,
-			Help: "The full HTTPS collection URL for events. Leave empty for notes only."},
+			Help: "An HTTPS calendar collection URL, or a server URL such as https://caldav.fastmail.com/ to discover all event calendars. Leave empty for notes only."},
 		settings.Field{Key: fieldJournalURL, Label: "Notes collection URL", Kind: settings.KindText,
-			Help: "The full HTTPS collection URL for CalDAV journal notes (VJOURNAL). It can be the same URL as the calendar."})
+			Help: "An HTTPS collection URL for CalDAV journal entries (VJOURNAL), or a server URL to discover journal collections."})
 }
 
 func (CalDAV) Validate(values settings.Values) error {
 	errs := accountErrors(values)
 	calendar, journal := settingsString(values, fieldCalendarURL), settingsString(values, fieldJournalURL)
 	if calendar == "" && journal == "" {
-		errs[fieldCalendarURL] = "enter at least one collection URL"
+		errs[fieldCalendarURL] = "enter at least one CalDAV URL"
 	}
 	for field, raw := range map[string]string{fieldCalendarURL: calendar, fieldJournalURL: journal} {
 		if raw != "" {
@@ -69,8 +70,8 @@ func (CalDAV) Validate(values settings.Values) error {
 func collectionURL(raw string) (*url.URL, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" ||
-		u.ForceQuery || u.Fragment != "" || !strings.HasSuffix(u.Path, "/") {
-		return nil, errors.New("enter an HTTPS collection URL ending in / without credentials, a query, or a fragment")
+		u.ForceQuery || u.Fragment != "" {
+		return nil, errors.New("enter an HTTPS server or collection URL without credentials, a query, or a fragment")
 	}
 	return u, nil
 }
@@ -94,17 +95,45 @@ func collections(cfg settings.Resolved) []collection {
 
 func (CalDAV) Test(ctx context.Context, cfg settings.Resolved) settings.TestReport {
 	var report settings.TestReport
+	dav := newDAVClient(cfg)
 	for _, col := range collections(cfg) {
-		check := settings.Check{Name: col.label, Detail: "Could not read the collection over HTTPS.",
-			Remedy: "Check the collection URL, credentials, TLS certificate, and supported entry types."}
-		objects, err := newDAVClient(cfg).query(ctx, col)
-		if err == nil {
-			check = settings.Check{Name: col.label, Passed: true,
-				Detail: fmt.Sprintf("Read %d objects from the collection.", len(objects))}
-		}
-		report.Checks = append(report.Checks, check)
+		report.Checks = append(report.Checks, dav.testCollection(ctx, col))
 	}
 	return report
+}
+
+func (d davClient) testCollection(ctx context.Context, col collection) settings.Check {
+	sources, err := d.resolve(ctx, col)
+	if err != nil {
+		return caldavCheckError(col.label, err)
+	}
+	total := 0
+	for _, src := range sources {
+		objects, err := d.query(ctx, src)
+		if err != nil {
+			return caldavCheckError(col.label, err)
+		}
+		total += len(objects)
+	}
+	return settings.Check{Name: col.label, Passed: true,
+		Detail: fmt.Sprintf("Read %d objects across %d collections.", total, len(sources))}
+}
+
+func caldavCheckError(label string, err error) settings.Check {
+	check := settings.Check{Name: label, Detail: "Could not read the collection over HTTPS.",
+		Remedy: "Check the CalDAV URL and this server's connection, or try a full collection URL."}
+	var status davStatusError
+	switch {
+	case errors.Is(err, errNoCalDAVCollections):
+		check.Detail = "The server advertised no collections for this entry type."
+		check.Remedy = "Enter a collection URL for this entry type or clear this field."
+	case errors.As(err, &status):
+		check.Detail = fmt.Sprintf("The CalDAV server responded with HTTP %d.", status)
+		if status == http.StatusUnauthorized || status == http.StatusForbidden {
+			check.Remedy = "Check the full account username and use an app password with CalDAV access."
+		}
+	}
+	return check
 }
 
 func (CalDAV) Run(ctx context.Context, deps source.Deps, cfg settings.Resolved) error {
@@ -126,23 +155,55 @@ type davClient struct {
 
 func newDAVClient(cfg settings.Resolved) davClient {
 	return davClient{
-		http: safehttp.NewClient(safehttp.Options{Timeout: 30 * time.Second, FailOnRedirect: true}),
+		http: safehttp.NewClient(safehttp.Options{Timeout: 30 * time.Second, CheckRedirect: safehttp.NoFollow}),
 		user: cfg.String(fieldUsername), password: cfg.Secret(fieldPassword),
 	}
 }
 
+type davStatusError int
+
+func (e davStatusError) Error() string { return fmt.Sprintf("CalDAV HTTP %d", e) }
+
 func (d davClient) Do(req *http.Request) (*http.Response, error) {
 	req.SetBasicAuth(d.user, d.password)
-	resp, err := d.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.ContentLength > maxCalendarResponse {
+	for redirects := 0; ; redirects++ {
+		resp, err := d.http.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode/100 == 2 {
+			if resp.ContentLength > maxCalendarResponse {
+				_ = resp.Body.Close()
+				return nil, errors.New("CalDAV response exceeds the size limit")
+			}
+			resp.Body = &boundedDAVBody{ReadCloser: resp.Body, remaining: maxCalendarResponse}
+			return resp, nil
+		}
 		_ = resp.Body.Close()
-		return nil, errors.New("CalDAV response exceeds the size limit")
+		switch resp.StatusCode {
+		case http.StatusMovedPermanently, http.StatusFound, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		default:
+			return nil, davStatusError(resp.StatusCode)
+		}
+		target, err := resp.Location()
+		if err != nil || redirects >= 3 || target.Scheme != req.URL.Scheme ||
+			!strings.EqualFold(target.Host, req.URL.Host) || target.User != nil ||
+			target.RawQuery != "" || target.ForceQuery || target.Fragment != "" {
+			return nil, errors.New("CalDAV refused the redirect")
+		}
+		// Preserve the DAV method and XML body across a service or slash redirect.
+		req = req.Clone(req.Context())
+		req.URL = target
+		if req.GetBody != nil {
+			replayed, err := req.GetBody()
+			if err != nil {
+				return nil, err
+			}
+			req.Body = replayed
+		} else if req.Body != nil && req.Body != http.NoBody {
+			return nil, errors.New("CalDAV cannot replay the redirected request")
+		}
 	}
-	resp.Body = &boundedDAVBody{ReadCloser: resp.Body, remaining: maxCalendarResponse}
-	return resp, nil
 }
 
 type boundedDAVBody struct {
@@ -157,6 +218,71 @@ func (b *boundedDAVBody) Read(buf []byte) (int, error) {
 	n, err := b.ReadCloser.Read(buf[:min(len(buf), b.remaining)])
 	b.remaining -= n
 	return n, err
+}
+
+var errNoCalDAVCollections = errors.New("CalDAV discovery found no matching collections")
+
+func (d davClient) resolve(ctx context.Context, col collection) ([]collection, error) {
+	endpoint, err := collectionURL(col.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint.Path != "" && endpoint.Path != "/" {
+		return []collection{col}, nil
+	}
+
+	discovery := *endpoint
+	discovery.Path, discovery.RawPath = "/.well-known/caldav", ""
+	dav, err := caldav.NewClient(d, discovery.String())
+	if err != nil {
+		return nil, err
+	}
+	principal, err := dav.FindCurrentUserPrincipal(ctx)
+	if errors.Is(err, davStatusError(http.StatusNotFound)) {
+		dav, err = caldav.NewClient(d, endpoint.String())
+		if err != nil {
+			return nil, err
+		}
+		principal, err = dav.FindCurrentUserPrincipal(ctx)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(principal, "/") {
+		return nil, errors.New("CalDAV returned an invalid principal")
+	}
+	home, err := dav.FindCalendarHomeSet(ctx, principal)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(home, "/") {
+		return nil, errors.New("CalDAV returned an invalid calendar home")
+	}
+	calendars, err := dav.FindCalendars(ctx, home)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []collection
+	seen := map[string]bool{}
+	for _, calendar := range calendars {
+		if !strings.HasPrefix(calendar.Path, "/") ||
+			(len(calendar.SupportedComponentSet) != 0 && !slices.Contains(calendar.SupportedComponentSet, col.component)) {
+			continue
+		}
+		collectionURL := *endpoint
+		collectionURL.Path, collectionURL.RawPath = calendar.Path, ""
+		discovered := col
+		discovered.endpoint = collectionURL.String()
+		if !seen[discovered.endpoint] {
+			result = append(result, discovered)
+			seen[discovered.endpoint] = true
+		}
+	}
+	if len(result) == 0 {
+		return nil, errNoCalDAVCollections
+	}
+	return result, nil
 }
 
 func (d davClient) query(ctx context.Context, col collection) ([]caldav.CalendarObject, error) {
@@ -184,13 +310,21 @@ func syncCollections(ctx context.Context, sink *events.DBSink, dav davClient, cf
 	if len(cols) == 0 {
 		return errors.New("CalDAV has no configured collections")
 	}
+	var resolved []collection
 	for _, col := range cols {
+		sources, err := dav.resolve(ctx, col)
+		if err != nil {
+			return fmt.Errorf("CalDAV could not discover %s", strings.ToLower(col.label))
+		}
+		resolved = append(resolved, sources...)
+	}
+	for _, col := range resolved {
 		objects, err := dav.query(ctx, col)
 		if err != nil {
 			// A server's error can contain an href or part of an entry.
 			return fmt.Errorf("CalDAV could not query %s", strings.ToLower(col.label))
 		}
-		prefix := namespace(owner, cfg.String(fieldUsername), col.endpoint, col.component)
+		prefix := namespace(owner, cfg.String(fieldUsername), strings.TrimSuffix(col.endpoint, "/")+"/", col.component)
 		for _, obj := range objects {
 			for _, comp := range obj.Data.Children {
 				if comp.Name != col.component {
