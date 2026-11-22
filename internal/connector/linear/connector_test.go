@@ -299,6 +299,17 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.Equal(t, "Test again. If it keeps failing, report it as a Diderot bug.", credentials.Remedy)
 		assert.Zero(t, fake.calls.Load())
 	})
+	t.Run("OAuth application without its secret", func(t *testing.T) {
+		fake := newFakeLinearTest(t)
+		report := fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID}, map[string]string{FieldToken: fixtureKey})
+		credentials := check(t, report, "Credentials")
+		assert.False(t, credentials.Passed)
+		assert.Equal(t, "No client secret for the OAuth application.", credentials.Detail)
+		assert.Equal(t, "Paste the application's client secret from Linear's Settings, API.", credentials.Remedy)
+		assert.False(t, check(t, report, "Teams").Passed)
+		assert.Zero(t, fake.calls.Load())
+		assert.Zero(t, fake.tokens.mints.Load())
+	})
 	t.Run("no API key", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)

@@ -132,16 +132,21 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	var report settings.TestReport
 	add := func(check settings.Check) { report.Checks = append(report.Checks, check) }
 	remedy := r.SupplySecret(FieldToken, "a personal API key from Linear's Settings, Security & access") + "."
+	secretRemedy := r.SupplySecret(FieldOAuthSecret, "the application's client secret from Linear's Settings, API") + "."
 	if r.String(FieldOAuthClientID) != "" {
-		remedy = "Check the client ID and that the application has client credentials tokens turned on. " +
-			r.SupplySecret(FieldOAuthSecret, "the application's client secret from Linear's Settings, API") + "."
+		remedy = "Check the client ID and that the application has client credentials tokens turned on. " + secretRemedy
 	}
 	notChecked := failed("Teams", "Not checked: the credentials did not authenticate.", "Fix the credentials, then test again.")
 	// An answer Diderot can't read is no fault of the credentials entered.
 	notUnderstood := failed("Credentials", "Linear's answer was not understood.", "Test again. If it keeps failing, report it as a Diderot bug.")
 
 	client, err := c.NewClient(r)
-	if err != nil {
+	switch {
+	case errors.Is(err, errNoOAuthSecret):
+		add(failed("Credentials", "No client secret for the OAuth application.", secretRemedy))
+		add(notChecked)
+		return report
+	case err != nil:
 		add(failed("Credentials", "No API key.", remedy))
 		add(notChecked)
 		return report
