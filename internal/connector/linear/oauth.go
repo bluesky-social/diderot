@@ -78,3 +78,11 @@ func (p *oauthTokenProvider) mint(ctx context.Context) (string, error) {
 	}
 	return grant.AccessToken, nil
 }
+
+// Invalidate drops the held token, which Linear answered with a 401: it
+// expired or was revoked. The next Authorization requests another.
+func (p *oauthTokenProvider) Invalidate() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.token = ""
+}

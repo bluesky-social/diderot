@@ -95,3 +95,22 @@ func TestOAuthTokenProvider_ReusesItsToken(t *testing.T) {
 		t.Errorf("token requests = %d, want 1", got)
 	}
 }
+
+func TestOAuthTokenProvider_InvalidateReplacesTheToken(t *testing.T) {
+	endpoint := &fakeTokenEndpoint{t: t, expiresIn: thirtyDays}
+	srv := httptest.NewServer(endpoint)
+	defer srv.Close()
+
+	provider := newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, fakeLinearClient(srv))
+	if _, err := provider.Authorization(t.Context()); err != nil {
+		t.Fatalf("Authorization: %v", err)
+	}
+	provider.Invalidate()
+	got, err := provider.Authorization(t.Context())
+	if err != nil {
+		t.Fatalf("Authorization after Invalidate: %v", err)
+	}
+	if want := "Bearer " + fixtureAppToken(2); got != want {
+		t.Errorf("Authorization after Invalidate = %q, want %q", got, want)
+	}
+}
