@@ -22,13 +22,19 @@ type fakeTokenEndpoint struct {
 	t *testing.T
 	// expiresIn is the lifetime, in seconds, the endpoint gives each token.
 	expiresIn int
-	mints     atomic.Int32
+	// outage, when set, answers every request in the endpoint's place.
+	outage http.HandlerFunc
+	mints  atomic.Int32
 }
 
 // thirtyDays is the lifetime Linear gives a client-credentials token.
 const thirtyDays = 2591999
 
 func (f *fakeTokenEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if f.outage != nil {
+		f.outage(w, r)
+		return
+	}
 	if r.Method != http.MethodPost || r.URL.Path != "/oauth/token" {
 		f.t.Errorf("token request = %s %s, want POST /oauth/token", r.Method, r.URL.Path)
 	}

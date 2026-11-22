@@ -272,6 +272,19 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.False(t, check(t, report, "Teams").Passed)
 		assert.Zero(t, fake.calls.Load())
 	})
+	t.Run("token endpoint outage", func(t *testing.T) {
+		fake := newFakeLinearTest(t)
+		fake.tokens.outage = func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(fixtureErrorBody))
+		}
+		report := fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID},
+			map[string]string{FieldOAuthSecret: fixtureClientSecret})
+		credentials := check(t, report, "Credentials")
+		assert.False(t, credentials.Passed)
+		assert.Equal(t, "Linear answered HTTP 503.", credentials.Detail)
+		assert.Zero(t, fake.calls.Load())
+	})
 	t.Run("no API key", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)

@@ -219,10 +219,15 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 // describeSignInFailure is a short, body-free description of a provider
 // that returned err instead of an Authorization value.
 func describeSignInFailure(err error) string {
-	if refused, ok := errors.AsType[*tokenStatusError](err); ok {
+	refused, ok := errors.AsType[*tokenStatusError](err)
+	if !ok {
+		return describeTestFailure(0, err)
+	}
+	switch refused.status {
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden:
 		return fmt.Sprintf("Linear refused the OAuth application (HTTP %d).", refused.status)
 	}
-	return describeTestFailure(0, err)
+	return describeTestFailure(refused.status, nil)
 }
 
 // describeTestFailure is a short, body-free description of a failed
