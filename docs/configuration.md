@@ -308,10 +308,32 @@ roots every day. Managed roots can be added while it is off.
 ## Linear
 
 Linear is configured on its connector page, `/admin/connectors/linear`: a
-personal API key and the teams to leave out. Enabling it starts an
-incremental sync every five minutes, an hourly sweep that removes issues that
-moved to private teams, and a daily reconcile. A key for another workspace
-starts the sync over.
+credential and the teams to leave out. Enabling it starts an incremental sync
+every five minutes, an hourly sweep that removes issues that moved to private
+teams, and a daily reconcile. Credentials for another workspace start the
+sync over.
+
+The credential is one of two:
+
+- **An OAuth application**, the one to use in a deployment. Create it in
+  Linear's Settings under API, turn on client credentials tokens for it, and
+  enter its client ID and client secret. Diderot signs in as the application
+  with the client credentials grant and the `read` scope, so the sync depends
+  on no member's account. Linear gives such a token 30 days; Diderot requests
+  another an hour before that, and when Linear answers a request with a 401.
+  The application reads every public team in the workspace.
+- **A personal API key**, from Linear's Settings under Security & access. It
+  reads what the member who made it reads, and stops working when that
+  member's account is disabled.
+
+With both set, Diderot uses the application, so you can add it, run the
+page's test, and then clear the key. A client ID without its secret is an
+error, not a reason to use the key.
+
+The sweep removes every indexed issue the credential can't read, whatever
+the reason. Before you change to a credential that sees fewer teams, or
+narrow an application's team access in Linear, expect those teams' issues to
+leave the index within the hour.
 
 | Variable | Default | Notes |
 |---|---|---|
