@@ -7,8 +7,9 @@
 // visibility sweep, reconcile, backfill). Linear returns complexity
 // cost in response headers; the client exposes those for pacing.
 //
-// TokenProvider owns auth token management. The static provider holds
-// the connector's personal API key.
+// TokenProvider owns the Authorization value. The static provider holds a
+// personal API key; the OAuth provider (oauth.go) signs in as an OAuth
+// application and replaces its token before it expires.
 package linear
 
 import (
@@ -56,10 +57,12 @@ const (
 )
 
 // TokenProvider owns acquisition and caching of the Authorization header
-// value. The static personal-API-key implementation is the only provider.
+// value. StaticTokenProvider holds a personal API key; oauthTokenProvider
+// signs in as an OAuth application.
 //
 // Contract:
-//   - Authorization() returns the current header value (e.g. "lin_api_...").
+//   - Authorization() returns the current header value: a personal API key
+//     as it is ("lin_api_..."), an application's token as "Bearer ...".
 //     It may block while refreshing. Concurrent callers are serialized by
 //     the provider — callers must not take their own locks.
 //   - Invalidate() signals that the last-returned token was rejected (401).

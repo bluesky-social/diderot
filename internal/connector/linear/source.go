@@ -21,8 +21,8 @@ func (Connector) Info() source.Info {
 }
 
 // Run holds the sync worker: incremental sync, the visibility sweep, the
-// daily reconcile, and backfills. An API key for another workspace than the
-// last one's starts the sync over.
+// daily reconcile, and backfills. Credentials for another workspace than the
+// last ones' start the sync over.
 func (c Connector) Run(ctx context.Context, deps source.Deps, resolved settings.Resolved) error {
 	client, err := c.NewClient(resolved)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c Connector) Run(ctx context.Context, deps source.Deps, resolved settings.
 		return err
 	}
 	if reset {
-		deps.Logger.Info("linear API key belongs to another workspace; sync starts over")
+		deps.Logger.Info("linear credentials belong to another workspace; sync starts over")
 	}
 	syncWorker := NewSyncWorker(deps.Pool, client, deps.Sink, deps.Logger.With("component", "linear-sync"), deps.Metrics)
 	syncWorker.ExcludeTeams = resolved.List(FieldExcludeTeams)

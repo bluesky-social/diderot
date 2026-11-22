@@ -31,8 +31,9 @@ const testTeamLimit = 250
 // pre-flight Test, and, in source.go, its facts, its leader workers, and its
 // expansion.
 type Connector struct {
-	// HTTP makes the API requests; nil is the client's own, which refuses
-	// redirects. Tests point it at a fake.
+	// HTTP makes the requests to Linear, an OAuth application's token
+	// requests included; nil is the client's own, which refuses redirects.
+	// Tests point it at a fake.
 	HTTP *http.Client
 }
 
@@ -55,8 +56,8 @@ func (Connector) Fields() []settings.Field {
 }
 
 // Validate upper-cases the excluded team keys, which match
-// case-insensitively. Whether the API key works is Test's check: Validate
-// doesn't see secrets.
+// case-insensitively. Whether the credentials work is Test's check:
+// Validate doesn't see secrets.
 func (Connector) Validate(values settings.Values) error {
 	keys, _ := values[FieldExcludeTeams].([]string)
 	if keys == nil {
@@ -125,9 +126,10 @@ query DiderotConnectorTest($first: Int!) {
   }
 }`
 
-// Test makes one request with the credentials: who they act as, and the
+// Test signs in, which for an OAuth application is a token request, and
+// makes one API request with the credentials: who they act as, and the
 // teams they see. The report carries the organization's name, counts, and
-// the team keys the admin entered, never an API response.
+// the team keys the admin entered, never a response of Linear's.
 func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestReport {
 	var report settings.TestReport
 	add := func(check settings.Check) { report.Checks = append(report.Checks, check) }
