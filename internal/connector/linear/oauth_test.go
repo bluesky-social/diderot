@@ -114,3 +114,33 @@ func TestOAuthTokenProvider_InvalidateReplacesTheToken(t *testing.T) {
 		t.Errorf("Authorization after Invalidate = %q, want %q", got, want)
 	}
 }
+
+func TestClient_ReplacesARejectedApplicationToken(t *testing.T) {
+	endpoint := &fakeTokenEndpoint{t: t, expiresIn: thirtyDays}
+	mux := http.NewServeMux()
+	mux.Handle("/oauth/token", endpoint)
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+		switch got := r.Header.Get("Authorization"); got {
+		case "Bearer " + fixtureAppToken(1):
+			// Linear revoked the application's first token.
+			w.WriteHeader(http.StatusUnauthorized)
+		case "Bearer " + fixtureAppToken(2):
+			_, _ = w.Write([]byte(`{"data":{}}`))
+		default:
+			t.Errorf("API request Authorization = %q, want the first or second application token", got)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	httpClient := fakeLinearClient(srv)
+	client := NewClient(newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, httpClient))
+	client.httpClient = httpClient
+	if _, _, err := client.Do(t.Context(), "query { viewer { id } }", nil); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if got := endpoint.mints.Load(); got != 2 {
+		t.Errorf("token requests = %d, want 2", got)
+	}
+}
