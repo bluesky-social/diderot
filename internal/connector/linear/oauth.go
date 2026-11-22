@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -18,6 +19,14 @@ const (
 	// side and invalidates them when one is requested with other scopes, so
 	// every replica and every restart must ask for the same value.
 	oauthScope = "read"
+
+	// oauthRenewMargin is how long before its expiry a token is replaced.
+	// Linear issues no refresh token, and the only sign of an expired one is
+	// the API's answer to a request that carried it. Replacing the token
+	// first keeps the connector from depending on that answer being a 401.
+	// An hour is longer than any run of requests the connector makes and
+	// nothing against the token's 30 days.
+	oauthRenewMargin = time.Hour
 )
 
 // oauthTokenProvider implements TokenProvider for a Linear OAuth
@@ -32,6 +41,9 @@ type oauthTokenProvider struct {
 	// callers that find no token make one request between them.
 	mu    sync.Mutex
 	token string
+	// renewAt is when token is due to be replaced: oauthRenewMargin before
+	// it expires.
+	renewAt time.Time
 }
 
 // newOAuthTokenProvider returns a provider for the application with this
@@ -44,39 +56,45 @@ func newOAuthTokenProvider(clientID, clientSecret string, httpClient *http.Clien
 func (p *oauthTokenProvider) Authorization(ctx context.Context) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.token == "" {
-		token, err := p.mint(ctx)
+	if p.token == "" || !time.Now().Before(p.renewAt) {
+		// The lifetime counts from before the request, so the estimate of
+		// the expiry errs early.
+		requested := time.Now()
+		token, lifetime, err := p.mint(ctx)
 		if err != nil {
 			return "", err
 		}
 		p.token = token
+		p.renewAt = requested.Add(lifetime - oauthRenewMargin)
 	}
 	return "Bearer " + p.token, nil
 }
 
-// mint requests a token from Linear with the client-credentials grant.
-func (p *oauthTokenProvider) mint(ctx context.Context) (string, error) {
+// mint requests a token from Linear with the client-credentials grant and
+// returns it with the lifetime Linear gives it.
+func (p *oauthTokenProvider) mint(ctx context.Context) (token string, lifetime time.Duration, err error) {
 	form := url.Values{"grant_type": {"client_credentials"}, "scope": {oauthScope}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, oauthTokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", fmt.Errorf("linear: OAuth token request: %w", err)
+		return "", 0, fmt.Errorf("linear: OAuth token request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(p.clientID, p.clientSecret)
 
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("linear: OAuth token request: %w", err)
+		return "", 0, fmt.Errorf("linear: OAuth token request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	var grant struct {
 		AccessToken string `json:"access_token"`
+		ExpiresIn   int64  `json:"expires_in"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&grant); err != nil {
-		return "", fmt.Errorf("linear: OAuth token answer: %w", err)
+		return "", 0, fmt.Errorf("linear: OAuth token answer: %w", err)
 	}
-	return grant.AccessToken, nil
+	return grant.AccessToken, time.Duration(grant.ExpiresIn) * time.Second, nil
 }
 
 // Invalidate drops the held token, which Linear answered with a 401: it

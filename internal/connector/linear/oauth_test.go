@@ -144,3 +144,21 @@ func TestClient_ReplacesARejectedApplicationToken(t *testing.T) {
 		t.Errorf("token requests = %d, want 2", got)
 	}
 }
+
+func TestOAuthTokenProvider_ReplacesATokenAboutToExpire(t *testing.T) {
+	// Half an hour of life is inside the hour's margin the provider keeps.
+	endpoint := &fakeTokenEndpoint{t: t, expiresIn: 30 * 60}
+	srv := httptest.NewServer(endpoint)
+	defer srv.Close()
+
+	provider := newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, fakeLinearClient(srv))
+	for call := 1; call <= 2; call++ {
+		got, err := provider.Authorization(t.Context())
+		if err != nil {
+			t.Fatalf("Authorization, call %d: %v", call, err)
+		}
+		if want := "Bearer " + fixtureAppToken(call); got != want {
+			t.Errorf("Authorization, call %d = %q, want %q", call, got, want)
+		}
+	}
+}
