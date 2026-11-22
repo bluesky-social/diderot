@@ -162,3 +162,22 @@ func TestOAuthTokenProvider_ReplacesATokenAboutToExpire(t *testing.T) {
 		}
 	}
 }
+
+func TestOAuthTokenProvider_ReportsARefusedClient(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = fmt.Fprintf(w, `{"error":"invalid_client","error_description":%q}`, fixtureErrorBody)
+	}))
+	defer srv.Close()
+
+	provider := newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, fakeLinearClient(srv))
+	got, err := provider.Authorization(t.Context())
+	if err == nil {
+		t.Fatalf("Authorization = %q, want an error", got)
+	}
+	// The whole message: the status, and neither the answer's body nor the
+	// client secret.
+	if got, want := err.Error(), "linear: OAuth token request: HTTP 401"; got != want {
+		t.Errorf("Authorization error = %q, want %q", got, want)
+	}
+}

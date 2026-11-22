@@ -86,6 +86,11 @@ func (p *oauthTokenProvider) mint(ctx context.Context) (token string, lifetime t
 		return "", 0, fmt.Errorf("linear: OAuth token request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		// The status alone: an error answer's body is Linear's to word and
+		// may repeat what the request carried.
+		return "", 0, fmt.Errorf("linear: OAuth token request: HTTP %d", resp.StatusCode)
+	}
 
 	var grant struct {
 		AccessToken string `json:"access_token"`
