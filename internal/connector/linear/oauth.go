@@ -58,8 +58,7 @@ type oauthTokenProvider struct {
 }
 
 // newOAuthTokenProvider returns a provider for the application with this
-// client ID and secret. httpClient sends the token requests; it must refuse
-// redirects, which would carry the secret to another host.
+// client ID and secret. httpClient sends the token requests.
 func newOAuthTokenProvider(clientID, clientSecret string, httpClient *http.Client) *oauthTokenProvider {
 	return &oauthTokenProvider{clientID: clientID, clientSecret: clientSecret, httpClient: httpClient}
 }

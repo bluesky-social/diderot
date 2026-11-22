@@ -79,16 +79,28 @@ func (Connector) Validate(values settings.Values) error {
 // errNoToken is a Test or Run on settings without an API key.
 var errNoToken = errors.New("linear: no API key")
 
-// NewClient builds the API client for r's API key.
+// NewClient builds the API client for r's credentials: the OAuth
+// application when its client ID is set, so a deployment can add the
+// application before it removes the API key, and the API key otherwise.
 func (c Connector) NewClient(r settings.Resolved) (*Client, error) {
-	token := r.Secret(FieldToken)
-	if token == "" {
+	// One HTTP client for both: the application's token requests need the
+	// same refusal of redirects as the API requests.
+	httpClient := c.HTTP
+	if httpClient == nil {
+		httpClient = newHTTPClient()
+	}
+	var provider TokenProvider
+	clientID, token := r.String(FieldOAuthClientID), r.Secret(FieldToken)
+	switch {
+	case clientID != "":
+		provider = newOAuthTokenProvider(clientID, r.Secret(FieldOAuthSecret), httpClient)
+	case token != "":
+		provider = NewStaticTokenProvider(token)
+	default:
 		return nil, errNoToken
 	}
-	client := NewClient(NewStaticTokenProvider(token))
-	if c.HTTP != nil {
-		client.httpClient = c.HTTP
-	}
+	client := NewClient(provider)
+	client.httpClient = httpClient
 	return client, nil
 }
 

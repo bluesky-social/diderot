@@ -114,18 +114,23 @@ type Client struct {
 	retryBackoff time.Duration
 }
 
-// NewClient constructs a Client using provider for auth. The HTTP client
-// fails on any redirect — Linear's GraphQL endpoint should never redirect;
-// a redirect is a sign of misconfiguration or a SSRF-style attack on the
-// token.
+// NewClient constructs a Client using provider for auth.
 func NewClient(provider TokenProvider) *Client {
 	return &Client{
 		provider:     provider,
-		httpClient:   safehttp.NewClient(safehttp.Options{Timeout: defaultHTTPTimeout, FailOnRedirect: true}),
+		httpClient:   newHTTPClient(),
 		limiter:      ratelimit.New(defaultRatePerSecond, defaultBurst),
 		maxRetries:   maxTransientRetries,
 		retryBackoff: baseRetryBackoff,
 	}
+}
+
+// newHTTPClient returns the HTTP client for requests to Linear, the API's
+// and the token endpoint's alike. It fails on any redirect: neither
+// endpoint should ever redirect, so one is a sign of misconfiguration or a
+// SSRF-style attack on the credentials.
+func newHTTPClient() *http.Client {
+	return safehttp.NewClient(safehttp.Options{Timeout: defaultHTTPTimeout, FailOnRedirect: true})
 }
 
 // ComplexityInfo carries the complexity budget from Linear's response

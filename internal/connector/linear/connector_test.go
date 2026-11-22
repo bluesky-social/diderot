@@ -19,20 +19,29 @@ const (
 	fixtureErrorBody = "an upstream error body no report should show"
 )
 
-// fakeLinearTest answers testQuery for fixtureKey.
+// fakeLinearTest is Linear for the fixture credentials: its token endpoint
+// signs the fixture application in, and its API answers testQuery for
+// fixtureKey and for the application's tokens.
 type fakeLinearTest struct {
 	server *httptest.Server
+	tokens *fakeTokenEndpoint
 	teams  []map[string]any
 	more   bool
-	calls  atomic.Int32
+	// calls counts the API requests; tokens counts its own.
+	calls atomic.Int32
 }
 
 func newFakeLinearTest(t *testing.T) *fakeLinearTest {
 	t.Helper()
-	fake := &fakeLinearTest{teams: []map[string]any{
-		{"key": "ENG", "private": false}, {"key": "SUP", "private": false}, {"key": "SEC", "private": true},
-	}}
-	fake.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	fake := &fakeLinearTest{
+		tokens: &fakeTokenEndpoint{t: t, expiresIn: thirtyDays},
+		teams: []map[string]any{
+			{"key": "ENG", "private": false}, {"key": "SUP", "private": false}, {"key": "SEC", "private": true},
+		},
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/oauth/token", fake.tokens)
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		fake.calls.Add(1)
 		if r.Header.Get("Authorization") != fixtureKey {
 			w.WriteHeader(http.StatusBadRequest)
@@ -48,7 +57,8 @@ func newFakeLinearTest(t *testing.T) *fakeLinearTest {
 			"organization": map[string]any{"name": "Example Org"},
 			"teams":        map[string]any{"nodes": fake.teams, "pageInfo": map[string]any{"hasNextPage": fake.more}},
 		}})
-	}))
+	})
+	fake.server = httptest.NewServer(mux)
 	t.Cleanup(fake.server.Close)
 	return fake
 }
@@ -110,6 +120,46 @@ func TestConnectorValidate(t *testing.T) {
 	assert.Contains(t, fieldErrs[FieldExcludeTeams], "two words")
 
 	assert.NoError(t, Connector{}.Validate(settings.Values{}))
+}
+
+func TestConnectorNewClient(t *testing.T) {
+	application := settings.Values{FieldOAuthClientID: fixtureClientID}
+	tests := []struct {
+		name    string
+		values  settings.Values
+		secrets map[string]string
+		want    string
+	}{
+		{
+			name:    "API key",
+			secrets: map[string]string{FieldToken: fixtureKey},
+			want:    fixtureKey,
+		},
+		{
+			name:    "OAuth application",
+			values:  application,
+			secrets: map[string]string{FieldOAuthSecret: fixtureClientSecret},
+			want:    "Bearer " + fixtureAppToken(1),
+		},
+		{
+			// A deployment adds the application before it removes the key.
+			name:    "OAuth application and API key",
+			values:  application,
+			secrets: map[string]string{FieldOAuthSecret: fixtureClientSecret, FieldToken: fixtureKey},
+			want:    "Bearer " + fixtureAppToken(1),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake := newFakeLinearTest(t)
+			connector := Connector{HTTP: fakeLinearClient(fake.server)}
+			client, err := connector.NewClient(settings.NewResolved(ConnectorName, tt.values, tt.secrets))
+			require.NoError(t, err)
+			got, err := client.provider.Authorization(t.Context())
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestConnectorTestPasses(t *testing.T) {
