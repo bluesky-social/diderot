@@ -147,7 +147,8 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 		add(notChecked)
 		return report
 	case err != nil:
-		add(failed("Credentials", "No API key.", remedy))
+		add(failed("Credentials", "No OAuth application or API key.",
+			"Enter the client ID and secret of an OAuth application from Linear's Settings, API, or a personal API key from Settings, Security & access."))
 		add(notChecked)
 		return report
 	}

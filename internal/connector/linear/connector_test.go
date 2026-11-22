@@ -310,12 +310,14 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.Zero(t, fake.calls.Load())
 		assert.Zero(t, fake.tokens.mints.Load())
 	})
-	t.Run("no API key", func(t *testing.T) {
+	t.Run("no credentials", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)
 		credentials := check(t, report, "Credentials")
 		assert.False(t, credentials.Passed)
-		assert.Equal(t, "No API key.", credentials.Detail)
+		assert.Equal(t, "No OAuth application or API key.", credentials.Detail)
+		assert.Equal(t, "Enter the client ID and secret of an OAuth application from Linear's Settings, API, "+
+			"or a personal API key from Settings, Security & access.", credentials.Remedy)
 		assert.False(t, check(t, report, "Teams").Passed)
 		assert.Zero(t, fake.calls.Load())
 	})
