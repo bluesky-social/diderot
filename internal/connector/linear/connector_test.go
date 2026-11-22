@@ -190,6 +190,19 @@ func TestConnectorNewClientRefusesIncompleteCredentials(t *testing.T) {
 	}
 }
 
+// TestConnectorNewClientSharesItsHTTPClient covers the connector as it
+// runs, with no HTTP client of a test's: the token requests, which carry the
+// client secret, must go through the client NewClient builds for the API,
+// the one that refuses redirects.
+func TestConnectorNewClientSharesItsHTTPClient(t *testing.T) {
+	client, err := Connector{}.NewClient(settings.NewResolved(ConnectorName,
+		settings.Values{FieldOAuthClientID: fixtureClientID}, map[string]string{FieldOAuthSecret: fixtureClientSecret}))
+	require.NoError(t, err)
+	provider, ok := client.provider.(*oauthTokenProvider)
+	require.True(t, ok, "provider is a %T", client.provider)
+	assert.Same(t, client.httpClient, provider.httpClient)
+}
+
 func TestConnectorTestPasses(t *testing.T) {
 	fake := newFakeLinearTest(t)
 	report := fake.test(t, settings.Values{FieldExcludeTeams: []string{"SUP"}}, map[string]string{FieldToken: fixtureKey})
