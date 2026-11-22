@@ -260,6 +260,18 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.Equal(t, "Linear refused the credentials (HTTP 400).", credentials.Detail)
 		assert.False(t, check(t, report, "Teams").Passed)
 	})
+	t.Run("refused OAuth application", func(t *testing.T) {
+		fake := newFakeLinearTest(t)
+		report := fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID},
+			map[string]string{FieldOAuthSecret: "some-other-secret"})
+		credentials := check(t, report, "Credentials")
+		assert.False(t, credentials.Passed)
+		assert.Equal(t, "Linear refused the OAuth application (HTTP 401).", credentials.Detail)
+		assert.Equal(t, "Check the client ID and that the application has client credentials tokens turned on. "+
+			"Paste the application's client secret from Linear's Settings, API.", credentials.Remedy)
+		assert.False(t, check(t, report, "Teams").Passed)
+		assert.Zero(t, fake.calls.Load())
+	})
 	t.Run("no API key", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)

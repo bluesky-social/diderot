@@ -40,6 +40,13 @@ const (
 // token.
 var errTokenAnswer = errors.New("linear: unusable OAuth token answer")
 
+// tokenStatusError is a token request Linear answered with an HTTP error.
+type tokenStatusError struct{ status int }
+
+func (e *tokenStatusError) Error() string {
+	return fmt.Sprintf("linear: OAuth token request: HTTP %d", e.status)
+}
+
 // oauthTokenProvider implements TokenProvider for a Linear OAuth
 // application. It signs in with the client-credentials grant, so its token
 // acts as the application and depends on no member's account.
@@ -99,7 +106,7 @@ func (p *oauthTokenProvider) mint(ctx context.Context) (token string, lifetime t
 	if resp.StatusCode != http.StatusOK {
 		// The status alone: an error answer's body is Linear's to word and
 		// may repeat what the request carried.
-		return "", 0, fmt.Errorf("linear: OAuth token request: HTTP %d", resp.StatusCode)
+		return "", 0, &tokenStatusError{status: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxTokenAnswerBytes))

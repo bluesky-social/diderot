@@ -15,8 +15,9 @@ const (
 )
 
 // fakeTokenEndpoint is Linear's OAuth token endpoint for the fixture
-// application. Each valid client-credentials request gets a new token, so a
-// test can tell a held token from a replacement.
+// application. Each client-credentials request with its ID and secret gets a
+// new token, so a test can tell a held token from a replacement. Any other
+// client is refused.
 type fakeTokenEndpoint struct {
 	t *testing.T
 	// expiresIn is the lifetime, in seconds, the endpoint gives each token.
@@ -34,9 +35,10 @@ func (f *fakeTokenEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if got, want := r.Header.Get("Content-Type"), "application/x-www-form-urlencoded"; got != want {
 		f.t.Errorf("token request Content-Type = %q, want %q", got, want)
 	}
-	id, secret, ok := r.BasicAuth()
-	if !ok || id != fixtureClientID || secret != fixtureClientSecret {
-		f.t.Errorf("token request Basic auth = (%q, %q, %t), want the fixture client's ID and secret", id, secret, ok)
+	if id, secret, _ := r.BasicAuth(); id != fixtureClientID || secret != fixtureClientSecret {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = fmt.Fprintf(w, `{"error":"invalid_client","error_description":%q}`, fixtureErrorBody)
+		return
 	}
 	if err := r.ParseForm(); err != nil {
 		f.t.Errorf("token request form: %v", err)

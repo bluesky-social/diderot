@@ -132,6 +132,10 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	var report settings.TestReport
 	add := func(check settings.Check) { report.Checks = append(report.Checks, check) }
 	remedy := r.SupplySecret(FieldToken, "a personal API key from Linear's Settings, Security & access") + "."
+	if r.String(FieldOAuthClientID) != "" {
+		remedy = "Check the client ID and that the application has client credentials tokens turned on. " +
+			r.SupplySecret(FieldOAuthSecret, "the application's client secret from Linear's Settings, API") + "."
+	}
 	notChecked := failed("Teams", "Not checked: the credentials did not authenticate.", "Fix the credentials, then test again.")
 
 	client, err := c.NewClient(r)
@@ -144,7 +148,7 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	// its own, for an API key it is the key.
 	auth, err := client.provider.Authorization(ctx)
 	if err != nil {
-		add(failed("Credentials", describeTestFailure(0, err), remedy))
+		add(failed("Credentials", describeSignInFailure(err), remedy))
 		add(notChecked)
 		return report
 	}
@@ -210,6 +214,15 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 			Detail: fmt.Sprintf("The credentials see %s teams, %d of them private and never indexed.", count, private)})
 	}
 	return report
+}
+
+// describeSignInFailure is a short, body-free description of a provider
+// that returned err instead of an Authorization value.
+func describeSignInFailure(err error) string {
+	if refused, ok := errors.AsType[*tokenStatusError](err); ok {
+		return fmt.Sprintf("Linear refused the OAuth application (HTTP %d).", refused.status)
+	}
+	return describeTestFailure(0, err)
 }
 
 // describeTestFailure is a short, body-free description of a failed
