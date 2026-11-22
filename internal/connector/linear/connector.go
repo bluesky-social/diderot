@@ -133,8 +133,10 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	add := func(check settings.Check) { report.Checks = append(report.Checks, check) }
 	remedy := r.SupplySecret(FieldToken, "a personal API key from Linear's Settings, Security & access") + "."
 	secretRemedy := r.SupplySecret(FieldOAuthSecret, "the application's client secret from Linear's Settings, API") + "."
+	noTeamsRemedy := "Use the key of a member of the teams to index."
 	if r.String(FieldOAuthClientID) != "" {
 		remedy = "Check the client ID and that the application has client credentials tokens turned on. " + secretRemedy
+		noTeamsRemedy = "Give the OAuth application access to the teams to index."
 	}
 	notChecked := failed("Teams", "Not checked: the credentials did not authenticate.", "Fix the credentials, then test again.")
 	// An answer Diderot can't read is no fault of the credentials entered.
@@ -218,7 +220,7 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	}
 	switch {
 	case len(teams) == 0:
-		add(failed("Teams", "The credentials see no teams.", "Use the key of a member of the teams to index."))
+		add(failed("Teams", "The credentials see no teams.", noTeamsRemedy))
 	case len(missing) > 0 && !answer.Teams.PageInfo.HasNextPage:
 		add(failed("Teams", "No team has the key "+strings.Join(missing, ", ")+".",
 			"Fix Teams to leave out: use team keys as they appear in issue IDs, such as SUP in SUP-123."))

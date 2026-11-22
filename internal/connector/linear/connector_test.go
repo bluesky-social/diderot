@@ -310,6 +310,21 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.Zero(t, fake.calls.Load())
 		assert.Zero(t, fake.tokens.mints.Load())
 	})
+	t.Run("no teams", func(t *testing.T) {
+		fake := newFakeLinearTest(t)
+		fake.teams = nil
+		report := fake.test(t, nil, map[string]string{FieldToken: fixtureKey})
+		teams := check(t, report, "Teams")
+		assert.False(t, teams.Passed)
+		assert.Equal(t, "The credentials see no teams.", teams.Detail)
+		assert.Equal(t, "Use the key of a member of the teams to index.", teams.Remedy)
+
+		report = fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID},
+			map[string]string{FieldOAuthSecret: fixtureClientSecret})
+		teams = check(t, report, "Teams")
+		assert.False(t, teams.Passed)
+		assert.Equal(t, "Give the OAuth application access to the teams to index.", teams.Remedy)
+	})
 	t.Run("no credentials", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)
