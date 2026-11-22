@@ -285,6 +285,20 @@ func TestConnectorTestFails(t *testing.T) {
 		assert.Equal(t, "Linear answered HTTP 503.", credentials.Detail)
 		assert.Zero(t, fake.calls.Load())
 	})
+	t.Run("unusable token answer", func(t *testing.T) {
+		fake := newFakeLinearTest(t)
+		fake.tokens.outage = func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte(`{"access_token":"lin_oauth_fixture1","expires_in":2591999,"token_type":"mac"}`))
+		}
+		report := fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID},
+			map[string]string{FieldOAuthSecret: fixtureClientSecret})
+		credentials := check(t, report, "Credentials")
+		assert.False(t, credentials.Passed)
+		assert.Equal(t, "Linear's answer was not understood.", credentials.Detail)
+		// Nothing the administrator entered is at fault.
+		assert.Equal(t, "Test again. If it keeps failing, report it as a Diderot bug.", credentials.Remedy)
+		assert.Zero(t, fake.calls.Load())
+	})
 	t.Run("no API key", func(t *testing.T) {
 		fake := newFakeLinearTest(t)
 		report := fake.test(t, nil, nil)

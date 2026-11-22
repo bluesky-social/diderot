@@ -137,6 +137,8 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 			r.SupplySecret(FieldOAuthSecret, "the application's client secret from Linear's Settings, API") + "."
 	}
 	notChecked := failed("Teams", "Not checked: the credentials did not authenticate.", "Fix the credentials, then test again.")
+	// An answer Diderot can't read is no fault of the credentials entered.
+	notUnderstood := failed("Credentials", "Linear's answer was not understood.", "Test again. If it keeps failing, report it as a Diderot bug.")
 
 	client, err := c.NewClient(r)
 	if err != nil {
@@ -147,7 +149,12 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 	// The provider signs in: for an OAuth application that is a request of
 	// its own, for an API key it is the key.
 	auth, err := client.provider.Authorization(ctx)
-	if err != nil {
+	switch {
+	case errors.Is(err, errTokenAnswer):
+		add(notUnderstood)
+		add(notChecked)
+		return report
+	case err != nil:
 		add(failed("Credentials", describeSignInFailure(err), remedy))
 		add(notChecked)
 		return report
@@ -176,7 +183,7 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 		} `json:"teams"`
 	}
 	if err := json.Unmarshal(data, &answer); err != nil {
-		add(failed("Credentials", "Linear's answer was not understood.", "Test again. If it keeps failing, report it as a Diderot bug."))
+		add(notUnderstood)
 		add(notChecked)
 		return report
 	}
