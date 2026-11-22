@@ -75,3 +75,23 @@ func TestOAuthTokenProvider_SignsInAsTheApplication(t *testing.T) {
 		t.Errorf("Authorization = %q, want %q", got, want)
 	}
 }
+
+func TestOAuthTokenProvider_ReusesItsToken(t *testing.T) {
+	endpoint := &fakeTokenEndpoint{t: t, expiresIn: thirtyDays}
+	srv := httptest.NewServer(endpoint)
+	defer srv.Close()
+
+	provider := newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, fakeLinearClient(srv))
+	for call := 1; call <= 2; call++ {
+		got, err := provider.Authorization(t.Context())
+		if err != nil {
+			t.Fatalf("Authorization, call %d: %v", call, err)
+		}
+		if want := "Bearer " + fixtureAppToken(1); got != want {
+			t.Errorf("Authorization, call %d = %q, want %q", call, got, want)
+		}
+	}
+	if got := endpoint.mints.Load(); got != 1 {
+		t.Errorf("token requests = %d, want 1", got)
+	}
+}

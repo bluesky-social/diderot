@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 )
 
 const (
@@ -26,6 +27,11 @@ type oauthTokenProvider struct {
 	clientID     string
 	clientSecret string
 	httpClient   *http.Client
+
+	// mu serializes callers, a token request included, so concurrent
+	// callers that find no token make one request between them.
+	mu    sync.Mutex
+	token string
 }
 
 // newOAuthTokenProvider returns a provider for the application with this
@@ -36,11 +42,16 @@ func newOAuthTokenProvider(clientID, clientSecret string, httpClient *http.Clien
 }
 
 func (p *oauthTokenProvider) Authorization(ctx context.Context) (string, error) {
-	token, err := p.mint(ctx)
-	if err != nil {
-		return "", err
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.token == "" {
+		token, err := p.mint(ctx)
+		if err != nil {
+			return "", err
+		}
+		p.token = token
 	}
-	return "Bearer " + token, nil
+	return "Bearer " + p.token, nil
 }
 
 // mint requests a token from Linear with the client-credentials grant.
