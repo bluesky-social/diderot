@@ -3,7 +3,9 @@ package linear
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,7 +29,16 @@ const (
 	// An hour is longer than any run of requests the connector makes and
 	// nothing against the token's 30 days.
 	oauthRenewMargin = time.Hour
+
+	// maxTokenAnswerBytes bounds how much of a token answer is read. A real
+	// one is a few hundred bytes.
+	maxTokenAnswerBytes = 64 << 10
 )
+
+// errTokenAnswer is a token endpoint answer the provider can't use. What
+// wraps it names the reason and never quotes the answer, which holds a
+// token.
+var errTokenAnswer = errors.New("linear: unusable OAuth token answer")
 
 // oauthTokenProvider implements TokenProvider for a Linear OAuth
 // application. It signs in with the client-credentials grant, so its token
@@ -92,12 +103,24 @@ func (p *oauthTokenProvider) mint(ctx context.Context) (token string, lifetime t
 		return "", 0, fmt.Errorf("linear: OAuth token request: HTTP %d", resp.StatusCode)
 	}
 
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxTokenAnswerBytes))
+	if err != nil {
+		return "", 0, fmt.Errorf("linear: OAuth token request: read answer: %w", err)
+	}
 	var grant struct {
 		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
 		ExpiresIn   int64  `json:"expires_in"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&grant); err != nil {
-		return "", 0, fmt.Errorf("linear: OAuth token answer: %w", err)
+	switch err := json.Unmarshal(body, &grant); {
+	case err != nil:
+		// The decoder's error is left out: it quotes the answer.
+		return "", 0, fmt.Errorf("%w: not JSON", errTokenAnswer)
+	case grant.AccessToken == "":
+		return "", 0, fmt.Errorf("%w: no access token", errTokenAnswer)
+	case !strings.EqualFold(grant.TokenType, "Bearer"):
+		// Any other type would need more than an Authorization value.
+		return "", 0, fmt.Errorf("%w: token type is not Bearer", errTokenAnswer)
 	}
 	return grant.AccessToken, time.Duration(grant.ExpiresIn) * time.Second, nil
 }

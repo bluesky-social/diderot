@@ -181,3 +181,45 @@ func TestOAuthTokenProvider_ReportsARefusedClient(t *testing.T) {
 		t.Errorf("Authorization error = %q, want %q", got, want)
 	}
 }
+
+func TestOAuthTokenProvider_RefusesAnUnusableAnswer(t *testing.T) {
+	tests := []struct {
+		name    string
+		answer  string
+		wantErr string
+	}{
+		{
+			name:    "not JSON",
+			answer:  "<html>" + fixtureErrorBody + "</html>",
+			wantErr: "linear: unusable OAuth token answer: not JSON",
+		},
+		{
+			name:    "no access token",
+			answer:  `{"expires_in":2591999,"scope":"read","token_type":"Bearer"}`,
+			wantErr: "linear: unusable OAuth token answer: no access token",
+		},
+		{
+			name:    "another token type",
+			answer:  `{"access_token":"lin_oauth_fixture1","expires_in":2591999,"scope":"read","token_type":"mac"}`,
+			wantErr: "linear: unusable OAuth token answer: token type is not Bearer",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte(tt.answer))
+			}))
+			defer srv.Close()
+
+			provider := newOAuthTokenProvider(fixtureClientID, fixtureClientSecret, fakeLinearClient(srv))
+			got, err := provider.Authorization(t.Context())
+			if err == nil {
+				t.Fatalf("Authorization = %q, want an error", got)
+			}
+			// The whole message, so nothing of the answer is in it.
+			if got := err.Error(); got != tt.wantErr {
+				t.Errorf("Authorization error = %q, want %q", got, tt.wantErr)
+			}
+		})
+	}
+}
