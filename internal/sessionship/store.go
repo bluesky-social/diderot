@@ -13,14 +13,15 @@ import (
 type SessionStore interface {
 	// File is the database's name in a source that names its directory.
 	File() string
-	// Sessions lists the database's sessions, leaving out subagents'. An
-	// error reading the database is an *os.PathError, which ends a pass for
-	// a later one to retry; any other error means the database cannot be
-	// listed as it is, which a pass reports for its source before going on.
+	// Sessions lists the database's sessions, leaving out subagents'.
+	// Sessions and Document return an *os.PathError for a failure a retry
+	// may mend (the database is busy or cannot be read just now), and any
+	// other error for one it does not (the database is not as this release
+	// reads it). A pass retries the first; for the second it reports the
+	// source and goes on to the next, or records the session as skipped
+	// until it changes.
 	Sessions(db string) ([]StoredSession, error)
 	// Document is one session as the document the harness's decoder reads.
-	// An error reading the database is an *os.PathError, which a pass
-	// retries; any other error is about the session's own contents.
 	Document(db, id string) ([]byte, error)
 }
 

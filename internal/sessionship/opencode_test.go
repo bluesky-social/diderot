@@ -268,6 +268,39 @@ func TestPassGoesOnPastAnUnlistableStore(t *testing.T) {
 	assert.Equal(t, puts, f.server.puts)
 }
 
+// TestPassRecordsAnUnreadableOpenCodeSession: a session the database cannot
+// give as this release reads it is recorded as skipped and not read again
+// until it changes; one it cannot read just now is retried.
+func TestPassRecordsAnUnreadableOpenCodeSession(t *testing.T) {
+	f := newFixture(t)
+	oc := newOpenCodeDB(t, filepath.Join(t.TempDir(), "opencode"))
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources, Source{Harness: "opencode", Dir: oc.db})
+	// A newer OpenCode renamed a column only a session's own read uses.
+	oc.exec(t, "ALTER TABLE session_v2 RENAME COLUMN project_id TO project")
+	result := f.pass(t)
+	require.Len(t, result.Skipped, 1)
+	assert.Contains(t, result.Skipped[0].Reason, "no such column")
+	state, err := LoadState(f.syncer.StatePath)
+	require.NoError(t, err)
+	assert.Contains(t, state.Files[oc.db+"#"+oc.sessionID].Skipped, "no such column")
+	result = f.pass(t)
+	assert.Empty(t, result.Skipped, "an unchanged session is not read again")
+
+	oc.exec(t, "ALTER TABLE session_v2 RENAME COLUMN project TO project_id")
+	oc.exec(t, `UPDATE session_v2 SET time_updated = 1793527500000 WHERE id = ?`, oc.sessionID)
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Equal(t, "opencode", result.Sent[0].Harness)
+
+	// SQLite would reuse the fixture's own open file.
+	require.NoError(t, oc.conn.Close())
+	require.NoError(t, os.Chmod(oc.db, 0))
+	t.Cleanup(func() { _ = os.Chmod(oc.db, 0o600) })
+	_, err = openCodeStore{}.Document(oc.db, oc.sessionID)
+	var unreadable *os.PathError
+	require.ErrorAs(t, err, &unreadable, "a database that cannot be opened just now is retried")
+}
+
 // TestOpenCodeStoreSkipsOpenCode1: OpenCode 1 kept its sessions in other
 // tables; until OpenCode 2 moves them, the database has none to ship.
 func TestOpenCodeStoreSkipsOpenCode1(t *testing.T) {

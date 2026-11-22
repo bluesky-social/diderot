@@ -60,7 +60,7 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 	err = conn.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type = 'table'
 		AND name IN ('session_v2', 'session_message', 'session_part')`).Scan(&tables)
 	if err != nil {
-		return nil, openCodeListErr(db, err)
+		return nil, openCodeErr(db, err)
 	}
 	if tables < 3 {
 		return nil, nil // OpenCode 1's database, not yet moved by OpenCode 2
@@ -76,7 +76,7 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 		WHERE s.parent_id IS NULL AND EXISTS (SELECT 1 FROM session_message m WHERE m.session_id = s.id)
 		ORDER BY s.time_created, s.id`)
 	if err != nil {
-		return nil, openCodeListErr(db, err)
+		return nil, openCodeErr(db, err)
 	}
 	defer func() { _ = rows.Close() }()
 	var out []StoredSession
@@ -84,30 +84,35 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 		var s StoredSession
 		var changed int64
 		if err := rows.Scan(&s.ID, &s.Dir, &s.Rows, &changed); err != nil {
-			return nil, openCodeListErr(db, err)
+			return nil, openCodeErr(db, err)
 		}
 		s.Changed = time.UnixMilli(changed)
 		out = append(out, s)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, openCodeListErr(db, err)
+		return nil, openCodeErr(db, err)
 	}
 	return out, nil
 }
 
-// openCodeListErr is why a database could not be listed: an *os.PathError
-// when it could not be opened or read just now (busy, locked, an I/O error),
-// and otherwise an error saying it is not laid out as this release reads it
-// (a newer OpenCode changed its tables, say), which a retry does not mend.
-func openCodeListErr(db string, err error) error {
+// openCodeErr is why the database, or a session at path in it, could not be
+// read: an *os.PathError, which a pass retries, when a retry may mend it (the
+// database is busy, locked, or cannot be opened or read just now, or the
+// session is gone since it was listed), and otherwise an error saying the
+// database is not as this release reads it (a newer OpenCode changed its
+// tables, say).
+func openCodeErr(path string, err error) error {
 	var e *sqlite.Error
 	if errors.As(err, &e) {
 		switch e.Code() & 0xff {
 		case sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED, sqlite3.SQLITE_IOERR, sqlite3.SQLITE_CANTOPEN:
-			return &os.PathError{Op: "read", Path: db, Err: err}
+			return &os.PathError{Op: "read", Path: path, Err: err}
 		}
 	}
-	return fmt.Errorf("list the sessions in %s: %w", db, err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &os.PathError{Op: "read", Path: path, Err: err}
+	}
+	return fmt.Errorf("read %s: %w", path, err)
 }
 
 // openCodeInfo is a session row as OpenCode exports it (Session.Info, with
@@ -178,7 +183,7 @@ func (openCodeStore) Document(db, id string) ([]byte, error) {
 		return nil, err
 	}
 	defer func() { _ = conn.Close() }()
-	readErr := func(err error) error { return &os.PathError{Op: "read", Path: db + "#" + id, Err: err} }
+	readErr := func(err error) error { return openCodeErr(db+"#"+id, err) }
 	// One transaction, so the session is read as of one moment.
 	tx, err := conn.Begin()
 	if err != nil {
