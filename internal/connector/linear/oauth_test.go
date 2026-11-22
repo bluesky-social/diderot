@@ -203,6 +203,11 @@ func TestOAuthTokenProvider_RefusesAnUnusableAnswer(t *testing.T) {
 			answer:  `{"access_token":"lin_oauth_fixture1","expires_in":2591999,"scope":"read","token_type":"mac"}`,
 			wantErr: "linear: unusable OAuth token answer: token type is not Bearer",
 		},
+		{
+			name:    "no lifetime",
+			answer:  `{"access_token":"lin_oauth_fixture1","scope":"read","token_type":"Bearer"}`,
+			wantErr: "linear: unusable OAuth token answer: no lifetime",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

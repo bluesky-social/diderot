@@ -121,6 +121,10 @@ func (p *oauthTokenProvider) mint(ctx context.Context) (token string, lifetime t
 	case !strings.EqualFold(grant.TokenType, "Bearer"):
 		// Any other type would need more than an Authorization value.
 		return "", 0, fmt.Errorf("%w: token type is not Bearer", errTokenAnswer)
+	case grant.ExpiresIn <= 0:
+		// Without a lifetime every call would find the token due for
+		// replacement and request another.
+		return "", 0, fmt.Errorf("%w: no lifetime", errTokenAnswer)
 	}
 	return grant.AccessToken, time.Duration(grant.ExpiresIn) * time.Second, nil
 }
