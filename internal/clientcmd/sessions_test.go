@@ -171,7 +171,8 @@ func TestStatusReportsOnlyTheConfiguredServersState(t *testing.T) {
 	require.NoError(t, os.WriteFile(paths.State, []byte(`{"url":"https://first.example.com/mcp",
 		"files":{"/a.jsonl":{"revision":"r1"},"/b.jsonl":{"skipped":"undecodable"}},
 		"last_pass":"2026-11-01T10:00:00Z","last_success":"2026-11-01T09:00:00Z",
-		"last_error":"first server is down","last_error_at":"2026-11-01T10:00:00Z"}`), 0o600))
+		"last_error":"first server is down","last_error_at":"2026-11-01T10:00:00Z",
+		"unlisted":[{"harness":"opencode","dir":"/opencode.db","error":"no such column"}]}`), 0o600))
 	cfgPath, err := client.ConfigPath()
 	require.NoError(t, err)
 	save := func(server string) {
@@ -188,7 +189,16 @@ func TestStatusReportsOnlyTheConfiguredServersState(t *testing.T) {
 	assert.Nil(t, status.LastPass)
 	assert.Nil(t, status.LastSuccess)
 	assert.Empty(t, status.LastError)
+	assert.Empty(t, status.Unlisted)
 	assert.Equal(t, "no pass yet for this server", ago(status.LastPass))
+
+	// The configured server's own state is reported, with each source its
+	// last pass could not list.
+	save("https://first.example.com/mcp")
+	status, err = readSessionsStatus(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "first server is down", status.LastError)
+	assert.Equal(t, []sessionship.SourceError{{Harness: "opencode", Dir: "/opencode.db", Error: "no such column"}}, status.Unlisted)
 }
 
 // Uninstall leaves the state file and its lock: a sync still running holds

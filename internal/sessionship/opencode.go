@@ -12,7 +12,8 @@ import (
 	"time"
 
 	// The SQLite driver OpenCode's database is read with.
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // openCodeDB is where OpenCode 2 keeps its database: $OPENCODE_DB, a name
@@ -59,7 +60,7 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 	err = conn.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type = 'table'
 		AND name IN ('session_v2', 'session_message', 'session_part')`).Scan(&tables)
 	if err != nil {
-		return nil, &os.PathError{Op: "read", Path: db, Err: err}
+		return nil, openCodeListErr(db, err)
 	}
 	if tables < 3 {
 		return nil, nil // OpenCode 1's database, not yet moved by OpenCode 2
@@ -75,7 +76,7 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 		WHERE s.parent_id IS NULL AND EXISTS (SELECT 1 FROM session_message m WHERE m.session_id = s.id)
 		ORDER BY s.time_created, s.id`)
 	if err != nil {
-		return nil, &os.PathError{Op: "read", Path: db, Err: err}
+		return nil, openCodeListErr(db, err)
 	}
 	defer func() { _ = rows.Close() }()
 	var out []StoredSession
@@ -83,15 +84,30 @@ func (openCodeStore) Sessions(db string) ([]StoredSession, error) {
 		var s StoredSession
 		var changed int64
 		if err := rows.Scan(&s.ID, &s.Dir, &s.Rows, &changed); err != nil {
-			return nil, &os.PathError{Op: "read", Path: db, Err: err}
+			return nil, openCodeListErr(db, err)
 		}
 		s.Changed = time.UnixMilli(changed)
 		out = append(out, s)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, &os.PathError{Op: "read", Path: db, Err: err}
+		return nil, openCodeListErr(db, err)
 	}
 	return out, nil
+}
+
+// openCodeListErr is why a database could not be listed: an *os.PathError
+// when it could not be opened or read just now (busy, locked, an I/O error),
+// and otherwise an error saying it is not laid out as this release reads it
+// (a newer OpenCode changed its tables, say), which a retry does not mend.
+func openCodeListErr(db string, err error) error {
+	var e *sqlite.Error
+	if errors.As(err, &e) {
+		switch e.Code() & 0xff {
+		case sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED, sqlite3.SQLITE_IOERR, sqlite3.SQLITE_CANTOPEN:
+			return &os.PathError{Op: "read", Path: db, Err: err}
+		}
+	}
+	return fmt.Errorf("list the sessions in %s: %w", db, err)
 }
 
 // openCodeInfo is a session row as OpenCode exports it (Session.Info, with

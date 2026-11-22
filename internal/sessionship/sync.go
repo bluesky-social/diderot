@@ -36,6 +36,8 @@ type State struct {
 	LastSuccess time.Time `json:"last_success,omitzero"`
 	LastError   string    `json:"last_error,omitempty"`
 	LastErrorAt time.Time `json:"last_error_at,omitzero"`
+	// Unlisted is each source the last pass could not list.
+	Unlisted []SourceError `json:"unlisted,omitempty"`
 }
 
 // FileState is one session file as the last pass left it.
@@ -137,6 +139,16 @@ type Result struct {
 	Unchanged int       `json:"unchanged"`
 	// Waiting counts files changed too recently to send yet.
 	Waiting int `json:"waiting"`
+	// Unlisted is each source whose sessions could not be listed; the pass
+	// went on to the others.
+	Unlisted []SourceError `json:"unlisted,omitempty"`
+}
+
+// SourceError is why a source's sessions could not be listed.
+type SourceError struct {
+	Harness string `json:"harness"`
+	Dir     string `json:"dir"`
+	Error   string `json:"error"`
 }
 
 // Syncer makes passes over the sources, sending what changed.
@@ -156,9 +168,12 @@ type Syncer struct {
 
 // Pass sends every session file that changed since it was last sent, one at
 // a time. A file the server or the converter refuses is recorded as skipped
-// and left until it changes. An error that is not about one file (the server
-// is down, the sign-in was refused) ends the pass, and the next pass resumes
-// from what the state file holds.
+// and left until it changes. A source that can be read but not listed (a
+// session database laid out as this release does not read) is reported, and
+// the pass goes on to the next. An error that is not about one file or
+// source (the server is down, the sign-in was refused, a directory cannot be
+// read) ends the pass, and the next pass resumes from what the state file
+// holds.
 func (s *Syncer) Pass(ctx context.Context) (Result, error) {
 	result := Result{Sent: []Outcome{}, Skipped: []Outcome{}}
 	unlock, err := lockState(s.StatePath)
@@ -174,7 +189,7 @@ func (s *Syncer) Pass(ctx context.Context) (Result, error) {
 		state = &State{URL: s.ServerURL, Files: map[string]*FileState{}}
 	}
 	passErr := s.pass(ctx, state, &result)
-	state.LastPass = s.Now()
+	state.LastPass, state.Unlisted = s.Now(), result.Unlisted
 	if passErr == nil {
 		state.LastSuccess = state.LastPass
 	} else if !errors.Is(passErr, context.Canceled) {
@@ -193,7 +208,14 @@ func (s *Syncer) pass(ctx context.Context, state *State, result *Result) error {
 			return fmt.Errorf("unknown harness %q (known: %v)", source.Harness, Names())
 		}
 		files, err := source.files(s.Settings.Exclude)
-		if err != nil {
+		var unreadable *os.PathError
+		switch {
+		case err != nil && !errors.As(err, &unreadable):
+			// Retrying does not mend it, and it must not hold up the
+			// sources after it.
+			result.Unlisted = append(result.Unlisted, SourceError{Harness: harness.Name, Dir: source.Dir, Error: err.Error()})
+			continue
+		case err != nil:
 			return fmt.Errorf("read %s: %w", source.Dir, err)
 		}
 		for _, file := range files {

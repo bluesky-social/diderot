@@ -258,7 +258,7 @@ the server is back.
 | Command | What it does |
 |---|---|
 | `diderot sessions install` | Installs and starts the background service, replacing and restarting one already there. |
-| `diderot sessions status` | Whether the service is installed and running, the directories it ships from, how many sessions were sent, how many of them the server has indexed, when a pass last succeeded, and the last pass's error if it failed. `--json` also lists each session file that was skipped and why. |
+| `diderot sessions status` | Whether the service is installed and running, the directories it ships from, how many sessions were sent, how many of them the server has indexed, when a pass last succeeded, the last pass's error if it failed, and each source it could not list. `--json` also lists each session file that was skipped and why. |
 | `diderot sessions sync` | Sends everything new or changed now, sessions in progress included, prints what it sent, and exits. |
 | `diderot sessions run` | What the service runs: a pass every minute, until stopped. |
 | `diderot sessions uninstall` | Stops and removes the service. |
@@ -318,7 +318,10 @@ that first pass to cost model calls in proportion.
 
 A session the server refuses (larger than its limit, or one the converter
 cannot read) is skipped and tried again when its file changes;
-`diderot sessions status --json` lists them.
+`diderot sessions status --json` lists them. A source whose sessions cannot
+be listed (an OpenCode database laid out as this release does not read) is
+reported by `sync`, `status`, and `doctor` on every pass until it can be,
+and the other sources still ship.
 
 The server limits what one account may store
 ([Agent sessions](configuration.md#agent-sessions)): 4 GiB

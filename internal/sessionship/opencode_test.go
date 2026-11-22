@@ -2,6 +2,7 @@ package sessionship
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -219,6 +220,52 @@ func TestOpenCodeStoreRefusesMalformedContent(t *testing.T) {
 	require.ErrorContains(t, err, "content")
 	var notRead *os.PathError
 	assert.False(t, errors.As(err, &notRead), "a malformed session is skipped until it changes")
+}
+
+// TestPassGoesOnPastAnUnlistableStore: a database this release cannot list
+// is reported, and the sources after it still ship; one that cannot be read
+// just now ends the pass, for a later one to retry, as before.
+func TestPassGoesOnPastAnUnlistableStore(t *testing.T) {
+	f := newFixture(t)
+	oc := newOpenCodeDB(t, filepath.Join(t.TempDir(), "opencode"))
+	f.syncer.Settings.Sources = append([]Source{{Harness: "opencode", Dir: oc.db}}, f.syncer.Settings.Sources...)
+	// A newer OpenCode renamed a column the listing reads.
+	oc.exec(t, "ALTER TABLE session_v2 RENAME COLUMN directory TO location")
+	result := f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Equal(t, "claude-code", result.Sent[0].Harness)
+	require.Len(t, result.Unlisted, 1)
+	assert.Equal(t, "opencode", result.Unlisted[0].Harness)
+	assert.Equal(t, oc.db, result.Unlisted[0].Dir)
+	assert.Contains(t, result.Unlisted[0].Error, "no such column")
+	state, err := LoadState(f.syncer.StatePath)
+	require.NoError(t, err)
+	assert.Equal(t, result.Unlisted, state.Unlisted)
+	assert.Equal(t, state.LastPass, state.LastSuccess)
+
+	// Listed again, it ships and is no longer reported.
+	oc.exec(t, "ALTER TABLE session_v2 RENAME COLUMN location TO directory")
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Equal(t, "opencode", result.Sent[0].Harness)
+	assert.Empty(t, result.Unlisted)
+	state, err = LoadState(f.syncer.StatePath)
+	require.NoError(t, err)
+	assert.Empty(t, state.Unlisted)
+
+	// A database that cannot be opened ends the pass before the sources
+	// after it. (SQLite would reuse the fixture's own open file.)
+	require.NoError(t, oc.conn.Close())
+	require.NoError(t, os.Chmod(oc.db, 0))
+	t.Cleanup(func() { _ = os.Chmod(oc.db, 0o600) })
+	write(t, f.claude, claudeTurns(4))
+	puts := f.server.puts
+	result, err = f.syncer.Pass(context.Background())
+	var unreadable *os.PathError
+	require.ErrorAs(t, err, &unreadable)
+	assert.Empty(t, result.Sent)
+	assert.Empty(t, result.Unlisted)
+	assert.Equal(t, puts, f.server.puts)
 }
 
 // TestOpenCodeStoreSkipsOpenCode1: OpenCode 1 kept its sessions in other

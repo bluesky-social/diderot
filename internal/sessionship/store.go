@@ -13,7 +13,10 @@ import (
 type SessionStore interface {
 	// File is the database's name in a source that names its directory.
 	File() string
-	// Sessions lists the database's sessions, leaving out subagents'.
+	// Sessions lists the database's sessions, leaving out subagents'. An
+	// error reading the database is an *os.PathError, which ends a pass for
+	// a later one to retry; any other error means the database cannot be
+	// listed as it is, which a pass reports for its source before going on.
 	Sessions(db string) ([]StoredSession, error)
 	// Document is one session as the document the harness's decoder reads.
 	// An error reading the database is an *os.PathError, which a pass
