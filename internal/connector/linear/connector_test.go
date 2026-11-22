@@ -84,12 +84,19 @@ func TestConnectorDefinition(t *testing.T) {
 	require.NotPanics(t, func() { settings.NewRegistry(def) })
 	assert.Equal(t, "linear", def.Name())
 	assert.Equal(t, "DIDEROT_LINEAR_TOKEN", settings.EnvName(def.Name(), FieldToken))
+	assert.Equal(t, "DIDEROT_LINEAR_OAUTH_SECRET", settings.EnvName(def.Name(), FieldOAuthSecret))
 	kinds, required := map[string]settings.FieldKind{}, map[string]bool{}
 	for _, field := range def.Fields() {
 		kinds[field.Key], required[field.Key] = field.Kind, field.Required
 	}
-	assert.Equal(t, map[string]settings.FieldKind{FieldToken: settings.KindSecret, FieldExcludeTeams: settings.KindList}, kinds)
-	assert.Equal(t, map[string]bool{FieldToken: true, FieldExcludeTeams: false}, required)
+	assert.Equal(t, map[string]settings.FieldKind{
+		FieldOAuthClientID: settings.KindText, FieldOAuthSecret: settings.KindSecret,
+		FieldToken: settings.KindSecret, FieldExcludeTeams: settings.KindList,
+	}, kinds)
+	// Either credential signs in, so the form can require neither.
+	assert.Equal(t, map[string]bool{
+		FieldOAuthClientID: false, FieldOAuthSecret: false, FieldToken: false, FieldExcludeTeams: false,
+	}, required)
 }
 
 func TestConnectorValidate(t *testing.T) {

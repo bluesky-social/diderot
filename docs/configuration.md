@@ -72,7 +72,7 @@ moves, its variable is removed outright ([Removed](#removed)).
 | `DIDEROT_SESSION_INGEST_MAX_REVISION_BYTES`, `DIDEROT_SESSION_PUSH_MAX_DOCUMENT_BYTES`, `_MAX_CONCURRENT`, `_MAX_CONCURRENT_PER_OWNER`, `_MAX_INFLIGHT_BYTES` | Infrastructure | Resource bounds that protect the process. |
 | `DIDEROT_SESSION_PUSH_REVISION_KEY` | Infrastructure | A server secret (an HMAC key), not something an administrator chooses. |
 | `DIDEROT_ATLAS_BINARY` | Infrastructure | Where the migration tool is; `serve` runs it at startup. |
-| Connector, tool connection and model provider secrets (`DIDEROT_SLACK_*_TOKEN`, `DIDEROT_NOTION_TOKEN`, `DIDEROT_LINEAR_TOKEN`, `DIDEROT_ZENDESK_OAUTH_SECRET`, `DIDEROT_DISCORD_BOT_TOKEN`, `DIDEROT_TAVILY_API_KEY`, `DIDEROT_SOURCEBOT_API_KEY`, `DIDEROT_PAGERDUTY_API_TOKEN`, `DIDEROT_PAGERDUTY_WEBHOOK_SECRETS`, `DIDEROT_SESSION_FEED_TOKEN`, `DIDEROT_CONNECTION_<NAME>_TOKEN`, `DIDEROT_PROVIDER_<NAME>_KEY`, `DIDEROT_PROVIDER_<NAME>_SECRET_HEADERS`) | Credential | The secret-store path for a field of the admin UI. |
+| Connector, tool connection and model provider secrets (`DIDEROT_SLACK_*_TOKEN`, `DIDEROT_NOTION_TOKEN`, `DIDEROT_LINEAR_OAUTH_SECRET`, `DIDEROT_LINEAR_TOKEN`, `DIDEROT_ZENDESK_OAUTH_SECRET`, `DIDEROT_DISCORD_BOT_TOKEN`, `DIDEROT_TAVILY_API_KEY`, `DIDEROT_SOURCEBOT_API_KEY`, `DIDEROT_PAGERDUTY_API_TOKEN`, `DIDEROT_PAGERDUTY_WEBHOOK_SECRETS`, `DIDEROT_SESSION_FEED_TOKEN`, `DIDEROT_CONNECTION_<NAME>_TOKEN`, `DIDEROT_PROVIDER_<NAME>_KEY`, `DIDEROT_PROVIDER_<NAME>_SECRET_HEADERS`) | Credential | The secret-store path for a field of the admin UI. |
 | `DIDEROT_SELF_SERVICE_GROUPS`, `DIDEROT_AUTHORIZATION_POLICY_PATH` and its file | Product, still in the deployment | Who may manage their own agent sessions, and the grants and channel profiles: policy the Access page shows and does not yet edit. |
 | `DIDEROT_SESSION_INGEST_POLICY_PATH` and its file, `DIDEROT_SESSION_INGEST_CODEX_APP`, `DIDEROT_SESSION_INGEST_EXCLUDE_APP` | Product, still in the deployment | Which agent sessions are indexed. |
 | `DIDEROT_ASK_ENABLED` | Product, still in the deployment | Whether Ask runs at all. It also decides whether `/readyz` waits on Ask's model. |
@@ -315,6 +315,7 @@ starts the sync over.
 
 | Variable | Default | Notes |
 |---|---|---|
+| `DIDEROT_LINEAR_OAUTH_SECRET` | none | Secret. The Linear connector's **OAuth application client secret**, used instead of a pasted one. A change takes effect when the server restarts. |
 | `DIDEROT_LINEAR_TOKEN` | none | Secret. The Linear connector's **API key**, used instead of a pasted one. A change takes effect when the server restarts. |
 
 ## Zendesk

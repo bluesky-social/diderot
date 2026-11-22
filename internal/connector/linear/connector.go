@@ -15,10 +15,13 @@ import (
 // ConnectorName is the Linear connector's connector_settings row.
 const ConnectorName = "linear"
 
-// Linear connector fields. The API key's variable is DIDEROT_LINEAR_TOKEN.
+// Linear connector fields. The secrets' variables are
+// DIDEROT_LINEAR_OAUTH_SECRET and DIDEROT_LINEAR_TOKEN.
 const (
-	FieldToken        = "token"
-	FieldExcludeTeams = "exclude_teams"
+	FieldOAuthClientID = "oauth_client_id"
+	FieldOAuthSecret   = "oauth_secret"
+	FieldToken         = "token"
+	FieldExcludeTeams  = "exclude_teams"
 )
 
 // testTeamLimit is how many teams Test's one query lists.
@@ -37,8 +40,15 @@ func (Connector) Name() string { return ConnectorName }
 
 func (Connector) Fields() []settings.Field {
 	return []settings.Field{
-		{Key: FieldToken, Label: "API key", Kind: settings.KindSecret, Required: true,
-			Help: "A personal API key (lin_api_...) from Linear's Settings, Security & access."},
+		// No credential field is Required: either credential signs in, and
+		// whether one is complete depends on secrets, which the form's
+		// validation doesn't see. Test and Run refuse settings with neither.
+		{Key: FieldOAuthClientID, Label: "OAuth application client ID", Kind: settings.KindText,
+			Help: "The client ID of an OAuth application in Linear (Settings, API) that has client credentials tokens turned on. Diderot signs in as the application with the read scope and reads every public team. The API key is not used while this is set."},
+		{Key: FieldOAuthSecret, Label: "OAuth application client secret", Kind: settings.KindSecret,
+			Help: "That application's client secret."},
+		{Key: FieldToken, Label: "API key", Kind: settings.KindSecret,
+			Help: "A personal API key (lin_api_...) from Linear's Settings, Security & access. It acts as the member who made it and stops working when that member's account is disabled, so prefer an OAuth application."},
 		{Key: FieldExcludeTeams, Label: "Teams to leave out", Kind: settings.KindList,
 			Help: "Team keys, such as SUP. Their issues are not indexed. Private teams are never indexed."},
 	}
