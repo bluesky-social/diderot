@@ -53,6 +53,17 @@ func fixtureAppToken(n int) string {
 	return fmt.Sprintf("lin_oauth_fixture%d", n)
 }
 
+// minted reports whether authorization is the Authorization value of a
+// token the endpoint has minted.
+func (f *fakeTokenEndpoint) minted(authorization string) bool {
+	for n := 1; n <= int(f.mints.Load()); n++ {
+		if authorization == "Bearer "+fixtureAppToken(n) {
+			return true
+		}
+	}
+	return false
+}
+
 // fakeLinearClient is an HTTP client whose requests all go to srv, whatever
 // host they name.
 func fakeLinearClient(srv *httptest.Server) *http.Client {

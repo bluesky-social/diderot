@@ -43,7 +43,15 @@ func newFakeLinearTest(t *testing.T) *fakeLinearTest {
 	mux.Handle("/oauth/token", fake.tokens)
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		fake.calls.Add(1)
-		if r.Header.Get("Authorization") != fixtureKey {
+		// viewer is who the credential acts as: its owner for an API key,
+		// the application itself for an application's token.
+		var viewer string
+		switch auth := r.Header.Get("Authorization"); {
+		case auth == fixtureKey:
+			viewer = "Diderot Bot"
+		case fake.tokens.minted(auth):
+			viewer = "Diderot App"
+		default:
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(fixtureErrorBody))
 			return
@@ -53,7 +61,7 @@ func newFakeLinearTest(t *testing.T) *fakeLinearTest {
 		assert.Equal(t, testQuery, request.Query)
 		assert.EqualValues(t, testTeamLimit, request.Variables["first"])
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{
-			"viewer":       map[string]any{"name": "Diderot Bot"},
+			"viewer":       map[string]any{"name": viewer},
 			"organization": map[string]any{"name": "Example Org"},
 			"teams":        map[string]any{"nodes": fake.teams, "pageInfo": map[string]any{"hasNextPage": fake.more}},
 		}})
@@ -216,6 +224,15 @@ func TestConnectorTestPasses(t *testing.T) {
 	// A key matches whatever case it was saved in.
 	report = fake.test(t, settings.Values{FieldExcludeTeams: []string{"sup"}}, map[string]string{FieldToken: fixtureKey})
 	assert.True(t, report.Passed())
+}
+
+func TestConnectorTestPassesAsAnOAuthApplication(t *testing.T) {
+	fake := newFakeLinearTest(t)
+	report := fake.test(t, settings.Values{FieldOAuthClientID: fixtureClientID},
+		map[string]string{FieldOAuthSecret: fixtureClientSecret})
+	require.True(t, report.Passed(), "%+v", report)
+	assert.Equal(t, "Signed in to Example Org as Diderot App.", check(t, report, "Credentials").Detail)
+	assert.Equal(t, "The credentials see 3 teams, 1 of them private and never indexed.", check(t, report, "Teams").Detail)
 }
 
 func TestConnectorTestFails(t *testing.T) {

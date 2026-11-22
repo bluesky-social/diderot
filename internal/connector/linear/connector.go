@@ -140,7 +140,15 @@ func (c Connector) Test(ctx context.Context, r settings.Resolved) settings.TestR
 		add(notChecked)
 		return report
 	}
-	data, _, status, err := client.doOnce(ctx, r.Secret(FieldToken), testQuery, map[string]any{"first": testTeamLimit})
+	// The provider signs in: for an OAuth application that is a request of
+	// its own, for an API key it is the key.
+	auth, err := client.provider.Authorization(ctx)
+	if err != nil {
+		add(failed("Credentials", describeTestFailure(0, err), remedy))
+		add(notChecked)
+		return report
+	}
+	data, _, status, err := client.doOnce(ctx, auth, testQuery, map[string]any{"first": testTeamLimit})
 	if detail := describeTestFailure(status, err); detail != "" {
 		add(failed("Credentials", detail, remedy))
 		add(notChecked)
