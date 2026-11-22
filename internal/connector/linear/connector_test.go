@@ -162,6 +162,34 @@ func TestConnectorNewClient(t *testing.T) {
 	}
 }
 
+func TestConnectorNewClientRefusesIncompleteCredentials(t *testing.T) {
+	tests := []struct {
+		name    string
+		values  settings.Values
+		secrets map[string]string
+		want    error
+	}{
+		{
+			// The API key is no fallback: it would hide a secret that was
+			// never set until the key's owner leaves.
+			name:    "OAuth application without its secret",
+			values:  settings.Values{FieldOAuthClientID: fixtureClientID},
+			secrets: map[string]string{FieldToken: fixtureKey},
+			want:    errNoOAuthSecret,
+		},
+		{
+			name: "no credentials",
+			want: errNoCredentials,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Connector{}.NewClient(settings.NewResolved(ConnectorName, tt.values, tt.secrets))
+			assert.ErrorIs(t, err, tt.want)
+		})
+	}
+}
+
 func TestConnectorTestPasses(t *testing.T) {
 	fake := newFakeLinearTest(t)
 	report := fake.test(t, settings.Values{FieldExcludeTeams: []string{"SUP"}}, map[string]string{FieldToken: fixtureKey})
