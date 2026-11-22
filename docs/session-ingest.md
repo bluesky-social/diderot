@@ -17,6 +17,7 @@ outside Diderot should depend on it.
 | Format name | Source | How it arrives |
 |---|---|---|
 | `bsky.session.v1` | NDJSON from a session service's feed | The session feed |
+| `antigravity-jsonl` | Antigravity's `brain/<session>/.system_generated/logs/transcript_full.jsonl` | Push |
 | `claude-code-jsonl` | Claude Code's `~/.claude/projects/<project>/<session>.jsonl` | Push |
 | `codex-rollout-jsonl` | Codex CLI's `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Push |
 | `copilot-cli-events-jsonl` | GitHub Copilot CLI's `~/.copilot/session-state/<session>/events.jsonl` | Push |
@@ -41,12 +42,12 @@ which branch of a session is kept.
 ### From your own machine
 
 `diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Pi, and Polytoken
-sessions on a person's machine, from a background service that `diderot setup`
-offers to install. It reads each session file with the same decoder the server
-has for that harness, converts the result to ATIF on that machine, and pushes
-it as `atif-json`, so the server stores and decodes ATIF and never receives
-the harness's own file. Each record becomes one ATIF step. A record ID that
+the Antigravity, Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Pi,
+and Polytoken sessions on a person's machine, from a background service that
+`diderot setup` offers to install. It reads each session file with the same
+decoder the server has for that harness, converts the result to ATIF on that
+machine, and pushes it as `atif-json`, so the server stores and decodes ATIF
+and never receives the harness's own file. Each record becomes one ATIF step. A record ID that
 came from the harness travels in the step's `extra.stable_step_id`, so it is
 the same ID as a push of the file itself would give; a positional ID becomes
 the step's ordinal. The harness's name and version are the trajectory's

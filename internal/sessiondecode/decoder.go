@@ -191,7 +191,7 @@ func NewRegistry(decoders ...Decoder) *Registry {
 
 // Launch is the registry of every launch decoder.
 func Launch() *Registry {
-	return NewRegistry(Bsky{}, ClaudeCode{}, Codex{}, CopilotCLI{}, GeminiCLI{}, OpenCode{}, Pi{}, Polytoken{}, ATIF{}, STS{})
+	return NewRegistry(Bsky{}, Antigravity{}, ClaudeCode{}, Codex{}, CopilotCLI{}, GeminiCLI{}, OpenCode{}, Pi{}, Polytoken{}, ATIF{}, STS{})
 }
 
 // Lookup returns the decoder for format.

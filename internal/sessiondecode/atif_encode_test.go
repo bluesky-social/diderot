@@ -26,6 +26,8 @@ func TestEncodeATIFRoundTrips(t *testing.T) {
 		decoder Decoder
 		fixture string
 	}{
+		{Antigravity{}, "antigravity/basic.jsonl"},
+		{Antigravity{}, "antigravity/tool-statuses.jsonl"},
 		{ClaudeCode{}, "claude-code/basic.jsonl"},
 		{Codex{}, "codex/basic.jsonl"},
 		{CopilotCLI{}, "copilot-cli/basic.jsonl"},

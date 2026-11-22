@@ -592,6 +592,123 @@ func TestPolytokenOlderLayout(t *testing.T) {
 	}
 }
 
+func TestAntigravityFixture(t *testing.T) {
+	doc, records := assertFixture(t, Antigravity{}, "antigravity", "basic")
+	want := []string{
+		"step:1/user",
+		"step:2:reasoning:0/reasoning",
+		"step:2:assistant:1/assistant",
+		"step:3/tool",
+		"step:4/tool",
+		"step:5/tool",
+		"step:7/assistant",
+		"step:8/tool",
+		"step:9/tool",
+		"step:10/system",
+		"step:11/system",
+		"step:12/system",
+		"step:13/system",
+		"step:14/assistant",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, r := range records {
+		if r.Fidelity != FidelityPositional {
+			t.Fatalf("%s fidelity %s, want positional", r.ID, r.Fidelity)
+		}
+	}
+	if doc.SourceVersion != "" || doc.Harness != "antigravity" || doc.UserTurnCount != 1 || doc.WarningRecords != 1 {
+		t.Fatalf("document = %+v", doc)
+	}
+	// USER_INPUT unwraps <USER_REQUEST> and drops <ADDITIONAL_METADATA> / <USER_SETTINGS_CHANGE>.
+	if strings.Contains(string(records[0].Content), "<USER_REQUEST>") || strings.Contains(string(records[0].Content), "<ADDITIONAL_METADATA>") {
+		t.Fatalf("user wrapper tags leaked: %s", records[0].Content)
+	}
+	// Step 2 omits model, so it falls back to Model Selection from <USER_SETTINGS_CHANGE>.
+	if records[1].Model != "Gemini 3.1 Pro (High)" || records[2].Model != "Gemini 3.1 Pro (High)" {
+		t.Fatalf("settings model fallback lost: reasoning=%q assistant=%q", records[1].Model, records[2].Model)
+	}
+	// Steps 3 and 4 arrived out of order in the file; sorting by step_index
+	// pairs step:3 (LIST_DIRECTORY) with call 0 and step:4 (GREP_SEARCH) with call 1.
+	if records[3].ToolCallID != "step:2:call:0" || records[4].ToolCallID != "step:2:call:1" || records[5].ToolCallID != "step:2:call:2" {
+		t.Fatalf("tool call pairing = %+v", records[3:6])
+	}
+	// Step 7 declares an explicit model, overriding the settings fallback.
+	if records[6].Model != "gemini-synthetic-4" {
+		t.Fatalf("explicit model lost: %q", records[6].Model)
+	}
+	if records[7].ToolCallID != "step:7:call:0" || !records[7].IsError {
+		t.Fatalf("step:8 tool record = %+v", records[7])
+	}
+	if records[8].ToolCallID != "step:7:call:1" || !records[8].IsError {
+		t.Fatalf("step:9 tool record = %+v", records[8])
+	}
+	if records[10].Phase != "compaction" || records[11].Phase != "error" || !records[11].IsError || records[12].Phase != "normalization" {
+		t.Fatalf("system phases lost: %+v", records[10:13])
+	}
+	if bytes.Contains(goldenRecords(t, records), []byte("synthetic-screenshot.png")) {
+		t.Fatal("media uri path reached a record")
+	}
+}
+
+func TestAntigravityToolStatuses(t *testing.T) {
+	doc, records := assertFixture(t, Antigravity{}, "antigravity", "tool-statuses")
+	if doc.Harness != "antigravity" || doc.UserTurnCount != 1 || doc.WarningRecords != 0 {
+		t.Fatalf("document = %+v", doc)
+	}
+	want := []string{
+		"step:100/user",
+		"step:103:reasoning:0/reasoning",
+		"step:103:assistant:1/assistant",
+		"step:104/tool",
+		"step:105/tool",
+		"step:106/tool",
+		"step:108/assistant",
+	}
+	if got := ids(records); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("ids:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if string(records[0].Content) != `"Check the example project."` {
+		t.Fatalf("unwrapped user record = %s", records[0].Content)
+	}
+	// A completed command may still have a nonzero exit code.
+	if records[3].ToolCallID != "step:103:call:0" || !records[3].IsError {
+		t.Fatalf("exit_code tool record = %+v", records[3])
+	}
+	// When the output already contains the error, preserve it once.
+	if records[4].ToolCallID != "step:103:call:1" || !records[4].IsError || strings.Count(string(records[4].Content), "file missing") != 1 {
+		t.Fatalf("error tool record = %+v", records[4])
+	}
+	// A background command can produce output while it is still running.
+	if records[5].ToolCallID != "step:103:call:2" || records[5].IsError {
+		t.Fatalf("running tool record = %+v", records[5])
+	}
+}
+
+func TestAntigravityContentAndErrorHandling(t *testing.T) {
+	const ts = `"created_at":"2026-11-01T10:00:00Z"`
+	data := []byte(strings.Join([]string{
+		`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE",` + ts + `,"content":[{"type":"text","text":"structured"}]}`,
+		`{"step_index":1,"source":"MODEL","type":"RUN_COMMAND","status":"DONE",` + ts + `,"content":"unpaired"}`,
+		`{"step_index":2,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE",` + ts + `,"tool_calls":[{"name":"run_command","args":{"CommandLine":"false"}}]}`,
+		`{"step_index":3,"source":"MODEL","type":"RUN_COMMAND","status":"ERROR","error":"exit status 1",` + ts + `,"content":"stderr: missing file"}`,
+	}, "\n") + "\n")
+	doc, records := assertContract(t, Antigravity{}, data)
+	if doc.WarningRecords != 2 {
+		t.Fatalf("WarningRecords = %d, want 2", doc.WarningRecords)
+	}
+	if !strings.Contains(string(records[0].Content), "Unsupported Antigravity content") {
+		t.Fatalf("non-string content = %s", records[0].Content)
+	}
+	if records[1].Role != "system" || records[1].Phase != "normalization" || !strings.Contains(string(records[1].Content), "Unsupported Antigravity RUN_COMMAND") {
+		t.Fatalf("unpaired tool step should emit warning notice, got %+v", records[1])
+	}
+	if !records[3].IsError || !strings.Contains(string(records[3].Content), "stderr: missing file") || !strings.Contains(string(records[3].Content), "exit status 1") {
+		t.Fatalf("distinct tool error lost: %+v", records[3])
+	}
+}
+
 func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 	cc := func(lines ...string) []byte { return []byte(strings.Join(lines, "\n") + "\n") }
 	const ts = `"timestamp":"2026-11-01T10:00:00Z"`
@@ -702,6 +819,18 @@ func TestNativeDecodersRejectStructuralViolations(t *testing.T) {
 		{"polytoken duplicate envelope", Polytoken{}, cc(
 			`{"index":0,"lineage":"L","committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"a","kind":"human",`+pt+`}}`,
 			`{"index":0,"lineage":"L","committed_at":"2026-11-01T10:00:00Z","message":{"type":"user","content":"b","kind":"human",`+pt+`}}`)},
+		{"antigravity missing step_index", Antigravity{}, cc(
+			`{"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"hi"}`)},
+		{"antigravity duplicate step_index", Antigravity{}, cc(
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"a"}`,
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:01Z","content":"b"}`)},
+		{"antigravity missing created_at", Antigravity{}, cc(
+			`{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","content":"hi"}`)},
+		{"antigravity tool call without name", Antigravity{}, cc(
+			`{"step_index":0,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:00Z","tool_calls":[{"args":{}}]}`)},
+		{"antigravity unparseable line", Antigravity{}, cc(`not json`)},
+		{"antigravity empty document", Antigravity{}, cc(
+			`{"step_index":0,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:00Z"}`)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -903,7 +1032,7 @@ func TestPolytokenUnknownShapes(t *testing.T) {
 
 func TestLaunchRegistry(t *testing.T) {
 	r := Launch()
-	for _, f := range []string{FormatBsky, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatOpenCode, FormatPi, FormatPolytoken} {
+	for _, f := range []string{FormatBsky, FormatAntigravity, FormatClaudeCode, FormatCodex, FormatCopilotCLI, FormatGeminiCLI, FormatOpenCode, FormatPi, FormatPolytoken} {
 		if _, ok := r.Lookup(f); !ok {
 			t.Fatalf("%s not registered", f)
 		}

@@ -1,0 +1,14 @@
+{"step_index":0,"source":"SYSTEM","type":"CONVERSATION_HISTORY","status":"DONE","created_at":"2026-11-01T10:00:00Z"}
+{"step_index":1,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"<USER_REQUEST>\nCheck the build and inspect the screenshot.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-01T10:00:00Z.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Gemini 3.1 Pro (High). No need to comment on this change.\n</USER_SETTINGS_CHANGE>","media":[{"mime_type":"image/png","uri":"/tmp/synthetic-screenshot.png"}]}
+{"step_index":2,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:01Z","thinking":"Let me list the workspace, search for the config key, and read the file.","tool_calls":[{"name":"list_directory","args":{"DirectoryPath":"/workspace"}},{"name":"grep_search","args":{"Query":"port","SearchPath":"/workspace"}},{"name":"view_file","args":{"AbsolutePath":"/workspace/config.yaml"}}]}
+{"step_index":4,"source":"MODEL","type":"GREP_SEARCH","status":"DONE","created_at":"2026-11-01T10:00:03Z","content":"config.yaml:1:port: 8080\n"}
+{"step_index":3,"source":"MODEL","type":"LIST_DIRECTORY","status":"DONE","created_at":"2026-11-01T10:00:02Z","content":"config.yaml\nmain.go\n"}
+{"step_index":5,"source":"MODEL","type":"VIEW_FILE","status":"DONE","created_at":"2026-11-01T10:00:04Z","content":"port: 8080\n"}
+{"step_index":7,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:05Z","model":"gemini-synthetic-4","tool_calls":[{"name":"run_command","args":{"CommandLine":"go test ./..."}},{"name":"mcp_preview_snapshot","args":{"includeImage":true}}]}
+{"step_index":8,"source":"MODEL","type":"RUN_COMMAND","status":"DONE","exit_code":1,"created_at":"2026-11-01T10:00:06Z","content":"FAIL pkg/foo\n"}
+{"step_index":9,"source":"MODEL","type":"MCP_TOOL","status":"ERROR","created_at":"2026-11-01T10:00:07Z","error":"preview tab closed","content":"preview tab closed","media":[{"mime_type":"image/jpeg","uri":"/tmp/synthetic-snap.jpg"}]}
+{"step_index":10,"source":"SYSTEM","type":"SYSTEM_MESSAGE","status":"DONE","created_at":"2026-11-01T10:00:08Z","content":"Workspace switched."}
+{"step_index":11,"source":"SYSTEM","type":"CHECKPOINT","status":"DONE","created_at":"2026-11-01T10:00:09Z","content":"Summary of earlier turns."}
+{"step_index":12,"source":"SYSTEM","type":"ERROR_MESSAGE","status":"ERROR","created_at":"2026-11-01T10:00:10Z","error":"rate limited"}
+{"step_index":13,"source":"MODEL","type":"FUTURE_STEP_KIND","status":"DONE","created_at":"2026-11-01T10:00:11Z","content":"unrecognized"}
+{"step_index":14,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:12Z","model":"gemini-synthetic-4","content":"Tests failed in pkg/foo."}

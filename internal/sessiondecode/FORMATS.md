@@ -431,6 +431,56 @@ openapi`).
   `index`, an event without `type`, or a mapped event whose fields have the
   wrong type fails the document.
 
+## `antigravity-jsonl` (decoder version 1)
+
+Antigravity's `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript_full.jsonl`
+(written by Antigravity IDE/App under `~/.gemini/antigravity/brain` or
+`~/.gemini/antigravity-ide/brain`, Antigravity CLI `agy` under
+`~/.gemini/antigravity-cli/brain`, and T3 Code's Antigravity ACP provider
+under `~/.t3/userdata/providers/antigravity/<hash>/antigravity-acp/brain`).
+Verified against ~1,250 real `transcript_full.jsonl` files from Antigravity
+ACP Server (up to 1.5.14, run via T3 Code v0.1.12-nightly); directory paths
+also checked against Antigravity CLI `agy` 1.5.14
+(`~/.gemini/antigravity-cli/brain`) and Antigravity IDE 1.107.0
+(`~/.gemini/antigravity/brain`). Test fixtures are synthetic.
+
+- **Ids.** Always `positional`: `step:<step_index>`. A `PLANNER_RESPONSE`
+  carrying both `thinking` and assistant output splits into
+  `step:<step_index>:reasoning:0` and `step:<step_index>:assistant:1`. Real
+  transcripts write each `step_index` at most once (never a `RUNNING` line
+  followed by a `DONE` line with the same `step_index`), so a missing or
+  duplicate `step_index` fails the document.
+- **Active path.** Steps are sorted ascending by `step_index` before emission,
+  because concurrent steps may be flushed to the file out of `step_index`
+  order. Backgrounded commands and tasks remain `status: "RUNNING"`
+  mid-session with valid tool output, so non-`DONE` steps are emitted rather
+  than skipped.
+- **Steps.** `USER_INPUT` becomes a `user` record; when its text carries
+  `<USER_REQUEST>...</USER_REQUEST>` tags, the inner prompt text is extracted
+  and the injected `<ADDITIONAL_METADATA>` / `<USER_SETTINGS_CHANGE>` blocks
+  are stripped (`media` images map to image placeholders; local `uri` paths
+  are never followed). `Model Selection` changes inside
+  `<USER_SETTINGS_CHANGE>` supply a fallback model name for later
+  `PLANNER_RESPONSE` steps that omit a top-level `model` field.
+  `PLANNER_RESPONSE` emits a `reasoning` record for `thinking` and an
+  `assistant` record for `content` and `tool_calls` (with synthetic call ids
+  `step:<step_index>:call:<n>` because Antigravity tool calls carry no native
+  id); an empty `PLANNER_RESPONSE` is skipped. `CONVERSATION_HISTORY` carries
+  no content and is skipped without a warning. `CHECKPOINT` becomes `system`
+  (phase `compaction`), `SYSTEM_MESSAGE` becomes `system`, and `ERROR_MESSAGE`
+  becomes `system` (phase `error`, `is_error: true`). Because Antigravity
+  names tool result step types after each tool (`RUN_COMMAND`, `VIEW_FILE`,
+  `GREP_SEARCH`, `LIST_DIRECTORY`, `GENERIC`, `MCP_TOOL`, …), every other step
+  type pairs FIFO with the pending calls of the preceding `PLANNER_RESPONSE`;
+  when `error` is set on a tool or error step and not already contained in
+  `content`, it is kept alongside `content`. When no tool call is pending, an
+  unrecognized or unpaired step becomes a `system` notice (phase
+  `normalization`) and increments `WarningRecords` rather than failing the
+  document. Non-string `content` values likewise become notices and increment
+  `WarningRecords`.
+- **Session.** The format carries no version field, so `SourceVersion` is
+  empty; the harness is `antigravity`.
+
 ## `atif-json` (decoder version 1)
 
 Harbor's Agent Trajectory Interchange Format, one JSON document per run.

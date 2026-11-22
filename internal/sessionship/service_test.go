@@ -214,6 +214,36 @@ func TestDetect(t *testing.T) {
 		{Harness: "polytoken", Dir: data},
 	}, found)
 
+	// Antigravity stores sessions under any of its surfaces' brain directories
+	// or T3 Code's provider directory; each one that exists is offered.
+	antigravity := func() []Source {
+		found, err := Detect()
+		require.NoError(t, err)
+		var out []Source
+		for _, s := range found {
+			if s.Harness == "antigravity" {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	assert.Empty(t, antigravity())
+	agDirs := []string{
+		filepath.Join(home, ".gemini", "antigravity", "brain"),
+		filepath.Join(home, ".gemini", "antigravity-ide", "brain"),
+		filepath.Join(home, ".gemini", "antigravity-cli", "brain"),
+		filepath.Join(home, ".t3", "userdata", "providers", "antigravity"),
+	}
+	for _, dir := range agDirs {
+		require.NoError(t, os.MkdirAll(dir, 0o755))
+	}
+	assert.Equal(t, []Source{
+		{Harness: "antigravity", Dir: agDirs[0]},
+		{Harness: "antigravity", Dir: agDirs[1]},
+		{Harness: "antigravity", Dir: agDirs[2]},
+		{Harness: "antigravity", Dir: agDirs[3]},
+	}, antigravity())
+
 	// OpenCode's source is its database file, which OPENCODE_DB names
 	// itself when absolute and under the data directory when not.
 	openCode := func() []Source {
