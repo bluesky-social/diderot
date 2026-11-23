@@ -374,8 +374,8 @@ an administrator has paused them with the switch on the same page.
   [Adding a source](adding-a-source.md) describes the interface.
 - **A source's own state** (`source.Deps.State`) is a JSON value per key in
   `source_state`, kept across runs and replicas: Zendesk's pending backfill
-  and the workspace Linear's sync state belongs to are there. An API key for
-  another Linear workspace clears Linear's watermark and any backfill in
+  and the workspace Linear's sync state belongs to are there. Credentials for
+  another Linear workspace clear Linear's watermark and any backfill in
   progress before its sync starts; Notion already starts discovery over
   when its integration changes. The older sources' cursors stay in their
   own tables.

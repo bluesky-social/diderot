@@ -194,7 +194,9 @@ Create a personal API key in Linear (Settings, then Security & access) and
 paste it on the Linear connector page. Diderot syncs the issues and comments
 of every team the key can see, except private teams, every five minutes, with
 an hourly sweep that drops issues moved into private teams and a daily full
-reconcile.
+reconcile. A personal key stops working when your Linear account is
+disabled, so a deployment should sign in as an OAuth application instead
+([Linear](configuration.md#linear)).
 
 ### Notion
 

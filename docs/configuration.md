@@ -72,7 +72,7 @@ moves, its variable is removed outright ([Removed](#removed)).
 | `DIDEROT_SESSION_INGEST_MAX_REVISION_BYTES`, `DIDEROT_SESSION_PUSH_MAX_DOCUMENT_BYTES`, `_MAX_CONCURRENT`, `_MAX_CONCURRENT_PER_OWNER`, `_MAX_INFLIGHT_BYTES` | Infrastructure | Resource bounds that protect the process. |
 | `DIDEROT_SESSION_PUSH_REVISION_KEY` | Infrastructure | A server secret (an HMAC key), not something an administrator chooses. |
 | `DIDEROT_ATLAS_BINARY` | Infrastructure | Where the migration tool is; `serve` runs it at startup. |
-| Connector, tool connection and model provider secrets (`DIDEROT_SLACK_*_TOKEN`, `DIDEROT_NOTION_TOKEN`, `DIDEROT_LINEAR_TOKEN`, `DIDEROT_ZENDESK_OAUTH_SECRET`, `DIDEROT_DISCORD_BOT_TOKEN`, `DIDEROT_TAVILY_API_KEY`, `DIDEROT_SOURCEBOT_API_KEY`, `DIDEROT_PAGERDUTY_API_TOKEN`, `DIDEROT_PAGERDUTY_WEBHOOK_SECRETS`, `DIDEROT_SESSION_FEED_TOKEN`, `DIDEROT_CONNECTION_<NAME>_TOKEN`, `DIDEROT_PROVIDER_<NAME>_KEY`, `DIDEROT_PROVIDER_<NAME>_SECRET_HEADERS`) | Credential | The secret-store path for a field of the admin UI. |
+| Connector, tool connection and model provider secrets (`DIDEROT_SLACK_*_TOKEN`, `DIDEROT_NOTION_TOKEN`, `DIDEROT_LINEAR_OAUTH_SECRET`, `DIDEROT_LINEAR_TOKEN`, `DIDEROT_ZENDESK_OAUTH_SECRET`, `DIDEROT_DISCORD_BOT_TOKEN`, `DIDEROT_TAVILY_API_KEY`, `DIDEROT_SOURCEBOT_API_KEY`, `DIDEROT_PAGERDUTY_API_TOKEN`, `DIDEROT_PAGERDUTY_WEBHOOK_SECRETS`, `DIDEROT_SESSION_FEED_TOKEN`, `DIDEROT_CONNECTION_<NAME>_TOKEN`, `DIDEROT_PROVIDER_<NAME>_KEY`, `DIDEROT_PROVIDER_<NAME>_SECRET_HEADERS`) | Credential | The secret-store path for a field of the admin UI. |
 | `DIDEROT_SELF_SERVICE_GROUPS`, `DIDEROT_AUTHORIZATION_POLICY_PATH` and its file | Product, still in the deployment | Who may manage their own agent sessions, and the grants and channel profiles: policy the Access page shows and does not yet edit. |
 | `DIDEROT_SESSION_INGEST_POLICY_PATH` and its file, `DIDEROT_SESSION_INGEST_CODEX_APP`, `DIDEROT_SESSION_INGEST_EXCLUDE_APP` | Product, still in the deployment | Which agent sessions are indexed. |
 | `DIDEROT_ASK_ENABLED` | Product, still in the deployment | Whether Ask runs at all. It also decides whether `/readyz` waits on Ask's model. |
@@ -308,13 +308,36 @@ roots every day. Managed roots can be added while it is off.
 ## Linear
 
 Linear is configured on its connector page, `/admin/connectors/linear`: a
-personal API key and the teams to leave out. Enabling it starts an
-incremental sync every five minutes, an hourly sweep that removes issues that
-moved to private teams, and a daily reconcile. A key for another workspace
-starts the sync over.
+credential and the teams to leave out. Enabling it starts an incremental sync
+every five minutes, an hourly sweep that removes issues that moved to private
+teams, and a daily reconcile. Credentials for another workspace start the
+sync over.
+
+The credential is one of two:
+
+- **An OAuth application**, the one to use in a deployment. Create it in
+  Linear's Settings under API, turn on client credentials tokens for it, and
+  enter its client ID and client secret. Diderot signs in as the application
+  with the client credentials grant and the `read` scope, so the sync depends
+  on no member's account. Linear gives such a token 30 days; Diderot requests
+  another an hour before that, and when Linear answers a request with a 401.
+  The application reads every public team in the workspace.
+- **A personal API key**, from Linear's Settings under Security & access. It
+  reads what the member who made it reads, and stops working when that
+  member's account is disabled.
+
+With both set, Diderot uses the application, so you can add it, run the
+page's test, and then clear the key. A client ID without its secret is an
+error, not a reason to use the key.
+
+The sweep removes every indexed issue the credential can't read, whatever
+the reason. Before you change to a credential that sees fewer teams, or
+narrow an application's team access in Linear, expect those teams' issues to
+leave the index within the hour.
 
 | Variable | Default | Notes |
 |---|---|---|
+| `DIDEROT_LINEAR_OAUTH_SECRET` | none | Secret. The Linear connector's **OAuth application client secret**, used instead of a pasted one. A change takes effect when the server restarts. |
 | `DIDEROT_LINEAR_TOKEN` | none | Secret. The Linear connector's **API key**, used instead of a pasted one. A change takes effect when the server restarts. |
 
 ## Zendesk

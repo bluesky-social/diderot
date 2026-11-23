@@ -16,7 +16,8 @@ const workspaceKey = "workspace"
 
 const organizationQuery = `query DiderotWorkspace { organization { id } }`
 
-// OrganizationID returns the ID of the workspace the API key belongs to.
+// OrganizationID returns the ID of the workspace the client's credentials
+// belong to.
 func (c *Client) OrganizationID(ctx context.Context) (string, error) {
 	data, _, err := c.Do(ctx, organizationQuery, nil)
 	if err != nil {
@@ -36,9 +37,9 @@ func (c *Client) OrganizationID(ctx context.Context) (string, error) {
 	return answer.Organization.ID, nil
 }
 
-// startWorkspace records the workspace client's API key belongs to. When the
-// sync state was kept for another workspace, it starts the sync over: the
-// watermark and a backfill in progress mean nothing in this one.
+// startWorkspace records the workspace client's credentials belong to. When
+// the sync state was kept for another workspace, it starts the sync over:
+// the watermark and a backfill in progress mean nothing in this one.
 func startWorkspace(ctx context.Context, pool *pgxpool.Pool, state source.State, client *Client) (reset bool, err error) {
 	id, err := client.OrganizationID(ctx)
 	if err != nil {
