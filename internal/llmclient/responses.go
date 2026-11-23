@@ -126,7 +126,7 @@ func (c *Client) TextResponse(ctx context.Context, body ResponsesTextRequest, li
 		return ResponsesTextResult{}, fmt.Errorf("decode Responses text: %w", err)
 	}
 	if out.Status != "completed" && out.Status != "incomplete" {
-		return ResponsesTextResult{}, errors.New("Responses did not complete")
+		return ResponsesTextResult{}, errors.New("responses did not complete")
 	}
 	var text []string
 	for _, item := range out.Output {
@@ -140,7 +140,7 @@ func (c *Client) TextResponse(ctx context.Context, body ResponsesTextRequest, li
 		}
 	}
 	if len(text) == 0 {
-		return ResponsesTextResult{}, errors.New("Responses returned no text")
+		return ResponsesTextResult{}, errors.New("responses returned no text")
 	}
 	return ResponsesTextResult{
 		Text: strings.Join(text, "\n"), InputTokens: out.Usage.InputTokens,

@@ -44,7 +44,7 @@ func (s *credentialStore) get(ctx context.Context, rejected string) (accessCrede
 		return accessCredential{}, authFailure("could not open the ChatGPT auth file")
 	}
 	contents, err := io.ReadAll(io.LimitReader(file, 1<<20))
-	file.Close()
+	_ = file.Close()
 	if err != nil {
 		return accessCredential{}, authFailure("could not read the ChatGPT auth file")
 	}
@@ -101,8 +101,8 @@ func (s *credentialStore) refresh(ctx context.Context, refresh string, auth, tok
 	if err != nil {
 		return accessCredential{}, authFailure("the ChatGPT auth file directory must be writable to refresh")
 	}
-	defer os.Remove(temp.Name())
-	defer temp.Close()
+	defer func() { _ = os.Remove(temp.Name()) }()
+	defer func() { _ = temp.Close() }()
 
 	form := url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refresh}, "client_id": {codexClientID}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.tokenURL, strings.NewReader(form.Encode()))
@@ -114,7 +114,7 @@ func (s *credentialStore) refresh(ctx context.Context, refresh string, auth, tok
 	if err != nil {
 		return accessCredential{}, authFailure("could not reach the ChatGPT token endpoint")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return accessCredential{}, authFailure("ChatGPT token refresh was refused")
 	}

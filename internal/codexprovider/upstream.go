@@ -41,7 +41,7 @@ func (b *codexBackend) respond(ctx context.Context, body request) (json.RawMessa
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	resp.Body = limitedBody{Reader: io.LimitReader(resp.Body, maxStreamBytes), Closer: resp.Body}
 	return readResponse(ssestream.NewDecoder(resp))
@@ -57,7 +57,7 @@ func (b *codexBackend) do(ctx context.Context, method, url string, payload []byt
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusUnauthorized {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		credential, err = b.credentials.get(ctx, credential.access)
 		if err != nil {
 			return nil, err
@@ -68,7 +68,7 @@ func (b *codexBackend) do(ctx context.Context, method, url string, payload []byt
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, upstreamStatus(resp.StatusCode)
 	}
 	return resp, nil

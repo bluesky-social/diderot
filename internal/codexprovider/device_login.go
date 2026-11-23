@@ -51,8 +51,8 @@ func deviceLogin(ctx context.Context, client *http.Client, issuer, path string, 
 	if err != nil {
 		return errors.New("the Codex credentials directory must be writable")
 	}
-	defer os.Remove(temp.Name())
-	defer temp.Close()
+	defer func() { _ = os.Remove(temp.Name()) }()
+	defer func() { _ = temp.Close() }()
 
 	const devicePath = "/api/accounts/deviceauth/"
 	payload, _ := json.Marshal(map[string]string{"client_id": codexClientID})
@@ -150,7 +150,7 @@ func loginPost(ctx context.Context, client *http.Client, endpoint, contentType s
 	if err != nil {
 		return 0, "", fmt.Errorf("contact ChatGPT: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	decoder := json.NewDecoder(io.LimitReader(response.Body, maxLoginReply))
 	if response.StatusCode == http.StatusOK {
 		if err := decoder.Decode(reply); err != nil {

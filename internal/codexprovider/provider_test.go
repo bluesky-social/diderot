@@ -94,7 +94,7 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 			assert.Equal(t, "0.170.0", r.URL.Query().Get("client_version"))
 			assert.Equal(t, "application/json", r.Header.Get("Accept"))
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"models":[
+			_, _ = fmt.Fprint(w, `{"models":[
 				{"slug":"test-model","display_name":"Test model","visibility":"list","context_window":500000,"input_modalities":["text","image"],"default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low"},{"effort":"high"},{"effort":"ultra"}]},
 				{"slug":"other-visible","visibility":"list"},
 				{"slug":"hidden-model","visibility":"hide"}
@@ -123,8 +123,8 @@ func TestCodexTransportSupportsDiderotModelProbesAndToolReplay(t *testing.T) {
 			assert.JSONEq(t, `{"effort":"high"}`, string(body["reasoning"]))
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprintf(w, "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":%s}\n\n", item)
-		fmt.Fprint(w, "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_test\",\"object\":\"response\",\"model\":\"test-model\",\"created_at\":1,\"status\":\"completed\",\"output\":[]}}\n\n")
+		_, _ = fmt.Fprintf(w, "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":%s}\n\n", item)
+		_, _ = fmt.Fprint(w, "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_test\",\"object\":\"response\",\"model\":\"test-model\",\"created_at\":1,\"status\":\"completed\",\"output\":[]}}\n\n")
 	}))
 	defer upstream.Close()
 	cfg := testConfig()

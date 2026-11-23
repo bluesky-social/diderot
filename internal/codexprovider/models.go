@@ -33,7 +33,7 @@ func (b *codexBackend) models(ctx context.Context, selected string) ([]listedMod
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var page struct {
 		Models []struct {
 			Slug            string   `json:"slug"`
