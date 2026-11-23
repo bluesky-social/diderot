@@ -278,13 +278,13 @@ func TestCalDAVSyncReadsEditsExceptionsAndUndatedJournalNotes(t *testing.T) {
 func writeDAVReport(w http.ResponseWriter, path, entry string) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.WriteHeader(http.StatusMultiStatus)
-	fmt.Fprint(w, `<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">`)
+	_, _ = fmt.Fprint(w, `<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">`)
 	if entry != "" {
-		fmt.Fprintf(w, `<D:response><D:href>%sitem.ics</D:href><D:propstat><D:prop><C:calendar-data>`, path)
+		_, _ = fmt.Fprintf(w, `<D:response><D:href>%sitem.ics</D:href><D:propstat><D:prop><C:calendar-data>`, path)
 		_ = xml.EscapeText(w, []byte("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Diderot test//EN\r\n"+entry+"END:VCALENDAR\r\n"))
-		fmt.Fprint(w, `</C:calendar-data></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>`)
+		_, _ = fmt.Fprint(w, `</C:calendar-data></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>`)
 	}
-	fmt.Fprint(w, `</D:multistatus>`)
+	_, _ = fmt.Fprint(w, `</D:multistatus>`)
 }
 
 type storedRow struct {

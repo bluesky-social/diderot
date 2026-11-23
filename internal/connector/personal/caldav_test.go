@@ -43,17 +43,17 @@ func TestCalDAVDiscoverCalendarsFromServerURL(t *testing.T) {
 			assert.Equal(t, "PROPFIND", r.Method)
 			assert.Contains(t, string(data), "current-user-principal")
 			w.WriteHeader(http.StatusMultiStatus)
-			fmt.Fprintf(w, multistatus, prop("/dav/calendars", `<D:current-user-principal><D:href>/dav/principals/alice/</D:href></D:current-user-principal>`))
+			_, _ = fmt.Fprintf(w, multistatus, prop("/dav/calendars", `<D:current-user-principal><D:href>/dav/principals/alice/</D:href></D:current-user-principal>`))
 		case "/dav/principals/alice/":
 			assert.Equal(t, "PROPFIND", r.Method)
 			assert.Contains(t, string(data), "calendar-home-set")
 			w.WriteHeader(http.StatusMultiStatus)
-			fmt.Fprintf(w, multistatus, prop("/dav/principals/alice/", `<C:calendar-home-set><D:href>/dav/calendars/alice/</D:href></C:calendar-home-set>`))
+			_, _ = fmt.Fprintf(w, multistatus, prop("/dav/principals/alice/", `<C:calendar-home-set><D:href>/dav/calendars/alice/</D:href></C:calendar-home-set>`))
 		case "/dav/calendars/alice/":
 			assert.Equal(t, "PROPFIND", r.Method)
 			assert.Equal(t, "1", r.Header.Get("Depth"))
 			w.WriteHeader(http.StatusMultiStatus)
-			fmt.Fprintf(w, multistatus, prop("/dav/calendars/alice/", `<D:resourcetype><D:collection/></D:resourcetype>`)+
+			_, _ = fmt.Fprintf(w, multistatus, prop("/dav/calendars/alice/", `<D:resourcetype><D:collection/></D:resourcetype>`)+
 				calendar("/dav/calendars/alice/work/", "VEVENT")+calendar("/dav/calendars/alice/home/", "VEVENT")+
 				calendar("/dav/calendars/alice/journal/", "VJOURNAL"))
 		case "/dav/calendars/alice/work/", "/dav/calendars/alice/home/":
