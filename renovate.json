@@ -3,10 +3,17 @@
   "extends": ["local>bluesky-social/.github//renovate/default#v1"],
   "packageRules": [
     {
-      "description": "Stay on Postgres 18. A major version needs a dump and restore of existing data volumes, so we upgrade deliberately rather than through Renovate. Digest refreshes of 18 still come through.",
+      "description": "Stay on Postgres 18. A major version needs a dump and restore of existing data volumes, so we upgrade deliberately rather than through Renovate.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["postgres"],
       "allowedVersions": "<19"
+    },
+    {
+      "description": "Move Postgres only on point releases (18.7 to 18.8, roughly quarterly). Each one's PR carries the build current at the time. The official image is rebuilt every few days for packaging and Debian base updates, so digest-only updates would mean a PR every few days, each restarting the minimum release age. The trade-off is that rebuilds between point releases are skipped.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "matchUpdateTypes": ["digest"],
+      "enabled": false
     },
     {
       "description": "eino-ext's agenticopenai v0.2.5 doesn't compile against openai-go v3.51.0 or later (the Responses API types changed). Raise the cap once a newer agenticopenai builds against a newer openai-go.",
