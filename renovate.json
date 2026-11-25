@@ -1,4 +1,25 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>bluesky-social/.github//renovate/default#v1"]
+  "extends": ["local>bluesky-social/.github//renovate/default#v1"],
+  "packageRules": [
+    {
+      "description": "Stay on Postgres 18. A major version needs a dump and restore of existing data volumes, so we upgrade deliberately rather than through Renovate. Digest refreshes of 18 still come through.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "<19"
+    },
+    {
+      "description": "eino-ext's agenticopenai v0.2.5 doesn't compile against openai-go v3.51.0 or later (the Responses API types changed). Raise the cap once a newer agenticopenai builds against a newer openai-go.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/openai/openai-go/v3"],
+      "allowedVersions": "<3.51.0"
+    },
+    {
+      "description": "eino-ext's agenticclaude (v0.1.7) still takes anthropic-sdk-go v1 types: internal/ask/model_factory.go passes a v1 ThinkingConfigParamUnion into agenticclaude.Config. Re-enable v2 once agenticclaude moves to it.",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/anthropics/anthropic-sdk-go"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
 }
