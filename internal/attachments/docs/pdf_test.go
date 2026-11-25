@@ -127,16 +127,19 @@ func TestPDFiumPoolConfigSetsFSConfig(t *testing.T) {
 
 // TestPDFiumWASMBlobIsPinned detects a silent swap of the pdfium binary.
 //
-// This pins the PDFium 8111 module (Emscripten 6.0.13) distributed with
-// go-pdfium v1.21.4. The audit behind the pin checked that Chrome's font
-// substitution tables and Emscripten stack exports are present, that the
-// module's go.sum hash matches sum.golang.org, and that the sandbox hardening
-// tests pass. A future upgrade must not silently replace these bytes without
-// another review.
+// This pins the PDFium 8165 module distributed with go-pdfium v1.21.5. The
+// module has no producers section, so it doesn't record its Emscripten
+// version. The audit behind the pin checked that Chrome's font substitution
+// tables and Emscripten stack exports are present, that the module's go.sum
+// hash matches sum.golang.org, that its imports (env and
+// wasi_snapshot_preview1) and exports are the same as the previously audited
+// PDFium 8111 module's, so it reaches no new host functions, and that the
+// sandbox hardening tests pass. A future upgrade must not silently replace
+// these bytes without another review.
 func TestPDFiumWASMBlobIsPinned(t *testing.T) {
 	const (
-		wantSHA256 = "e6f77e01dce34de05ad62515114152da580b64c23871e3e3e2afef3f7bb88ade"
-		wantBytes  = 5828543
+		wantSHA256 = "9113dda8d1a981133d2042837fe4692420ab362c1aa633a9a09c76c9b3f6820a"
+		wantBytes  = 6001244
 	)
 	// The module's own copy, the one the build compiles in: `go list -m`
 	// resolves it as the build would (a vendor/ tree included, were one
