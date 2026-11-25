@@ -165,7 +165,7 @@ jobs:
       # Without the dispatch there is no binaries run to say they failed.
       - name: Say the binaries were not started
         if: failure()
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa # v4.1.0
         with:
           webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
@@ -229,7 +229,7 @@ jobs:
       # build that fails for a real release says so in the same channel.
       - name: Say the binaries failed
         if: failure() && steps.release.outcome == 'success'
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa # v4.1.0
         with:
           webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
@@ -261,7 +261,7 @@ jobs:
       # A token for the tap alone, for this run only.
       - name: Mint a token for the tap
         id: tap-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
         with:
           app-id: ${{ secrets.PUBLIC_RELEASE_APP_ID }}
           private-key: ${{ secrets.PUBLIC_RELEASE_APP_KEY }}
@@ -284,7 +284,7 @@ jobs:
 
       - name: Say the formula failed
         if: failure()
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa # v4.1.0
         with:
           webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
@@ -320,7 +320,7 @@ jobs:
 
       - name: Say the attestation failed
         if: failure()
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa # v4.1.0
         with:
           webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
@@ -379,7 +379,7 @@ jobs:
     permissions: {}
     steps:
       - name: Mint deploy-dispatch App token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
         id: app-token
         with:
           app-id: ${{ secrets.DEPLOY_DISPATCH_APP_ID }}
@@ -412,7 +412,7 @@ jobs:
       contents: read
     steps:
       - name: Announce ${{ needs.release.outputs.tag_name }}
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa # v4.1.0
         with:
           webhook: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
