@@ -1,0 +1,717 @@
+{
+  "info": {
+    "id": "ses_0000000000ffSyntheticSess01",
+    "projectID": "0000000000000000000000000000000000synthetic",
+    "model": {
+      "id": "synthetic-haiku",
+      "providerID": "synthetic",
+      "variant": "default"
+    },
+    "cost": 0.0163,
+    "tokens": {
+      "input": 780,
+      "output": 1085,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "failed",
+    "time": {
+      "created": 1793527200000,
+      "updated": 1793527292000,
+      "busy": 1793527270000,
+      "idle": 1793527272000
+    },
+    "title": "Synthetic calculator fix",
+    "location": {
+      "directory": "/home/dev/toy"
+    },
+    "revert": {
+      "messageID": "msg_1f0000000026SyntheticMsg26",
+      "files": []
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_1f0000000001SyntheticMsg01",
+      "time": {
+        "created": 1793527200000
+      },
+      "type": "agent-switched",
+      "agent": "build"
+    },
+    {
+      "id": "msg_1f0000000002SyntheticMsg02",
+      "time": {
+        "created": 1793527201000
+      },
+      "text": "What is in the picture, and why does add() subtract? Look at @notes.txt too.",
+      "files": [
+        {
+          "data": "iVBORw0KGgoSYNTHETICIMAGEBYTES=",
+          "mime": "image/png",
+          "source": {
+            "type": "inline"
+          },
+          "name": "pasted-image-1.png"
+        },
+        {
+          "mime": "image/jpeg",
+          "source": {
+            "type": "inline"
+          },
+          "name": "photo.jpg",
+          "uri": "media:abababababababababababababababababababababababababababababababab"
+        },
+        {
+          "data": "U1lOVEhFVElDIE5PVEVTIEZJTEU=",
+          "mime": "text/plain",
+          "source": {
+            "type": "uri",
+            "uri": "file:///home/dev/toy/notes.txt"
+          },
+          "name": "notes.txt",
+          "mention": {
+            "start": 60,
+            "end": 70,
+            "text": "@notes.txt"
+          }
+        }
+      ],
+      "type": "user"
+    },
+    {
+      "id": "msg_1f0000000003SyntheticMsg03",
+      "time": {
+        "created": 1793527202000,
+        "firstToken": 1793527203000,
+        "streamed": 1793527205000,
+        "completed": 1793527206000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-sonnet",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "The picture is red; add() has the wrong operator.",
+          "native": {
+            "signature": "SIGNATURE-SYNTHETIC"
+          },
+          "time": {
+            "created": 1793527203000,
+            "completed": 1793527203000
+          }
+        },
+        {
+          "type": "text",
+          "text": "Let me look at the code."
+        },
+        {
+          "type": "tool",
+          "id": "toolu_synthetic01",
+          "name": "read",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {
+              "path": "calc.py"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1: def add(a, b):\n2:     return a - b"
+              }
+            ],
+            "metadata": {
+              "truncated": false
+            }
+          },
+          "time": {
+            "created": 1793527204000,
+            "ran": 1793527204000,
+            "completed": 1793527204000
+          }
+        },
+        {
+          "type": "tool",
+          "id": "toolu_synthetic02",
+          "name": "shell",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "ls missing-dir"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "ls: missing-dir: No such file or directory\n"
+              },
+              {
+                "type": "text",
+                "text": "Exit code: 1"
+              }
+            ],
+            "metadata": {
+              "status": "completed",
+              "truncated": false,
+              "exit": 1
+            }
+          },
+          "time": {
+            "created": 1793527204000,
+            "ran": 1793527204000,
+            "completed": 1793527205000
+          }
+        },
+        {
+          "type": "tool",
+          "id": "toolu_synthetic03",
+          "name": "screenshot",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {},
+            "content": [
+              {
+                "type": "file",
+                "uri": "data:image/png;base64,iVBORw0KGgoSYNTHETICTOOLIMAGE=",
+                "mime": "image/png",
+                "name": "screen.png"
+              },
+              {
+                "type": "future-item",
+                "payload": "x"
+              }
+            ]
+          },
+          "time": {
+            "created": 1793527204000,
+            "ran": 1793527205000,
+            "completed": 1793527205000
+          }
+        }
+      ],
+      "finish": "tool-calls",
+      "rawFinish": "tool_use",
+      "cost": 0.0123,
+      "tokens": {
+        "input": 120,
+        "output": 80,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000004SyntheticMsg04",
+      "time": {
+        "created": 1793527207000,
+        "firstToken": 1793527208000,
+        "streamed": 1793527209000,
+        "completed": 1793527209000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-sonnet",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "tool",
+          "id": "toolu_synthetic04",
+          "name": "edit",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {
+              "path": "calc.py",
+              "oldString": "a - b",
+              "newString": "a + b"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Edited calc.py (1 replacement)"
+              }
+            ],
+            "metadata": {
+              "files": [
+                {
+                  "file": "calc.py",
+                  "status": "modified",
+                  "additions": 1,
+                  "deletions": 1
+                }
+              ],
+              "truncated": false
+            }
+          },
+          "time": {
+            "created": 1793527208000,
+            "ran": 1793527208000,
+            "completed": 1793527209000
+          }
+        },
+        {
+          "type": "text",
+          "text": "Fixed: add() now returns a + b."
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "end_turn",
+      "cost": 0.004,
+      "tokens": {
+        "input": 200,
+        "output": 30,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000005SyntheticMsg05",
+      "time": {
+        "created": 1793527210000
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_1f0000000006SyntheticMsg06",
+      "time": {
+        "created": 1793527220000
+      },
+      "type": "model-switched",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic"
+      },
+      "previous": {
+        "id": "synthetic-sonnet",
+        "providerID": "synthetic",
+        "variant": "default"
+      }
+    },
+    {
+      "id": "msg_1f0000000007SyntheticMsg07",
+      "time": {
+        "created": 1793527221000
+      },
+      "text": "Ask a subagent how many lines README.md has.",
+      "type": "user"
+    },
+    {
+      "id": "msg_1f0000000008SyntheticMsg08",
+      "time": {
+        "created": 1793527222000,
+        "firstToken": 1793527223000,
+        "streamed": 1793527224000,
+        "completed": 1793527224000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "",
+          "native": {
+            "signature": "SIGNATURE-SYNTHETIC-2"
+          }
+        },
+        {
+          "type": "tool",
+          "id": "toolu_synthetic05",
+          "name": "subagent",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {
+              "agent": "general",
+              "description": "Count lines",
+              "prompt": "Count the lines in README.md."
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "The subagent is working in the background (sessionID: ses_0000000000ffSyntheticChild1)."
+              }
+            ],
+            "metadata": {
+              "sessionID": "ses_0000000000ffSyntheticChild1"
+            }
+          },
+          "time": {
+            "created": 1793527223000,
+            "ran": 1793527223000,
+            "completed": 1793527224000
+          }
+        }
+      ],
+      "finish": "tool-calls",
+      "rawFinish": "tool_use",
+      "cost": 0,
+      "tokens": {
+        "input": 50,
+        "output": 20,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000009SyntheticMsg09",
+      "time": {
+        "created": 1793527225000
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_1f0000000010SyntheticMsg10",
+      "metadata": {
+        "source": "subagent",
+        "childID": "ses_0000000000ffSyntheticChild1",
+        "agent": "General",
+        "state": "completed"
+      },
+      "time": {
+        "created": 1793527230000
+      },
+      "text": "<subagent sessionID=\"ses_0000000000ffSyntheticChild1\" state=\"completed\" description=\"Count lines\">\nREADME.md has 3 lines.\n</subagent>",
+      "description": "Count lines",
+      "type": "synthetic"
+    },
+    {
+      "id": "msg_1f0000000011SyntheticMsg11",
+      "time": {
+        "created": 1793527231000,
+        "firstToken": 1793527232000,
+        "streamed": 1793527232000,
+        "completed": 1793527232000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "README.md has 3 lines."
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "end_turn",
+      "cost": 0,
+      "tokens": {
+        "input": 40,
+        "output": 10,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000012SyntheticMsg12",
+      "time": {
+        "created": 1793527233000
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_1f0000000013SyntheticMsg13",
+      "time": {
+        "created": 1793527240000
+      },
+      "type": "system",
+      "text": "The available tools have changed.\n\nThe `bash` tool is now `shell` and must be called by that name."
+    },
+    {
+      "id": "msg_1f0000000014SyntheticMsg14",
+      "time": {
+        "created": 1793527241000
+      },
+      "type": "skill",
+      "skill": "skill_synthetic",
+      "name": "release-notes",
+      "text": "Write release notes as a bulleted list."
+    },
+    {
+      "id": "msg_1f0000000015SyntheticMsg15",
+      "time": {
+        "created": 1793527242000,
+        "completed": 1793527243000
+      },
+      "type": "shell",
+      "shellID": "shl_synthetic01",
+      "command": "git status --short",
+      "status": "exited",
+      "exit": 2,
+      "output": {
+        "output": "fatal: not a git repository\n",
+        "cursor": 29,
+        "size": 29,
+        "truncated": false
+      }
+    },
+    {
+      "type": "compaction",
+      "id": "msg_1f0000000016SyntheticMsg16",
+      "time": {
+        "created": 1793527250000
+      },
+      "status": "failed",
+      "reason": "auto",
+      "error": {
+        "type": "provider.overloaded",
+        "message": "Overloaded"
+      }
+    },
+    {
+      "type": "compaction",
+      "id": "msg_1f0000000017SyntheticMsg17",
+      "metadata": {
+        "keepID": "msg_1f0000000007SyntheticMsg07"
+      },
+      "time": {
+        "created": 1793527251000
+      },
+      "status": "completed",
+      "reason": "manual",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "native": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "CONTINUATION-SYNTHETIC"
+          }
+        ]
+      },
+      "summary": "## Objective\n- Fix add() and count README lines",
+      "cost": 0,
+      "tokens": {
+        "input": 300,
+        "output": 40,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000018SyntheticMsg18",
+      "time": {
+        "created": 1793527252000
+      },
+      "type": "location-switched",
+      "location": {
+        "directory": "/home/dev/toy/sub"
+      },
+      "previous": {
+        "location": {
+          "directory": "/home/dev/toy"
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000019SyntheticMsg19",
+      "time": {
+        "created": 1793527260000
+      },
+      "text": "Write a long essay, then run sleep 30.",
+      "type": "user"
+    },
+    {
+      "id": "msg_1f0000000020SyntheticMsg20",
+      "time": {
+        "created": 1793527261000,
+        "firstToken": 1793527262000,
+        "streamed": 1793527265000,
+        "completed": 1793527265000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "I'll write the essay."
+        },
+        {
+          "type": "tool",
+          "id": "toolu_synthetic06",
+          "name": "write",
+          "executed": false,
+          "state": {
+            "status": "error",
+            "input": {},
+            "error": {
+              "type": "aborted",
+              "message": "Tool execution interrupted"
+            }
+          },
+          "time": {
+            "created": 1793527263000,
+            "completed": 1793527265000
+          }
+        },
+        {
+          "type": "future-part",
+          "detail": "unknown"
+        }
+      ],
+      "finish": "error",
+      "cost": 0,
+      "tokens": {
+        "input": 60,
+        "output": 900,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "error": {
+        "type": "aborted",
+        "message": "Step interrupted"
+      }
+    },
+    {
+      "id": "msg_1f0000000021SyntheticMsg21",
+      "time": {
+        "created": 1793527266000
+      },
+      "type": "idle",
+      "outcome": "interrupted"
+    },
+    {
+      "id": "msg_1f0000000022SyntheticMsg22",
+      "time": {
+        "created": 1793527270000
+      },
+      "text": "Try again.",
+      "type": "user"
+    },
+    {
+      "id": "msg_1f0000000023SyntheticMsg23",
+      "time": {
+        "created": 1793527271000,
+        "completed": 1793527271000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [],
+      "finish": "error",
+      "error": {
+        "type": "provider.invalid-request",
+        "message": "Model not found",
+        "status": 404,
+        "response": {
+          "body": "{\"error\":{\"message\":\"Model not found\"}}"
+        }
+      }
+    },
+    {
+      "id": "msg_1f0000000024SyntheticMsg24",
+      "time": {
+        "created": 1793527272000
+      },
+      "type": "idle",
+      "outcome": "failed",
+      "error": {
+        "type": "provider.invalid-request",
+        "message": "Model not found",
+        "status": 404
+      }
+    },
+    {
+      "id": "msg_1f0000000025SyntheticMsg25",
+      "time": {
+        "created": 1793527280000
+      },
+      "type": "future-kind",
+      "detail": {
+        "nested": true
+      }
+    },
+    {
+      "id": "msg_1f0000000026SyntheticMsg26",
+      "time": {
+        "created": 1793527290000
+      },
+      "text": "REVERTED-SYNTHETIC: say something.",
+      "type": "user"
+    },
+    {
+      "id": "msg_1f0000000027SyntheticMsg27",
+      "time": {
+        "created": 1793527291000,
+        "completed": 1793527292000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "synthetic-haiku",
+        "providerID": "synthetic",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "REVERTED-SYNTHETIC reply."
+        }
+      ],
+      "finish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    }
+  ]
+}

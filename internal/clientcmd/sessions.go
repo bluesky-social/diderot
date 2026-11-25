@@ -167,6 +167,9 @@ and tried again when its file changes.`,
 			for _, o := range result.Skipped {
 				out.printf("%-8s %-12s %s: %s\n", o.Action, o.Harness, o.Path, o.Reason)
 			}
+			for _, u := range result.Unlisted {
+				out.printf("%-8s %-12s %s: %s\n", "unlisted", u.Harness, u.Dir, u.Error)
+			}
 			out.printf("Sent %d sessions; %d unchanged, %d skipped.\n", len(result.Sent), result.Unchanged, len(result.Skipped))
 		}
 		if err != nil {
@@ -213,6 +216,9 @@ on SIGINT or SIGTERM.`, sessionship.PollInterval, sessionship.QuietPeriod),
 					}
 					for _, o := range result.Skipped {
 						logf("skipped %s %s: %s", o.Harness, o.Path, o.Reason)
+					}
+					for _, u := range result.Unlisted {
+						logf("could not list %s %s: %s", u.Harness, u.Dir, u.Error)
 					}
 					switch {
 					case err != nil && !errors.Is(err, sessionship.ErrBusy):
@@ -468,6 +474,8 @@ type sessionsStatus struct {
 	// LastError is set while the most recent pass failed.
 	LastError   string     `json:"last_error,omitempty"`
 	LastErrorAt *time.Time `json:"last_error_at,omitempty"`
+	// Unlisted is each source the most recent pass could not list.
+	Unlisted []sessionship.SourceError `json:"unlisted,omitempty"`
 	// OnServer is what the server has done with this account's sessions,
 	// asked for once something was sent; OnServerError is why it could not
 	// be asked.
@@ -537,7 +545,7 @@ func readSessionsStatus(ctx context.Context) (*sessionsStatus, error) {
 	status := &sessionsStatus{
 		Service: manager.Status(ctx), URL: settings.Server, Sources: settings.Sources, Exclude: settings.Exclude,
 		Skipped: []sessionsSkipped{}, LastPass: timePtr(state.LastPass), LastSuccess: timePtr(state.LastSuccess),
-		State: paths.State, Log: paths.Log,
+		Unlisted: state.Unlisted, State: paths.State, Log: paths.Log,
 	}
 	status.Sent, _ = state.Counts()
 	for path, f := range state.Files {
@@ -604,8 +612,8 @@ func sessionsStatusCmd(opts Options) *cobra.Command {
 		Short: "Show the background service and what has been sent",
 		Long: `Shows whether the background service is installed and running, the
 directories it ships from, how many sessions have been sent, what the server
-has indexed of them, when a pass last succeeded, and the error of the last
-pass if it failed. It changes nothing. With --json it also lists each skipped session file and why.`,
+has indexed of them, when a pass last succeeded, the error of the last pass
+if it failed, and each source it could not list. It changes nothing. With --json it also lists each skipped session file and why.`,
 		Args: noArgs("status"),
 	}
 	cmd.RunE = clientRunE(opts, &jsonOut, func(cmd *cobra.Command, _ []string, out *cliIO) error {
@@ -639,6 +647,9 @@ pass if it failed. It changes nothing. With --json it also lists each skipped se
 		out.printf("Last success: %s\n", ago(status.LastSuccess))
 		if status.LastError != "" {
 			out.printf("Last error:   %s\n", status.LastError)
+		}
+		for _, u := range status.Unlisted {
+			out.printf("%-13s %-12s %s: %s\n", "Not listed:", u.Harness, u.Dir, u.Error)
 		}
 		out.printf("State:        %s\nLog:          %s\n", status.State, status.Log)
 		return nil
@@ -744,6 +755,8 @@ func sessionsCheck(ctx context.Context) (detail string, err error) {
 		return "", fmt.Errorf("the background service is installed but not running; see %s, or run diderot sessions install", status.Log)
 	case status.LastError != "":
 		return "", fmt.Errorf("the last pass failed: %s", status.LastError)
+	case len(status.Unlisted) > 0:
+		return "", fmt.Errorf("the last pass could not list %s: %s", status.Unlisted[0].Dir, status.Unlisted[0].Error)
 	}
 	detail = fmt.Sprintf("%s; %d sessions sent; last pass %s", status.service(), status.Sent, ago(status.LastSuccess))
 	if line := status.onServer(); line != "" {

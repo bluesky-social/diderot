@@ -157,36 +157,123 @@ func TestDetect(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
 	t.Setenv("CODEX_HOME", "")
+	t.Setenv("COPILOT_HOME", "")
+	t.Setenv("GEMINI_CLI_HOME", "")
+	t.Setenv("OPENCODE_DB", "")
+	t.Setenv("PI_CODING_AGENT_DIR", "")
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", "")
+	t.Setenv("POLYTOKEN_DATA_PATH", "")
+	t.Setenv("XDG_DATA_HOME", "")
 	found, err := Detect()
 	require.NoError(t, err)
 	assert.Empty(t, found, "a harness with no session directory is not offered")
 
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".claude", "projects"), 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(home, ".codex", "sessions"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".copilot", "session-state"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".gemini", "tmp"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".local", "share", "polytoken", "sessions"), 0o755))
 	found, err = Detect()
 	require.NoError(t, err)
 	assert.Equal(t, []Source{
 		{Harness: "claude-code", Dir: filepath.Join(home, ".claude", "projects")},
 		{Harness: "codex", Dir: filepath.Join(home, ".codex", "sessions")},
+		{Harness: "copilot-cli", Dir: filepath.Join(home, ".copilot", "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(home, ".gemini", "tmp")},
+		{Harness: "polytoken", Dir: filepath.Join(home, ".local", "share", "polytoken")},
 	}, found)
 
-	// Each harness's own override moves its directory.
+	// Each harness's own override moves its directory. GEMINI_CLI_HOME
+	// stands in for the home directory, so .gemini is beneath it.
 	elsewhere := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, "sessions"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, "session-state"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(elsewhere, ".gemini", "tmp"), 0o755))
 	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(elsewhere, "no-claude-here"))
 	t.Setenv("CODEX_HOME", elsewhere)
+	t.Setenv("COPILOT_HOME", elsewhere)
+	t.Setenv("GEMINI_CLI_HOME", elsewhere)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(elsewhere, "no-data-here"))
 	found, err = Detect()
 	require.NoError(t, err)
-	assert.Equal(t, []Source{{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")}}, found)
+	assert.Equal(t, []Source{
+		{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")},
+		{Harness: "copilot-cli", Dir: filepath.Join(elsewhere, "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(elsewhere, ".gemini", "tmp")},
+	}, found)
 
-	// Every harness in the table has a decoder and names its session files.
+	// Polytoken's own override names its data directory itself.
+	data := t.TempDir()
+	t.Setenv("POLYTOKEN_DATA_PATH", data)
+	found, err = Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{
+		{Harness: "codex", Dir: filepath.Join(elsewhere, "sessions")},
+		{Harness: "copilot-cli", Dir: filepath.Join(elsewhere, "session-state")},
+		{Harness: "gemini-cli", Dir: filepath.Join(elsewhere, ".gemini", "tmp")},
+		{Harness: "polytoken", Dir: data},
+	}, found)
+
+	// OpenCode's source is its database file, which OPENCODE_DB names
+	// itself when absolute and under the data directory when not.
+	openCode := func() []Source {
+		found, err := Detect()
+		require.NoError(t, err)
+		var out []Source
+		for _, s := range found {
+			if s.Harness == "opencode" {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	ocDir := filepath.Join(elsewhere, "no-data-here", "opencode")
+	write(t, filepath.Join(ocDir, "opencode.db"), "")
+	assert.Equal(t, []Source{{Harness: "opencode", Dir: filepath.Join(ocDir, "opencode.db")}}, openCode())
+	t.Setenv("OPENCODE_DB", "other.db")
+	write(t, filepath.Join(ocDir, "other.db"), "")
+	assert.Equal(t, []Source{{Harness: "opencode", Dir: filepath.Join(ocDir, "other.db")}}, openCode())
+	t.Setenv("OPENCODE_DB", filepath.Join(data, "elsewhere.db"))
+	assert.Empty(t, openCode(), "a database that does not exist is not offered")
+
+	// Every harness in the table has a decoder and names its session files,
+	// or reads them from a database.
 	for _, h := range Harnesses {
 		assert.NotNil(t, h.Decoder, h.Name)
-		assert.Equal(t, 1, h.File.NumSubexp(), h.Name)
+		if h.Store == nil {
+			assert.Equal(t, 1, h.File.NumSubexp(), h.Name)
+		}
 	}
 	n, err := Source{Harness: "codex", Dir: filepath.Join(elsewhere, "missing")}.Count(nil)
 	require.NoError(t, err)
 	assert.Zero(t, n)
+}
+
+// Pi keeps its sessions in its agent directory unless its own session
+// directory override names another.
+func TestDetectPi(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH", "XDG_DATA_HOME"} {
+		t.Setenv(key, "")
+	}
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".pi", "agent", "sessions"), 0o755))
+	found, err := Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: filepath.Join(home, ".pi", "agent", "sessions")}}, found)
+
+	agent := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(agent, "sessions"), 0o755))
+	t.Setenv("PI_CODING_AGENT_DIR", agent)
+	found, err = Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: filepath.Join(agent, "sessions")}}, found)
+
+	sessions := t.TempDir()
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", sessions)
+	found, err = Detect()
+	require.NoError(t, err)
+	assert.Equal(t, []Source{{Harness: "pi", Dir: sessions}}, found)
 }
 
 func TestSettingsAndPaths(t *testing.T) {

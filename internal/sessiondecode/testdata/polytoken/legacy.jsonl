@@ -1,0 +1,8 @@
+{"type":"session_lifecycle","kind":"created","session_id":"0abc34-older","emitted_at":"2026-11-01T10:00:00.000000Z"}
+{"type":"model_switch_v2","selection":{"from_model":"synthetic-default","to_model":"synthetic-claude","reasoning_effort":"high","assignments":{},"effective_options":{},"nondefault_explicit":{},"quarantined":false,"created_seq":1},"emitted_at":"2026-11-01T10:00:00.000100Z"}
+{"type":"user","content":"What is in notes.txt?","prompt_id":"01a20000-0000-7000-8000-000000000001","kind":"human","emitted_at":"2026-11-01T10:00:01.000000Z"}
+{"type":"system_reminder","reminder":{"slug":"task-tracking-nudge","display_name":"Task tracking","body":"Consider tracking this work as todos.","reason":{"type":"task_tracking_nudge"},"emitted_at":"2026-11-01T10:00:01.000500Z"}}
+{"type":"assistant","blocks":[{"type":"thinking","text":"Read it.","signature":"SIGNATURE-SYNTHETIC-4444444444444444444444444444"},{"type":"tool_use","id":"toolu_synthetic_11","name":"file_read","input":{"path":"notes.txt"}}],"prompt_id":"01a20000-0000-7000-8000-000000000001","emitted_at":"2026-11-01T10:00:02.000000Z"}
+{"type":"tool_result","results":[{"tool_use_id":"toolu_synthetic_11","content":{"text":"1 | alpha\n"},"is_error":false,"live_display":{"text":"1 | alpha\n"}}],"prompt_id":"01a20000-0000-7000-8000-000000000001","emitted_at":"2026-11-01T10:00:03.000000Z"}
+{"type":"notification","notifications":[{"kind":"job_complete"}],"emitted_at":"2026-11-01T10:00:03.000500Z"}
+{"type":"assistant","blocks":[{"type":"text","text":"One line: alpha."}],"prompt_id":"01a20000-0000-7000-8000-000000000001","emitted_at":"2026-11-01T10:00:04.000000Z"}

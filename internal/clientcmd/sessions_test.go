@@ -36,7 +36,7 @@ func filesUnder(t *testing.T, dir string) []string {
 func TestSetupOffersToShipSessions(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"} {
+	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH"} {
 		t.Setenv(key, "")
 	}
 	session := filepath.Join(".claude", "projects", "-work-demo", "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10.jsonl")
@@ -102,7 +102,7 @@ func TestSetupOffersToShipSessions(t *testing.T) {
 func TestSessionsAreSentOnlyToTheServerAgreedTo(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"} {
+	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH"} {
 		t.Setenv(key, "")
 	}
 	requests := 0
@@ -162,7 +162,7 @@ func TestSessionsAreSentOnlyToTheServerAgreedTo(t *testing.T) {
 func TestStatusReportsOnlyTheConfiguredServersState(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"} {
+	for _, key := range []string{"XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "GEMINI_CLI_HOME", "OPENCODE_DB", "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "POLYTOKEN_DATA_PATH"} {
 		t.Setenv(key, "")
 	}
 	paths, err := sessionship.DefaultPaths()
@@ -171,7 +171,8 @@ func TestStatusReportsOnlyTheConfiguredServersState(t *testing.T) {
 	require.NoError(t, os.WriteFile(paths.State, []byte(`{"url":"https://first.example.com/mcp",
 		"files":{"/a.jsonl":{"revision":"r1"},"/b.jsonl":{"skipped":"undecodable"}},
 		"last_pass":"2026-11-01T10:00:00Z","last_success":"2026-11-01T09:00:00Z",
-		"last_error":"first server is down","last_error_at":"2026-11-01T10:00:00Z"}`), 0o600))
+		"last_error":"first server is down","last_error_at":"2026-11-01T10:00:00Z",
+		"unlisted":[{"harness":"opencode","dir":"/opencode.db","error":"no such column"}]}`), 0o600))
 	cfgPath, err := client.ConfigPath()
 	require.NoError(t, err)
 	save := func(server string) {
@@ -188,7 +189,16 @@ func TestStatusReportsOnlyTheConfiguredServersState(t *testing.T) {
 	assert.Nil(t, status.LastPass)
 	assert.Nil(t, status.LastSuccess)
 	assert.Empty(t, status.LastError)
+	assert.Empty(t, status.Unlisted)
 	assert.Equal(t, "no pass yet for this server", ago(status.LastPass))
+
+	// The configured server's own state is reported, with each source its
+	// last pass could not list.
+	save("https://first.example.com/mcp")
+	status, err = readSessionsStatus(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "first server is down", status.LastError)
+	assert.Equal(t, []sessionship.SourceError{{Harness: "opencode", Dir: "/opencode.db", Error: "no such column"}}, status.Unlisted)
 }
 
 // Uninstall leaves the state file and its lock: a sync still running holds

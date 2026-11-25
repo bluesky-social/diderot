@@ -36,6 +36,8 @@ type State struct {
 	LastSuccess time.Time `json:"last_success,omitzero"`
 	LastError   string    `json:"last_error,omitempty"`
 	LastErrorAt time.Time `json:"last_error_at,omitzero"`
+	// Unlisted is each source the last pass could not list.
+	Unlisted []SourceError `json:"unlisted,omitempty"`
 }
 
 // FileState is one session file as the last pass left it.
@@ -43,7 +45,8 @@ type FileState struct {
 	Harness   string `json:"harness"`
 	SessionID string `json:"session_id"`
 	// Size and ModTime are the file's when it was last read; a file with
-	// both unchanged is not read again.
+	// both unchanged is not read again. For a session in a SessionStore they
+	// are its row count and last write.
 	Size    int64     `json:"size"`
 	ModTime time.Time `json:"mod_time"`
 	// Revision is the server's revision of the session, and SHA256 the hash
@@ -136,6 +139,16 @@ type Result struct {
 	Unchanged int       `json:"unchanged"`
 	// Waiting counts files changed too recently to send yet.
 	Waiting int `json:"waiting"`
+	// Unlisted is each source whose sessions could not be listed; the pass
+	// went on to the others.
+	Unlisted []SourceError `json:"unlisted,omitempty"`
+}
+
+// SourceError is why a source's sessions could not be listed.
+type SourceError struct {
+	Harness string `json:"harness"`
+	Dir     string `json:"dir"`
+	Error   string `json:"error"`
 }
 
 // Syncer makes passes over the sources, sending what changed.
@@ -155,9 +168,12 @@ type Syncer struct {
 
 // Pass sends every session file that changed since it was last sent, one at
 // a time. A file the server or the converter refuses is recorded as skipped
-// and left until it changes. An error that is not about one file (the server
-// is down, the sign-in was refused) ends the pass, and the next pass resumes
-// from what the state file holds.
+// and left until it changes. A source that can be read but not listed (a
+// session database laid out as this release does not read) is reported, and
+// the pass goes on to the next. An error that is not about one file or
+// source (the server is down, the sign-in was refused, a directory cannot be
+// read) ends the pass, and the next pass resumes from what the state file
+// holds.
 func (s *Syncer) Pass(ctx context.Context) (Result, error) {
 	result := Result{Sent: []Outcome{}, Skipped: []Outcome{}}
 	unlock, err := lockState(s.StatePath)
@@ -173,7 +189,7 @@ func (s *Syncer) Pass(ctx context.Context) (Result, error) {
 		state = &State{URL: s.ServerURL, Files: map[string]*FileState{}}
 	}
 	passErr := s.pass(ctx, state, &result)
-	state.LastPass = s.Now()
+	state.LastPass, state.Unlisted = s.Now(), result.Unlisted
 	if passErr == nil {
 		state.LastSuccess = state.LastPass
 	} else if !errors.Is(passErr, context.Canceled) {
@@ -192,7 +208,14 @@ func (s *Syncer) pass(ctx context.Context, state *State, result *Result) error {
 			return fmt.Errorf("unknown harness %q (known: %v)", source.Harness, Names())
 		}
 		files, err := source.files(s.Settings.Exclude)
-		if err != nil {
+		var unreadable *os.PathError
+		switch {
+		case err != nil && !errors.As(err, &unreadable):
+			// Retrying does not mend it, and it must not hold up the
+			// sources after it.
+			result.Unlisted = append(result.Unlisted, SourceError{Harness: harness.Name, Dir: source.Dir, Error: err.Error()})
+			continue
+		case err != nil:
 			return fmt.Errorf("read %s: %w", source.Dir, err)
 		}
 		for _, file := range files {
@@ -232,7 +255,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 		return state.save(s.StatePath)
 	}
 
-	document, err := convert(harness, file)
+	sessionID, document, err := convert(harness, file)
 	var unreadable *os.PathError
 	switch {
 	case errors.As(err, &unreadable):
@@ -243,6 +266,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 	case err != nil:
 		return skip(err.Error())
 	}
+	next.SessionID, outcome.SessionID = sessionID, sessionID
 	sum := sha256.Sum256(document)
 	next.SHA256 = hex.EncodeToString(sum[:])
 	if previous != nil && previous.Revision != "" && previous.SHA256 == next.SHA256 {
@@ -252,7 +276,7 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 		return nil
 	}
 
-	revision, err := s.Put(ctx, file.sessionID, document, next.Revision)
+	revision, err := s.Put(ctx, sessionID, document, next.Revision)
 	var rejected *RejectedError
 	switch {
 	case errors.As(err, &rejected):
@@ -275,29 +299,51 @@ func (s *Syncer) one(ctx context.Context, state *State, result *Result, harness 
 }
 
 // convert reads a session file and converts it to the ATIF document that is
-// sent. A last line still being written (one with no newline yet) is left
-// for the pass that sees it whole.
-func convert(harness Harness, file sessionFile) ([]byte, error) {
+// sent, and returns the ID the session is pushed under with it
+// (Harness.sessionID). A last line still being written (one with no newline
+// yet) is left for the pass that sees it whole.
+func convert(harness Harness, file sessionFile) (string, []byte, error) {
+	if harness.Store != nil {
+		data, err := harness.Store.Document(file.real, file.sessionID)
+		if err != nil {
+			return "", nil, err
+		}
+		if int64(len(data)) > maxSourceBytes {
+			return "", nil, fmt.Errorf("the session is larger than %d bytes", maxSourceBytes)
+		}
+		return encode(harness, file, data)
+	}
 	f, err := os.Open(file.real)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	defer func() { _ = f.Close() }()
 	// The read is bounded, not the size the listing saw: the harness may
 	// have written a great deal since.
 	data, err := io.ReadAll(io.LimitReader(f, maxSourceBytes+1))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	if int64(len(data)) > maxSourceBytes {
-		return nil, fmt.Errorf("the file is larger than %d bytes", maxSourceBytes)
+		return "", nil, fmt.Errorf("the file is larger than %d bytes", maxSourceBytes)
 	}
 	data = data[:bytes.LastIndexByte(data, '\n')+1]
+	return encode(harness, file, data)
+}
+
+// encode decodes a session document with its harness's decoder and writes
+// the result as ATIF, with the ID the session is pushed under.
+func encode(harness Harness, file sessionFile, data []byte) (string, []byte, error) {
 	doc, records, err := sessiondecode.DecodeAll(harness.Decoder, data)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return sessiondecode.EncodeATIF(file.sessionID, doc, records)
+	sessionID, err := harness.sessionID(file.sessionID, doc.SessionID)
+	if err != nil {
+		return "", nil, err
+	}
+	document, err := sessiondecode.EncodeATIF(sessionID, doc, records)
+	return sessionID, document, err
 }
 
 // Poll intervals of the background service.

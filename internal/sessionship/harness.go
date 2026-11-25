@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/bluesky-social/diderot/internal/client"
 	"github.com/bluesky-social/diderot/internal/sessiondecode"
 )
@@ -22,36 +24,127 @@ import (
 // keeps them, which files are sessions, and how to read one.
 type Harness struct {
 	Name string
-	// Dir is the harness's session directory under home, after the harness's
-	// own environment override.
-	Dir func(home string) string
-	// File matches a session file's name and captures its session ID.
+	// Dirs are the harness's session directories under home, after any
+	// environment override.
+	Dirs func(home string) []string
+	// File matches a session file's slash-separated path relative to its
+	// source directory and captures the harness's own session ID, or the
+	// start of it when the session declares the whole ID
+	// (sessiondecode.Document.SessionID).
 	File *regexp.Regexp
+	// HashID is set for a harness whose own session IDs are not UUIDs, which
+	// the push route requires: the session is pushed under a name-based UUID
+	// (version 5) of the harness's name and its own ID.
+	HashID bool
 	// Decoder reads the harness's session file.
 	Decoder sessiondecode.Decoder
+	// Store is set for a harness that keeps every session in one database
+	// file; File is then unused, and a source names the database or its
+	// directory.
+	Store SessionStore
 }
 
 const uuidPattern = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
+
+// hashIDNamespace is the namespace of the UUIDs HashID derives. Changing it
+// gives every such session a new ID on the server.
+var hashIDNamespace = uuid.MustParse("28015b4e-8083-4614-8b26-bfa81fb58087")
+
+// sessionID is the ID a session is pushed under: the harness's own ID, which
+// is the one File captured or the whole one the session declares, as HashID
+// says.
+func (h Harness) sessionID(captured, declared string) (string, error) {
+	own := captured
+	if declared != "" {
+		if !strings.HasPrefix(declared, captured) {
+			return "", fmt.Errorf("the file's name does not match the session ID %q it declares", declared)
+		}
+		own = declared
+	}
+	if !h.HashID {
+		return own, nil
+	}
+	return uuid.NewSHA1(hashIDNamespace, []byte(h.Name+"/"+own)).String(), nil
+}
 
 // Harnesses is every harness sessions are shipped from. Adding one is an
 // entry here; it needs a decoder in sessiondecode.
 var Harnesses = []Harness{
 	{
 		Name: "claude-code",
-		Dir: func(home string) string {
-			return filepath.Join(envOr("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")), "projects")
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")), "projects")}
 		},
 		// A project's own sessions; a subagent's transcript is agent-*.jsonl.
-		File:    regexp.MustCompile(`^(` + uuidPattern + `)\.jsonl$`),
+		File:    regexp.MustCompile(`(?:^|/)(` + uuidPattern + `)\.jsonl$`),
 		Decoder: sessiondecode.ClaudeCode{},
 	},
 	{
 		Name: "codex",
-		Dir: func(home string) string {
-			return filepath.Join(envOr("CODEX_HOME", filepath.Join(home, ".codex")), "sessions")
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("CODEX_HOME", filepath.Join(home, ".codex")), "sessions")}
 		},
-		File:    regexp.MustCompile(`^rollout-.*-(` + uuidPattern + `)\.jsonl$`),
+		File:    regexp.MustCompile(`(?:^|/)rollout-[^/]*-(` + uuidPattern + `)\.jsonl$`),
 		Decoder: sessiondecode.Codex{},
+	},
+	{
+		Name: "copilot-cli",
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("COPILOT_HOME", filepath.Join(home, ".copilot")), "session-state")}
+		},
+		// Each session directory's live event log. Sub-agents write into the
+		// same log; the numbered archive a rotated log leaves beside it is
+		// not sent.
+		File:    regexp.MustCompile(`^(` + uuidPattern + `)/events\.jsonl$`),
+		Decoder: sessiondecode.CopilotCLI{},
+	},
+	{
+		Name: "gemini-cli",
+		Dirs: func(home string) []string {
+			return []string{filepath.Join(envOr("GEMINI_CLI_HOME", home), ".gemini", "tmp")}
+		},
+		// A project's own sessions, <project>/chats/session-<started>-<the
+		// session ID's first eight characters>.jsonl; a subagent's transcript
+		// is <project>/chats/<parent session ID>/<session ID>.jsonl.
+		File:    regexp.MustCompile(`(?:^|/)session-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-(?:\d+-)?([0-9a-f]{8})\.jsonl$`),
+		Decoder: sessiondecode.GeminiCLI{},
+	},
+	{
+		Name: "opencode",
+		Dirs: func(home string) []string { return []string{openCodeDB(home)} },
+		// OpenCode 2 keeps every session in one SQLite database. A
+		// subagent's session is not shipped; its report is in its parent's.
+		Store:   openCodeStore{},
+		HashID:  true,
+		Decoder: sessiondecode.OpenCode{},
+	},
+	{
+		Name: "pi",
+		Dirs: func(home string) []string {
+			if dir := os.Getenv("PI_CODING_AGENT_SESSION_DIR"); dir != "" {
+				return []string{dir}
+			}
+			return []string{filepath.Join(envOr("PI_CODING_AGENT_DIR", filepath.Join(home, ".pi", "agent")), "sessions")}
+		},
+		// <timestamp>_<session id>.jsonl. A session given a --session-id
+		// that is not a UUID is left out: the push route takes only UUIDs.
+		File:    regexp.MustCompile(`(?:^|/)\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_(` + uuidPattern + `)\.jsonl$`),
+		Decoder: sessiondecode.Pi{},
+	},
+	{
+		Name: "polytoken",
+		Dirs: func(home string) []string {
+			return []string{envOr("POLYTOKEN_DATA_PATH", filepath.Join(envOr("XDG_DATA_HOME", filepath.Join(home, ".local", "share")), "polytoken"))}
+		},
+		// Each session directory's own log, in the current layout
+		// (sessions-v1) or the one older releases wrote (sessions) until
+		// Polytoken migrates a session on resume; so the source is the data
+		// directory, which holds both. A subagent's transcript
+		// (subagent-*.jsonl), trace, usage and shell output are not sessions,
+		// and nor is the copy a migration keeps under sessions-migration.
+		File:    regexp.MustCompile(`^sessions(?:-v1)?/([^/]+)/log\.jsonl$`),
+		HashID:  true,
+		Decoder: sessiondecode.Polytoken{},
 	},
 }
 
@@ -95,9 +188,10 @@ func Detect() ([]Source, error) {
 	}
 	var found []Source
 	for _, h := range Harnesses {
-		dir := h.Dir(home)
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			found = append(found, Source{Harness: h.Name, Dir: dir})
+		for _, dir := range h.Dirs(home) {
+			if info, err := os.Stat(dir); err == nil && (info.IsDir() || h.Store != nil && info.Mode().IsRegular()) {
+				found = append(found, Source{Harness: h.Name, Dir: dir})
+			}
 		}
 	}
 	return found, nil
@@ -108,7 +202,9 @@ type sessionFile struct {
 	path string
 	// real is path with every link resolved: the file that was checked
 	// against the exclusions, and so the one that is read.
-	real      string
+	real string
+	// sessionID is the harness's own ID as File captured it or its Store
+	// listed it; the session is pushed under the ID convert returns.
 	sessionID string
 	info      fs.FileInfo
 }
@@ -136,6 +232,9 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 			exclude = append(exclude[:len(exclude):len(exclude)], real)
 		}
 	}
+	if h.Store != nil {
+		return s.stored(h, root, exclude)
+	}
 	var found []sessionFile
 	err = filepath.WalkDir(root, func(resolved string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -155,7 +254,11 @@ func (s Source) files(exclude []string) ([]sessionFile, error) {
 		if d.IsDir() {
 			return nil
 		}
-		m := h.File.FindStringSubmatch(d.Name())
+		rel, err := filepath.Rel(root, resolved)
+		if err != nil {
+			return nil
+		}
+		m := h.File.FindStringSubmatch(filepath.ToSlash(rel))
 		if m == nil {
 			return nil
 		}

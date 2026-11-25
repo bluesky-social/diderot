@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,8 +27,12 @@ import (
 )
 
 const (
-	claudeSession = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
-	codexSession  = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	claudeSession  = "0f6b8a8e-1d47-4f6c-9a0e-3f0c4f1b2a10"
+	codexSession   = "5c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
+	copilotSession = "8d2f1e3a-5b6c-4d7e-9f80-a1b2c3d4e5f6"
+	// geminiSession is the ID the Gemini CLI fixture declares; its file is
+	// named after the first eight characters.
+	geminiSession = "7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
 )
 
 // claudeTurn is one synthetic Claude Code user or assistant line; each line
@@ -161,6 +166,8 @@ func newFixture(t *testing.T) *fixture {
 		Settings: Settings{Sources: []Source{
 			{Harness: "claude-code", Dir: filepath.Join(root, "claude")},
 			{Harness: "codex", Dir: filepath.Join(root, "codex")},
+			{Harness: "copilot-cli", Dir: filepath.Join(root, "copilot")},
+			{Harness: "gemini-cli", Dir: filepath.Join(root, "gemini")},
 		}},
 		StatePath: filepath.Join(root, "state", "sessions-state.json"), ServerURL: pusher.MCPURL,
 		Put: pusher.Put, Now: func() time.Time { return f.now },
@@ -182,22 +189,44 @@ func (f *fixture) pass(t *testing.T) Result {
 	return result
 }
 
-func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
+func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	f := newFixture(t)
 	codex, err := os.ReadFile("../sessiondecode/testdata/codex/basic.jsonl")
 	require.NoError(t, err)
 	codexDir := f.syncer.Settings.Sources[1].Dir
 	write(t, filepath.Join(codexDir, "2026", "11", "01", "rollout-2026-11-01T11-00-00-"+codexSession+".jsonl"), string(codex))
+	copilot, err := os.ReadFile("../sessiondecode/testdata/copilot-cli/basic.jsonl")
+	require.NoError(t, err)
+	copilotDir := filepath.Join(f.syncer.Settings.Sources[2].Dir, copilotSession)
+	write(t, filepath.Join(copilotDir, "events.jsonl"), string(copilot))
+	gemini, err := os.ReadFile("../sessiondecode/testdata/gemini-cli/basic.jsonl")
+	require.NoError(t, err)
+	geminiChats := filepath.Join(f.syncer.Settings.Sources[3].Dir, "demo", "chats")
+	geminiFile := filepath.Join(geminiChats, "session-2026-11-01T10-00-"+geminiSession[:8]+".jsonl")
+	write(t, geminiFile, string(gemini))
 	// Files that are not sessions are never read: a subagent's transcript,
+	// even one whose name ends in a session ID, a file whose name matches
+	// only together with the directory above it, a rotated log's archive,
 	// and anything else a harness keeps beside its sessions.
 	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-a1b2c3.jsonl"), "not a session\n")
+	write(t, filepath.Join(filepath.Dir(f.claude), claudeSession, "subagents", "agent-"+codexSession+".jsonl"), "not a session\n")
+	write(t, filepath.Join(codexDir, "rollout-old", "notes-"+codexSession+".jsonl"), "not a session\n")
 	write(t, filepath.Join(filepath.Dir(f.claude), "notes.txt"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "events.1.jsonl"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "workspace.yaml"), "not a session\n")
+	write(t, filepath.Join(copilotDir, "files", copilotSession, "events.jsonl"), "not a session\n")
+	write(t, filepath.Join(geminiChats, geminiSession, "1a2b3c4d-0000-4000-8000-000000000009.jsonl"), "not a session\n")
+	write(t, filepath.Join(geminiChats, "..", "logs", "logs.json"), "not a session\n")
 
 	result := f.pass(t)
-	require.Len(t, result.Sent, 2)
+	require.Len(t, result.Sent, 4)
 	assert.Equal(t, Outcome{Harness: "claude-code", SessionID: claudeSession, Path: f.claude, Action: "created"}, result.Sent[0])
 	assert.Equal(t, "codex", result.Sent[1].Harness)
 	assert.Equal(t, codexSession, result.Sent[1].SessionID)
+	assert.Equal(t, Outcome{Harness: "copilot-cli", SessionID: copilotSession, Path: filepath.Join(copilotDir, "events.jsonl"), Action: "created"}, result.Sent[2])
+	// Gemini CLI's file name carries only the start of the session ID; the
+	// session itself declares the rest.
+	assert.Equal(t, Outcome{Harness: "gemini-cli", SessionID: geminiSession, Path: geminiFile, Action: "created"}, result.Sent[3])
 	assert.Empty(t, result.Skipped)
 
 	// The server's decoder gets back what the harness's own decoder reads.
@@ -205,11 +234,129 @@ func TestPassSendsBothHarnessesAsATIF(t *testing.T) {
 	require.NoError(t, err)
 	got := f.server.records(codexSession)
 	require.Len(t, got, len(want))
+	_, want, err = sessiondecode.DecodeAll(sessiondecode.CopilotCLI{}, copilot)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(copilotSession), len(want))
 	assert.Len(t, f.server.records(claudeSession), 2)
+	_, want, err = sessiondecode.DecodeAll(sessiondecode.GeminiCLI{}, gemini)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(geminiSession), len(want))
+	state, err := LoadState(f.syncer.StatePath)
+	require.NoError(t, err)
+	assert.Equal(t, geminiSession, state.Files[geminiFile].SessionID)
+
+	// A file whose name does not begin the ID it declares is not sent.
+	other := filepath.Join(geminiChats, "session-2026-11-01T11-00-1a2b3c4d.jsonl")
+	write(t, other, string(gemini))
+	result = f.pass(t)
+	require.Len(t, result.Skipped, 1)
+	assert.Contains(t, result.Skipped[0].Reason, "does not match the session ID")
 
 	info, err := os.Stat(f.syncer.StatePath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
+
+func TestPassSendsPiSessions(t *testing.T) {
+	const piSession = "019a3f00-0000-7000-8000-000000000001"
+	f := newFixture(t)
+	pi, err := os.ReadFile("../sessiondecode/testdata/pi/basic.jsonl")
+	require.NoError(t, err)
+	dir := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(f.claude))), "pi")
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources, Source{Harness: "pi", Dir: dir})
+	project := filepath.Join(dir, "--work-demo--")
+	session := filepath.Join(project, "2026-11-01T10-00-00-000Z_"+piSession+".jsonl")
+	write(t, session, string(pi))
+	// Not pushable: a session with a custom id, and a renamed copy.
+	write(t, filepath.Join(project, "2026-11-01T10-00-00-000Z_my-session.jsonl"), string(pi))
+	write(t, filepath.Join(project, "2026-11-01T10-00-00-000Z_"+piSession+"-1.jsonl"), string(pi))
+
+	result := f.pass(t)
+	require.Len(t, result.Sent, 2)
+	assert.Equal(t, Outcome{Harness: "pi", SessionID: piSession, Path: session, Action: "created"}, result.Sent[1])
+	assert.Empty(t, result.Skipped)
+	_, want, err := sessiondecode.DecodeAll(sessiondecode.Pi{}, pi)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(piSession), len(want))
+}
+
+// TestPassSendsPolytokenSessions: a Polytoken session is its directory's
+// log, in the current layout or the older one, pushed under a UUID derived
+// from its own ID. Nothing else under the data directory is read, and a
+// session Polytoken migrates to the current layout stays one session.
+func TestPassSendsPolytokenSessions(t *testing.T) {
+	f := newFixture(t)
+	data := t.TempDir()
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources, Source{Harness: "polytoken", Dir: data})
+	basic, err := os.ReadFile("../sessiondecode/testdata/polytoken/basic.jsonl")
+	require.NoError(t, err)
+	legacy, err := os.ReadFile("../sessiondecode/testdata/polytoken/legacy.jsonl")
+	require.NoError(t, err)
+	// Only the older layout exists yet.
+	older := filepath.Join(data, "sessions", "0abc34-older", "log.jsonl")
+	write(t, older, string(legacy))
+	result := f.pass(t)
+	require.Len(t, result.Sent, 2)
+	olderID := uuid.NewSHA1(hashIDNamespace, []byte("polytoken/0abc34-older")).String()
+	assert.Equal(t, Outcome{Harness: "polytoken", SessionID: olderID, Path: older, Action: "created"}, result.Sent[1])
+
+	session := filepath.Join(data, "sessions-v1", "0abc12-demo")
+	write(t, filepath.Join(session, "log.jsonl"), string(basic))
+	for _, name := range []string{"subagent-general-purpose_describe-swatch.jsonl", "trace.jsonl", "log.jsonl.usage",
+		"log.jsonl.corrupt-20261101T100000Z", "shell/job-1.stdout", "attachments/artifact-1.bin"} {
+		write(t, filepath.Join(session, name), "not a session\n")
+	}
+	for _, name := range []string{"public-spool/0abc12-demo/checkpoint-1.jsonl", "logs/2026-11-01T10-00-00Z-100.log"} {
+		write(t, filepath.Join(data, name), "not a session\n")
+	}
+	// The empty directory a newer release leaves in the older layout.
+	require.NoError(t, os.MkdirAll(filepath.Join(data, "sessions", "0abc12-demo"), 0o755))
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Empty(t, result.Skipped)
+	polytoken, _ := Lookup("polytoken")
+	id, err := polytoken.sessionID("0abc12-demo", "")
+	require.NoError(t, err)
+	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("polytoken/0abc12-demo")).String(), id)
+	assert.Equal(t, id, result.Sent[0].SessionID)
+	_, want, err := sessiondecode.DecodeAll(sessiondecode.Polytoken{}, basic)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(id), len(want))
+
+	// Resuming the older session migrates it: the log moves to the current
+	// layout and the original is kept aside, which is never read.
+	require.NoError(t, os.MkdirAll(filepath.Join(data, "sessions-migration", "0abc34-older"), 0o755))
+	require.NoError(t, os.Rename(filepath.Dir(older), filepath.Join(data, "sessions-migration", "0abc34-older", "legacy-backup")))
+	write(t, filepath.Join(data, "sessions-v1", "0abc34-older", "log.jsonl"), string(basic))
+	result = f.pass(t)
+	require.Len(t, result.Sent, 1)
+	assert.Equal(t, olderID, result.Sent[0].SessionID)
+	assert.Len(t, f.server.sessions, 3, "a migrated session is still one session")
+	assert.Len(t, f.server.records(olderID), len(want))
+}
+
+// TestSessionIDs: a session is pushed under its harness's own ID, which the
+// session completes when it declares the whole of it, and which is hashed
+// after that for a harness whose own IDs are not UUIDs.
+func TestSessionIDs(t *testing.T) {
+	plain := Harness{Name: "plain"}
+	id, err := plain.sessionID("7c1d2e3f", geminiSession)
+	require.NoError(t, err)
+	assert.Equal(t, geminiSession, id)
+	_, err = plain.sessionID("1a2b3c4d", geminiSession)
+	require.ErrorContains(t, err, "does not match the session ID")
+	hashed := Harness{Name: "hashed", HashID: true}
+	id, err = hashed.sessionID("0abc12", "0abc12-demo")
+	require.NoError(t, err)
+	assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte("hashed/0abc12-demo")).String(), id)
+	// A session in a database goes the same way, from the ID its row has.
+	for _, name := range []string{"opencode", "polytoken"} {
+		h, ok := Lookup(name)
+		require.True(t, ok)
+		id, err = h.sessionID("ses_0abc12", "")
+		require.NoError(t, err)
+		assert.Equal(t, uuid.NewSHA1(hashIDNamespace, []byte(name+"/ses_0abc12")).String(), id)
+	}
 }
 
 func TestPassIsIncremental(t *testing.T) {
@@ -443,7 +590,7 @@ func TestPassBoundsWhatItReads(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, files, 1)
 	write(t, f.claude, claudeTurns(6)) // grew after it was listed
-	_, err = convert(Harnesses[0], files[0])
+	_, _, err = convert(Harnesses[0], files[0])
 	require.ErrorContains(t, err, "larger than")
 
 	result := f.pass(t)

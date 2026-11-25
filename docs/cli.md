@@ -212,6 +212,11 @@ directory exists:
 |---|---|---|
 | `claude-code` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` when that is set) | each `<session id>.jsonl`; subagent transcripts are not sent |
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
+| `copilot-cli` | `~/.copilot/session-state` (`$COPILOT_HOME/session-state` when that is set) | each `<session id>/events.jsonl`; subagents are in the same file |
+| `gemini-cli` | `~/.gemini/tmp` (`$GEMINI_CLI_HOME/.gemini/tmp` when that is set) | each `<project>/chats/session-*.jsonl`; subagent transcripts are not sent |
+| `opencode` | `~/.local/share/opencode/opencode.db` (`$OPENCODE_DB`, or `$XDG_DATA_HOME/opencode/opencode.db`, when that is set) | each session in that one database, which is only ever opened read-only; subagent sessions are not sent. OpenCode 2 only: OpenCode 1 kept its sessions in other tables, which are not read, so nothing is sent until OpenCode 2 has moved them into its own when it first runs |
+| `pi` | `~/.pi/agent/sessions` (`$PI_CODING_AGENT_DIR/sessions` when that is set, and `$PI_CODING_AGENT_SESSION_DIR` over both) | each `<timestamp>_<session id>.jsonl`; a session started with a `--session-id` that is not a UUID is not sent. A `sessionDir` in Pi's settings is not read: name it with `--path pi=<directory>` |
+| `polytoken` | `~/.local/share/polytoken` (`$POLYTOKEN_DATA_PATH`, or `$XDG_DATA_HOME/polytoken`, when that is set) | each `sessions-v1/<session id>/log.jsonl`, and `sessions/<session id>/log.jsonl` from older releases; subagent transcripts are not sent |
 
 To ship from somewhere else, or only part of it:
 
@@ -221,10 +226,14 @@ diderot sessions install \
   --exclude $HOME/.claude/projects/-Users-you-private-project
 ```
 
-`--path` replaces the directories found; `--exclude` leaves out every
-session whose file is really under a directory, including one reached
-through a symbolic link from somewhere else. Both repeat, and both belong to
-`diderot sessions install` alone.
+`--path` replaces the directories found. `--path <harness>=<path>` names
+that harness's root as the table shows it, not a directory below it, since a
+session is found by its place in the root; OpenCode's root is its database
+file or the directory holding it. `--exclude` leaves out every session whose
+file, or OpenCode database, is really under a directory, including one
+reached through a symbolic link from somewhere else, and each OpenCode
+session that ran in one, so it is the way to ship only part of a root. Both
+repeat, and both belong to `diderot sessions install` alone.
 
 **How it works.** Each session file is read and converted on your machine
 to [ATIF](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md),
@@ -249,7 +258,7 @@ the server is back.
 | Command | What it does |
 |---|---|
 | `diderot sessions install` | Installs and starts the background service, replacing and restarting one already there. |
-| `diderot sessions status` | Whether the service is installed and running, the directories it ships from, how many sessions were sent, how many of them the server has indexed, when a pass last succeeded, and the last pass's error if it failed. `--json` also lists each session file that was skipped and why. |
+| `diderot sessions status` | Whether the service is installed and running, the directories it ships from, how many sessions were sent, how many of them the server has indexed, when a pass last succeeded, the last pass's error if it failed, and each source it could not list. `--json` also lists each session file that was skipped and why. |
 | `diderot sessions sync` | Sends everything new or changed now, sessions in progress included, prints what it sent, and exits. |
 | `diderot sessions run` | What the service runs: a pass every minute, until stopped. |
 | `diderot sessions uninstall` | Stops and removes the service. |
@@ -309,7 +318,10 @@ that first pass to cost model calls in proportion.
 
 A session the server refuses (larger than its limit, or one the converter
 cannot read) is skipped and tried again when its file changes;
-`diderot sessions status --json` lists them.
+`diderot sessions status --json` lists them. A source whose sessions cannot
+be listed (an OpenCode database laid out as this release does not read) is
+reported by `sync`, `status`, and `doctor` on every pass until it can be,
+and the other sources still ship.
 
 The server limits what one account may store
 ([Agent sessions](configuration.md#agent-sessions)): 4 GiB
