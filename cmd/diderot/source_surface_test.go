@@ -35,7 +35,7 @@ const (
 
 // surfaceSources are the event sources the goldens exercise: every source
 // today, and one no build registers.
-var surfaceSources = []string{"slack", "agent_session", "notion", "linear", "zendesk", "legacy_source"}
+var surfaceSources = []string{"slack", "agent_session", "notion", "linear", "zendesk", "imap", "caldav", "legacy_source"}
 
 type actorCase struct {
 	Source    string         `json:"source"`
@@ -120,6 +120,7 @@ func TestSourceSurfaceMatchesGolden(t *testing.T) {
 		{Source: "linear", Display: "", Canonical: "linear:unknown", SourceID: ""},
 		{Source: "zendesk", Display: "Agent", Canonical: "Agent@example.com", SourceID: "Z1"},
 		{Source: "zendesk", Display: "Requester", Canonical: "zendesk:Z2", SourceID: "Z2"},
+		{Source: "imap", Display: "Alex", Canonical: "alex@example.com", SourceID: "alex@example.com"},
 		{Source: "legacy_source", Display: "alex@example.com", Canonical: "alex@example.com", SourceID: "alex@example.com"},
 		{Source: "legacy_source", Display: "opaque", Canonical: "opaque-value", SourceID: "X1"},
 	} {

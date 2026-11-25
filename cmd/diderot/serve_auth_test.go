@@ -375,7 +375,7 @@ func TestTrustedProxyDeploymentAuthOutcomes(t *testing.T) {
 		support := accessToken(t, idp, "Support@example.com", "everyone", "support-team")
 		stack.scopes.emails = nil
 		require.Equal(t, http.StatusOK, api("POST", "/v1/retrieve", `{"question":"q"}`, support))
-		assert.Equal(t, []string{"Support@example.com"}, stack.scopes.emails)
+		assert.Equal(t, []string{"support@example.com"}, stack.scopes.emails)
 		assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "corpus:zendesk"}, stack.retriever.scopes)
 
 		require.Equal(t, http.StatusOK, api("POST", "/v1/retrieve", `{"question":"q"}`, member))
@@ -450,11 +450,11 @@ func TestTrustedProxyDeploymentAuthOutcomes(t *testing.T) {
 		code, scopes := mcp(gatewayPeer, gatewayKey, " Support@Example.com ", "everyone|support-team")
 		require.Equal(t, http.StatusNoContent, code)
 		assert.Equal(t, []string{"support@example.com"}, stack.scopes.emails)
-		assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "corpus:zendesk"}, scopes)
+		assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "owner:support@example.com", "corpus:zendesk"}, scopes)
 
 		code, scopes = mcp(gatewayPeer, gatewayKey, "member@example.com", "everyone")
 		require.Equal(t, http.StatusNoContent, code)
-		assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE"}, scopes)
+		assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "owner:member@example.com"}, scopes)
 
 		// Discovery without an identity; forged identity from elsewhere.
 		for name, peer := range map[string]string{"no identity": gatewayPeer, "forged": outsidePeer} {
@@ -590,7 +590,7 @@ func TestBuildServerAuthBrowserOIDC(t *testing.T) {
 	}
 	assert.Equal(t, []string{"mcp:no-verified-identity"}, mcp(withSession))
 	// /mcp keeps its trusted-proxy identity.
-	assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "corpus:zendesk"}, mcp(func(r *http.Request) {
+	assert.Equal(t, []string{"public", "internal", "slack-channel:CPRIVATE", "owner:support@example.com", "corpus:zendesk"}, mcp(func(r *http.Request) {
 		r.Header.Set("X-Auth-Request-User", "support@example.com")
 		r.Header.Set("X-Auth-Request-Groups", "support-team")
 	}))

@@ -3,9 +3,11 @@ package adminapi
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/bluesky-social/diderot/internal/auth"
 	"github.com/bluesky-social/diderot/internal/authorization"
+	"github.com/bluesky-social/diderot/internal/events"
 )
 
 func (s *Server) SetAuthorizer(authorizer *authorization.Authorizer) {
@@ -43,7 +45,11 @@ func (s *Server) scopesForPrincipal(ctx context.Context, principal *auth.Princip
 		principal = &auth.Principal{}
 	}
 	decision := s.authorizationForGroups(ctx, principal.Groups)
-	scopes := append([]string(nil), s.scopesForEmail(ctx, principal.Email)...)
+	email := strings.ToLower(strings.TrimSpace(principal.Email))
+	scopes := append([]string(nil), s.scopesForEmail(ctx, email)...)
+	if email != "" && principal.EmailVerified {
+		scopes = append(scopes, events.ScopeOwner(email))
+	}
 	return s.grantScopes(ctx, append(scopes, decision.CorpusScopes()...))
 }
 

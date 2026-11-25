@@ -16,6 +16,7 @@ import (
 	linearcx "github.com/bluesky-social/diderot/internal/connector/linear"
 	markdowncx "github.com/bluesky-social/diderot/internal/connector/markdown"
 	notioncx "github.com/bluesky-social/diderot/internal/connector/notion"
+	"github.com/bluesky-social/diderot/internal/connector/personal"
 	"github.com/bluesky-social/diderot/internal/connector/sessionfeed"
 	slackcx "github.com/bluesky-social/diderot/internal/connector/slack"
 	zendeskcx "github.com/bluesky-social/diderot/internal/connector/zendesk"
@@ -48,6 +49,8 @@ func sourceRegistry(pool *pgxpool.Pool, term *settings.Live[leaderTerm], slack *
 		linearcx.Connector{},
 		zendeskcx.Connector{FileStorage: fileStorage},
 		markdowncx.Connector{},
+		personal.IMAP{},
+		personal.CalDAV{},
 	)
 }
 

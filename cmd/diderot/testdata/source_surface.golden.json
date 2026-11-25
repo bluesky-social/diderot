@@ -18,11 +18,13 @@
                 "notion",
                 "linear",
                 "zendesk",
-                "markdown"
+                "markdown",
+                "imap",
+                "caldav"
               ],
               "type": "string"
             },
-            "description": "Limit the search to these sources. With none given, every source is searched, each ranked on its own. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes.",
+            "description": "Limit the search to these sources. With none given, every source is searched, each ranked on its own. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes. 'imap' = Email messages from an owner's IMAP mailboxes. 'caldav' = Calendar events and journal notes from an owner's CalDAV collections.",
             "type": "array"
           },
           "actors": {
@@ -69,11 +71,13 @@
                 "notion",
                 "linear",
                 "zendesk",
-                "markdown"
+                "markdown",
+                "imap",
+                "caldav"
               ],
               "type": "string"
             },
-            "description": "Limit the list to these sources. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes.",
+            "description": "Limit the list to these sources. 'slack' = indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed. 'discord' = messages, threads and forum posts from the Discord server channels this deployment indexes. 'agent_session' = canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack. 'notion' = internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material. 'linear' = engineering issue tracker: tasks, bugs, projects, and their discussion threads. 'zendesk' = indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items. 'markdown' = Markdown documents from a folder this deployment indexes. 'imap' = Email messages from an owner's IMAP mailboxes. 'caldav' = Calendar events and journal notes from an owner's CalDAV collections.",
             "type": "array"
           },
           "actors": {
@@ -144,6 +148,8 @@
   ],
   "retrieve_labels": {
     "agent_session": "Work session",
+    "caldav": "Calendar or journal entry",
+    "imap": "Email",
     "legacy_source": "legacy_source",
     "linear": "Linear",
     "notion": "Notion",
@@ -152,6 +158,8 @@
   },
   "list_labels": {
     "agent_session": "Work session",
+    "caldav": "Calendar or journal entry",
+    "imap": "Email",
     "legacy_source": "legacy_source",
     "linear": "Linear",
     "notion": "Notion",
@@ -160,6 +168,8 @@
   },
   "expand_status": {
     "agent_session": "Loaded source context from Work session",
+    "caldav": "Loaded source context from Calendar or journal entry",
+    "imap": "Loaded source context from Email",
     "legacy_source": "Loaded source context from legacy_source",
     "linear": "Loaded source context from Linear",
     "notion": "Loaded source context from Notion",
@@ -420,6 +430,24 @@
       }
     },
     {
+      "source": "imap",
+      "display": "Alex",
+      "canonical": "alex@example.com",
+      "source_id": "alex@example.com",
+      "actor": {
+        "display": "Alex",
+        "canonical": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "source_identity": {
+          "namespace": "email",
+          "id": "alex@example.com"
+        },
+        "role": "sender"
+      }
+    },
+    {
       "source": "legacy_source",
       "display": "alex@example.com",
       "canonical": "alex@example.com",
@@ -463,7 +491,9 @@
     "notion",
     "linear",
     "zendesk",
-    "markdown"
+    "markdown",
+    "imap",
+    "caldav"
   ],
   "tool_connectors": [
     "tavily",
@@ -471,8 +501,10 @@
     "pagerduty"
   ],
   "connector_titles": {
+    "caldav": "CalDAV calendar and notes",
     "discord": "Discord",
     "example": "Example",
+    "imap": "IMAP mail",
     "linear": "Linear",
     "markdown": "Markdown folder",
     "notion": "Notion",
@@ -483,5 +515,5 @@
     "tavily": "Web search",
     "zendesk": "Zendesk"
   },
-  "sources_prompt": "- `slack` — indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed.\n- `discord` — messages, threads and forum posts from the Discord server channels this deployment indexes.\n- `agent_session` — canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack.\n- `notion` — internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material.\n- `linear` — engineering issue tracker: tasks, bugs, projects, and their discussion threads.\n- `zendesk` — indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items.\n- `markdown` — Markdown documents from a folder this deployment indexes."
+  "sources_prompt": "- `slack` — indexed channel messages plus messages sent directly to Diderot; one-to-one and group DMs between other people are never indexed.\n- `discord` — messages, threads and forum posts from the Discord server channels this deployment indexes.\n- `agent_session` — canonical summaries of redacted coding-agent session transcripts. Use agent_session for technical, engineering, research, review, and operational work, including reasoning and resolutions that may not appear in slack.\n- `notion` — internal Notion pages: docs, runbooks, specs, design/product docs, and structured database rows. Use notion for documented decisions, processes, specs, and reference material.\n- `linear` — engineering issue tracker: tasks, bugs, projects, and their discussion threads.\n- `zendesk` — indexed customer support tickets, individual replies/internal notes, and Help Center articles with available attachment content. Use zendesk for support reports and guidance, not engineering work items.\n- `markdown` — Markdown documents from a folder this deployment indexes.\n- `imap` — Email messages from an owner's IMAP mailboxes.\n- `caldav` — Calendar events and journal notes from an owner's CalDAV collections."
 }

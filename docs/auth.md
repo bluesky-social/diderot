@@ -64,17 +64,18 @@ read from Postgres:
 | `public` | Anonymously readable content | Everyone |
 | `internal` | Notion pages, Linear issues, Markdown folder documents, and agent sessions that are not owner-only | Every authenticated caller |
 | `slack-channel:<id>` | Messages in one Slack channel | Anyone, for a public channel; members, for a private one |
-| `owner:<email>` | An owner-only agent session, or a one-to-one DM with the bot | Its owner |
+| `owner:<email>` | Owner-only agent sessions, one-to-one DMs with the bot, IMAP mail and CalDAV entries | Its owner |
 | `corpus:zendesk` | Support tickets and Help Center articles | Holders of a grant (below) |
 | `discord-channel:<id>` | Messages of one Discord channel | Granted by the channel's visibility: to every authenticated caller, or to holders of `corpus:<name>` ([Discord](discord.md#who-can-read-it)); in Discord, to an answer's audience ([Ask in Discord](discord.md#ask-in-discord)) |
 
 The allowed set depends on where the question is asked:
 
-- **API and MCP:** the caller's own set. Private channels come from the
+- **API and MCP:** the caller's own set, including the owner scope for a
+  verified email. Private channels come from the
   caller's Slack memberships that the bot can also see, looked up by email
   and cached for five minutes, so removing someone from a channel takes
-  effect within that window. A failed lookup falls back to `public` and
-  `internal`.
+  effect within that window. A failed Slack lookup still leaves the caller
+  with the baseline scopes and their own verified owner scope.
 - **A Slack channel:** everyone in the channel reads the answer, so the set
   depends on the channel, never on who asked: `public`, `internal`, public
   channels, and that channel's own history. A policy restriction can narrow

@@ -26,11 +26,12 @@ type Principal struct {
 	// email for identities that have no separate subject.
 	Subject string
 	// Email is empty when the source could not vouch for it. Consumers use it
-	// directly; they never consult EmailVerified to decide whether to trust it.
+	// directly for identity when a deployment permits an unverified email.
 	Email string
 	// EmailVerified records whether the source vouched for Email. It is
-	// informational: with DIDEROT_OIDC_REQUIRE_EMAIL_VERIFIED=false an OIDC
-	// principal carries an unverified Email by operator choice.
+	// required for owner-scoped corpus access. With
+	// DIDEROT_OIDC_REQUIRE_EMAIL_VERIFIED=false an OIDC principal can carry
+	// an unverified Email by operator choice.
 	EmailVerified bool
 	// Display is best-effort presentation text (OIDC preferred_username).
 	Display string

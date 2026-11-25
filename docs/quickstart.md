@@ -148,6 +148,24 @@ one, paste its token, and click **Save and turn on**: it saves the form, tests i
 and turns the connector on if the test passes. If the test fails, what
 you entered stays saved and the page says what to fix.
 
+### Personal mail, calendar, and journal notes
+
+1. Open **IMAP mail** at `/admin/connectors/imap`. Enter your mail
+   server and port, login, and password or app password. Diderot discovers
+   and indexes all selectable mailboxes, including nested folders.
+2. Open **CalDAV calendar and notes** at `/admin/connectors/caldav`. Enter
+   your CalDAV login and the HTTPS collection URL for your calendar,
+   your journal notes, or both. A notes collection must expose its notes as
+   `VJOURNAL` entries.
+3. On both pages, set **Diderot owner email** to the verified email you
+   use for Diderot and click **Save and turn on**. After the first sync,
+   ask from MCP or `/v1/ask` using that identity. For example, ask what
+   the last email about a project said, or ask for your notes from a
+   particular meeting.
+
+Use a CalDAV server URL, such as `https://caldav.fastmail.com/`, to discover
+all accessible calendars. See [IMAP and CalDAV settings](configuration.md#imap-and-caldav).
+
 ### Markdown folder
 
 This one needs no account. The quickstart mounts this checkout's `docs/`
