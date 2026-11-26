@@ -161,6 +161,9 @@ func (d connectorData) StateText() string {
 // connectorField is one generated form field with its value.
 type connectorField struct {
 	Key, Label, Help string
+	SearchProvider   string
+	KeyPortalURL     string
+	KeyPortalLabel   string
 	Kind             settings.FieldKind
 	Required         bool
 	Options          []fieldOption
@@ -519,6 +522,20 @@ func (s *Server) renderConnector(w http.ResponseWriter, r *http.Request, data co
 	s.renderStatus(w, connectorPage, data, code)
 }
 
+func webSearchFieldProvider(connector, field string) string {
+	if connector != "tavily" {
+		return ""
+	}
+	switch field {
+	case "api_key", "base_url":
+		return "tavily"
+	case "kagi_api_key":
+		return "kagi"
+	default:
+		return ""
+	}
+}
+
 // savedFields fills the form from the saved settings. Discovered fields are
 // facts a test finds, not settings, so the page shows them with its status.
 func savedFields(view settings.View) []connectorField {
@@ -530,9 +547,16 @@ func savedFields(view settings.View) []connectorField {
 		field := connectorField{
 			Key: f.Key, Label: f.Label, Help: f.Help, Kind: f.Kind, Required: f.Required,
 			Options: fieldOptions(f), PromptVar: f.PromptVar, SlackChannel: f.SlackChannel,
+			SearchProvider: webSearchFieldProvider(view.Name, f.Key),
 		}
 		switch f.Kind {
 		case settings.KindSecret:
+			switch field.SearchProvider {
+			case "kagi":
+				field.KeyPortalURL, field.KeyPortalLabel = "https://kagi.com/api/keys", "Manage Kagi API keys"
+			case "tavily":
+				field.KeyPortalURL, field.KeyPortalLabel = "https://app.tavily.com/", "Manage Tavily API keys"
+			}
 			field.Secret, field.Env, field.CanStore = view.Secrets[f.Key], f.Env, view.CanStoreSecrets
 		case settings.KindDuration:
 			field.Value, _ = formatValue(view.Settings[f.Key])
@@ -572,7 +596,11 @@ func draftInput(view settings.View, form url.Values) (map[string]any, map[string
 	values := map[string]any{}
 	secrets := map[string]settings.SecretInput{}
 	fields := savedFields(view)
+	selectedProvider := form.Get("field.provider")
 	for i, field := range fields {
+		if field.SearchProvider != "" && field.SearchProvider != selectedProvider {
+			continue
+		}
 		switch field.Kind {
 		case settings.KindSecret:
 			// An empty box keeps the saved value; a pasted one replaces it.

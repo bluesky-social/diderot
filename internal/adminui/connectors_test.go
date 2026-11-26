@@ -303,6 +303,41 @@ func TestAutomationPageSaysWhyItIsIdle(t *testing.T) {
 	assert.Contains(t, body, "<p>Ask can use it.</p>")
 }
 
+func TestWebSearchProviderFields(t *testing.T) {
+	view := settings.View{
+		Name: "tavily", CanStoreSecrets: true,
+		Settings: settings.Values{"provider": "tavily", "base_url": "https://proxy.example.com"},
+		Fields: []settings.FieldView{
+			{Key: "provider", Kind: settings.KindEnum, Options: []string{"tavily", "kagi"}},
+			{Key: "kagi_api_key", Kind: settings.KindSecret},
+			{Key: "api_key", Kind: settings.KindSecret},
+			{Key: "base_url", Kind: settings.KindText},
+		},
+	}
+	store := &fakeConnectors{view: exampleConnectorView()}
+	mux, _ := connectorTestServer(t, store)
+	store.view = view
+	reply := browserRequest(t, mux, http.MethodGet, "https://diderot.test/admin/connectors/tavily", nil, "")
+	require.Equal(t, http.StatusOK, reply.Code)
+	html := reply.Body.String()
+	assert.Regexp(t, `(?s)data-search-provider="kagi"[^>]*>[^<]*.*?href="https://kagi.com/api/keys".*?</fieldset>`, html)
+	assert.Regexp(t, `(?s)data-search-provider="tavily"[^>]*>[^<]*.*?href="https://app.tavily.com/".*?</fieldset>`, html)
+
+	values, secrets, _ := draftInput(view, url.Values{
+		"field.provider": {"kagi"}, "field.base_url": {"https://other.example.com"},
+		"secret.kagi_api_key": {"kagi-example"}, "secret.api_key.remove": {"true"},
+	})
+	assert.Equal(t, map[string]any{"provider": "kagi"}, values)
+	assert.Equal(t, map[string]settings.SecretInput{"kagi_api_key": {Value: "kagi-example"}}, secrets)
+
+	values, secrets, _ = draftInput(view, url.Values{
+		"field.provider": {"tavily"}, "field.base_url": {""},
+		"secret.kagi_api_key.remove": {"true"}, "secret.api_key": {"tvly-example"},
+	})
+	assert.Equal(t, map[string]any{"provider": "tavily", "base_url": ""}, values)
+	assert.Equal(t, map[string]settings.SecretInput{"api_key": {Value: "tvly-example"}}, secrets)
+}
+
 // TestSourcePageShowsItsStatus: while a source is on, its page shows what
 // its last test found and its status rows, each value formatted by its
 // kind, with the note below.

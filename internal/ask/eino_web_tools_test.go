@@ -12,7 +12,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bluesky-social/diderot/internal/tavily"
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 func invokeNativeWebTool(t *testing.T, reg RegisteredTool, arguments string, out any) error {
@@ -61,7 +61,7 @@ func TestEinoWebToolSchemas(t *testing.T) {
 
 func TestEinoWebSearchNativePath(t *testing.T) {
 	t.Parallel()
-	stub := &stubWebClient{search: &tavily.SearchResult{Results: []tavily.SearchHit{{
+	stub := &stubWebClient{search: &websearch.SearchResult{Results: []websearch.SearchHit{{
 		Title: "Docs", URL: "https://example.test/docs", Content: "answer", Score: .9,
 	}}}}
 	var out webSearchOutput
@@ -100,7 +100,7 @@ func TestEinoWebSearchValidationAndFailures(t *testing.T) {
 	}
 
 	var empty webSearchOutput
-	require.NoError(t, invokeNativeWebTool(t, NewEinoWebSearchTool(fixedWeb(&stubWebClient{search: &tavily.SearchResult{}})), `{"query":"q"}`, &empty))
+	require.NoError(t, invokeNativeWebTool(t, NewEinoWebSearchTool(fixedWeb(&stubWebClient{search: &websearch.SearchResult{}})), `{"query":"q"}`, &empty))
 	require.Empty(t, empty.Results)
 }
 
@@ -113,7 +113,7 @@ func TestEinoWebSearchNilResultIsInvariantFailure(t *testing.T) {
 func TestEinoWebFetchNativeSuccessAndRecovery(t *testing.T) {
 	t.Parallel()
 	t.Run("success", func(t *testing.T) {
-		stub := &stubWebClient{extract: &tavily.ExtractResult{Results: []tavily.ExtractHit{{
+		stub := &stubWebClient{extract: &websearch.ExtractResult{Results: []websearch.ExtractHit{{
 			URL: "https://example.test/page", RawContent: "page body",
 		}}}}
 		var out webFetchOutput
@@ -127,7 +127,7 @@ func TestEinoWebFetchNativeSuccessAndRecovery(t *testing.T) {
 	})
 
 	t.Run("per-url failure", func(t *testing.T) {
-		stub := &stubWebClient{extract: &tavily.ExtractResult{Failed: []tavily.ExtractFailed{{
+		stub := &stubWebClient{extract: &websearch.ExtractResult{Failed: []websearch.ExtractFailed{{
 			URL: "https://example.test/gone", Error: "404 not found",
 		}}}}
 		var out webFetchOutput
@@ -139,7 +139,7 @@ func TestEinoWebFetchNativeSuccessAndRecovery(t *testing.T) {
 	})
 
 	t.Run("truncation", func(t *testing.T) {
-		stub := &stubWebClient{extract: &tavily.ExtractResult{Results: []tavily.ExtractHit{{
+		stub := &stubWebClient{extract: &websearch.ExtractResult{Results: []websearch.ExtractHit{{
 			URL: "https://example.test/large", RawContent: strings.Repeat("界", ExpandContentBudget),
 		}}}}
 		var out webFetchOutput
@@ -164,7 +164,7 @@ func TestEinoWebFetchValidationAndFailures(t *testing.T) {
 		{name: "blank url", reg: NewEinoWebFetchTool(fixedWeb(&stubWebClient{})), arguments: `{"url":"  "}`, want: "url required"},
 		{name: "client error", reg: NewEinoWebFetchTool(fixedWeb(&stubWebClient{extractErr: errors.New("boom")})), arguments: `{"url":"https://example.test"}`, want: "web_fetch"},
 		{name: "nil result invariant", reg: NewEinoWebFetchTool(fixedWeb(&stubWebClient{})), arguments: `{"url":"https://example.test"}`, want: "nil result"},
-		{name: "invalid utf8", reg: NewEinoWebFetchTool(fixedWeb(&stubWebClient{extract: &tavily.ExtractResult{Results: []tavily.ExtractHit{{URL: "https://example.test", RawContent: "\xff"}}}})), arguments: `{"url":"https://example.test"}`, want: "non-UTF-8"},
+		{name: "invalid utf8", reg: NewEinoWebFetchTool(fixedWeb(&stubWebClient{extract: &websearch.ExtractResult{Results: []websearch.ExtractHit{{URL: "https://example.test", RawContent: "\xff"}}}})), arguments: `{"url":"https://example.test"}`, want: "non-UTF-8"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

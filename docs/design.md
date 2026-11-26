@@ -669,7 +669,7 @@ Tools, each registered only when its dependency is configured:
 | Tool | Corpus |
 |---|---|
 | `retrieve`, `list`, `expand` | Diderot events (always) |
-| `web_search`, `web_fetch` | The open web, through Tavily, while the Web search connector is enabled |
+| `web_search`, `web_fetch` | The open web through Tavily or Kagi while the Web search connector is enabled |
 | `code_search`, `code_read` | Source code, through Sourcebot, while the Code search connector is enabled |
 | Tool connections' tools | Connections that are on and that Ask uses ([Tool connections](mcp-servers.md)) |
 | `investigate_observability` | A delegated child agent, in its own context, over the tools of the connections that are on for it (`internal/ask/observability_investigate.go`) |

@@ -10,26 +10,26 @@ import (
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/bluesky-social/diderot/internal/tavily"
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // stubWebClient is a canned WebClient for the tool tests — no HTTP.
 type stubWebClient struct {
-	search     *tavily.SearchResult
+	search     *websearch.SearchResult
 	searchErr  error
-	extract    *tavily.ExtractResult
+	extract    *websearch.ExtractResult
 	extractErr error
-	lastSearch tavily.SearchParams
+	lastSearch websearch.SearchParams
 	lastURLs   []string
 	lastQuery  string
 }
 
-func (s *stubWebClient) Search(_ context.Context, p tavily.SearchParams) (*tavily.SearchResult, error) {
+func (s *stubWebClient) Search(_ context.Context, p websearch.SearchParams) (*websearch.SearchResult, error) {
 	s.lastSearch = p
 	return s.search, s.searchErr
 }
 
-func (s *stubWebClient) Extract(_ context.Context, urls []string, query string) (*tavily.ExtractResult, error) {
+func (s *stubWebClient) Extract(_ context.Context, urls []string, query string) (*websearch.ExtractResult, error) {
 	s.lastURLs = urls
 	s.lastQuery = query
 	return s.extract, s.extractErr
@@ -72,9 +72,9 @@ func TestWebSearchInput_MaxResultsAcceptsBothShapes(t *testing.T) {
 // clamps max_results to the cap.
 func TestWebSearch_Invoke(t *testing.T) {
 	stub := &stubWebClient{
-		search: &tavily.SearchResult{
+		search: &websearch.SearchResult{
 			Query: "q",
-			Results: []tavily.SearchHit{
+			Results: []websearch.SearchHit{
 				{Title: "T", URL: "https://ex.com", Content: "snip", Score: 0.9},
 			},
 		},
@@ -99,7 +99,7 @@ func TestWebSearch_Invoke(t *testing.T) {
 // sometimes ignore schema enums, as with topic="weather") is
 // coerced to "" rather than 400ing against Tavily.
 func TestWebSearch_CoercesInvalidTopic(t *testing.T) {
-	stub := &stubWebClient{search: &tavily.SearchResult{}}
+	stub := &stubWebClient{search: &websearch.SearchResult{}}
 	if err := invokeNativeWebTool(t, NewEinoWebSearchTool(fixedWeb(stub)), `{"query":"q","topic":"weather"}`, &webSearchOutput{}); err != nil {
 		t.Fatalf("Invoke: %v", err)
 	}
@@ -137,8 +137,8 @@ func TestWebSearch_ClientErrorPropagates(t *testing.T) {
 // TestWebFetch_Success maps a successful extract to ok=true + content.
 func TestWebFetch_Success(t *testing.T) {
 	stub := &stubWebClient{
-		extract: &tavily.ExtractResult{
-			Results: []tavily.ExtractHit{{URL: "https://ok.com", RawContent: "# Page body"}},
+		extract: &websearch.ExtractResult{
+			Results: []websearch.ExtractHit{{URL: "https://ok.com", RawContent: "# Page body"}},
 		},
 	}
 	var out webFetchOutput
@@ -159,8 +159,8 @@ func TestWebFetch_Success(t *testing.T) {
 // back off to the search snippet.
 func TestWebFetch_FailedResultRecovers(t *testing.T) {
 	stub := &stubWebClient{
-		extract: &tavily.ExtractResult{
-			Failed: []tavily.ExtractFailed{{URL: "https://bad.com", Error: "404 not found"}},
+		extract: &websearch.ExtractResult{
+			Failed: []websearch.ExtractFailed{{URL: "https://bad.com", Error: "404 not found"}},
 		},
 	}
 	var out webFetchOutput
@@ -178,8 +178,8 @@ func TestWebFetch_FailedResultRecovers(t *testing.T) {
 func TestWebFetch_TruncatesToBudget(t *testing.T) {
 	big := strings.Repeat("a", ExpandContentBudget+100)
 	stub := &stubWebClient{
-		extract: &tavily.ExtractResult{
-			Results: []tavily.ExtractHit{{URL: "https://ok.com", RawContent: big}},
+		extract: &websearch.ExtractResult{
+			Results: []websearch.ExtractHit{{URL: "https://ok.com", RawContent: big}},
 		},
 	}
 	var out webFetchOutput

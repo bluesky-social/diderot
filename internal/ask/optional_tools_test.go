@@ -15,7 +15,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bluesky-social/diderot/internal/tavily"
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // fixedWeb is a web client that never changes.
@@ -37,14 +37,14 @@ func (s *settingsLike[T]) set(value *T) { s.current.Store(value) }
 // countingWebClient counts every call that reaches the web.
 type countingWebClient struct{ calls atomic.Int32 }
 
-func (c *countingWebClient) Search(context.Context, tavily.SearchParams) (*tavily.SearchResult, error) {
+func (c *countingWebClient) Search(context.Context, websearch.SearchParams) (*websearch.SearchResult, error) {
 	c.calls.Add(1)
-	return &tavily.SearchResult{}, nil
+	return &websearch.SearchResult{}, nil
 }
 
-func (c *countingWebClient) Extract(context.Context, []string, string) (*tavily.ExtractResult, error) {
+func (c *countingWebClient) Extract(context.Context, []string, string) (*websearch.ExtractResult, error) {
 	c.calls.Add(1)
-	return &tavily.ExtractResult{}, nil
+	return &websearch.ExtractResult{}, nil
 }
 
 type codeSettings struct {

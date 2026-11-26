@@ -12,7 +12,7 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/bluesky-social/diderot/internal/tavily"
+	"github.com/bluesky-social/diderot/internal/websearch"
 )
 
 // =====================================================================
@@ -20,21 +20,21 @@ import (
 // =====================================================================
 //
 // These two mirror the corpus pair (retrieve + expand) but point at
-// the open web via Tavily instead of diderot's own event store.
+// the open web instead of Diderot's own event store.
 // web_search ranks results for a query; web_fetch pulls the full
 // parsed content of one URL a search surfaced. They carry NO scope
 // gate — unlike retrieve/expand they touch no events rows, so there's
 // no events.scope to check. The boundary that matters for them is
 // egress (the query text leaves the building); that's an administrator's
-// decision (the Tavily connector enabled ⇒ tools offered), not a
+// decision (the web search connector enabled ⇒ tools offered), not a
 // per-audience check.
 
-// WebClient is the subset of *tavily.Client the web tools need.
+// WebClient is the interface web providers implement for Ask.
 // Narrowed to an interface so tests can stub it without an HTTP
 // round-trip.
 type WebClient interface {
-	Search(ctx context.Context, p tavily.SearchParams) (*tavily.SearchResult, error)
-	Extract(ctx context.Context, urls []string, query string) (*tavily.ExtractResult, error)
+	Search(ctx context.Context, p websearch.SearchParams) (*websearch.SearchResult, error)
+	Extract(ctx context.Context, urls []string, query string) (*websearch.ExtractResult, error)
 }
 
 // webSearchMaxResults caps the model-requested max_results. Tavily
@@ -66,7 +66,7 @@ var webSearchSchema = json.RawMessage(`{
     "topic": {
       "type": "string",
       "enum": ["general", "news", "finance"],
-      "description": "'general' for most questions, 'news' for current events, 'finance' for markets."
+      "description": "'general' for most questions, 'news' for current events, 'finance' for markets where supported."
     },
     "time_range": {
       "type": "string",
@@ -181,7 +181,7 @@ func runWebSearch(ctx context.Context, client WebClient, in webSearchInput) (web
 		topic = ""
 	}
 
-	res, err := client.Search(ctx, tavily.SearchParams{
+	res, err := client.Search(ctx, websearch.SearchParams{
 		Query:          in.Query,
 		MaxResults:     maxResults,
 		Topic:          topic,
@@ -190,7 +190,7 @@ func runWebSearch(ctx context.Context, client WebClient, in webSearchInput) (web
 		ExcludeDomains: in.ExcludeDomains,
 	})
 	if err != nil {
-		// Real Tavily failure (auth, 5xx, network). Propagate up to
+		// Provider failure (auth, 5xx, network). Propagate up to
 		// the loop, which feeds it back as a tool_result error so the
 		// model can back off or retry — the turn continues.
 		return webSearchOutput{}, fmt.Errorf("web_search: %w", err)
@@ -201,7 +201,7 @@ func runWebSearch(ctx context.Context, client WebClient, in webSearchInput) (web
 	return webSearchOutputFromResult(res), nil
 }
 
-func webSearchOutputFromResult(res *tavily.SearchResult) webSearchOutput {
+func webSearchOutputFromResult(res *websearch.SearchResult) webSearchOutput {
 	out := webSearchOutput{Results: make([]webSearchOutputHit, 0, len(res.Results))}
 	for _, h := range res.Results {
 		out.Results = append(out.Results, webSearchOutputHit{
@@ -270,7 +270,7 @@ var webFetchSchema = json.RawMessage(`{
     },
     "query": {
       "type": "string",
-      "description": "What you are looking for on the page. With it, only the passages most relevant to it come back; leave it empty to get the page from the top."
+      "description": "What you are looking for on the page. Providers with passage ranking use this to return relevant passages. Omit it to get the page from the top."
     }
   },
   "required": ["url"]
@@ -279,9 +279,9 @@ var webFetchSchema = json.RawMessage(`{
 // webFetchToolDescription is the model-facing description of
 // `web_fetch`.
 const webFetchToolDescription = "Read one web page as Markdown. Use it on a web_search result when the snippet is not " +
-	"enough. With `query`, it returns only the passages of the page most relevant to the query, which is " +
-	"not the whole page: do not conclude that something is absent from a page you read that way. Without " +
-	"`query`, it returns the page from the top, with `truncated` set when a long page was cut. When the " +
+	"enough. By default it returns the page from the top. Providers with passage ranking use `query` to " +
+	"return relevant passages. Check the full page before drawing conclusions about missing details. " +
+	"`truncated` is set when a long page was cut. When the " +
 	"page cannot be read (a dead link, a block, a timeout), `ok` is false and `note` says why: use the " +
 	"search snippet and do not retry. Pages are large, so read the ones that matter."
 
