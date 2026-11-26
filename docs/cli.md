@@ -210,6 +210,7 @@ directory exists:
 
 | Harness | Directory | Sessions |
 |---|---|---|
+| `antigravity` | `~/.gemini/antigravity/brain`, `~/.gemini/antigravity-ide/brain`, `~/.gemini/antigravity-cli/brain`, and `~/.t3/userdata/providers/antigravity` | each `<session id>/.system_generated/logs/transcript_full.jsonl` |
 | `claude-code` | `~/.claude/projects` (`$CLAUDE_CONFIG_DIR/projects` when that is set) | each `<session id>.jsonl`; subagent transcripts are not sent |
 | `codex` | `~/.codex/sessions` (`$CODEX_HOME/sessions` when that is set) | each `rollout-*-<session id>.jsonl` |
 | `copilot-cli` | `~/.copilot/session-state` (`$COPILOT_HOME/session-state` when that is set) | each `<session id>/events.jsonl`; subagents are in the same file |

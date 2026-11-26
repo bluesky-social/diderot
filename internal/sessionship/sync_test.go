@@ -257,6 +257,42 @@ func TestPassSendsEveryHarnessAsATIF(t *testing.T) {
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }
 
+func TestPassSendsAntigravitySessions(t *testing.T) {
+	const (
+		directSession = "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+		t3Session     = "b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+	)
+	f := newFixture(t)
+	ag, err := os.ReadFile("../sessiondecode/testdata/antigravity/basic.jsonl")
+	require.NoError(t, err)
+	brainDir := t.TempDir()
+	t3Dir := t.TempDir()
+	f.syncer.Settings.Sources = append(f.syncer.Settings.Sources,
+		Source{Harness: "antigravity", Dir: brainDir},
+		Source{Harness: "antigravity", Dir: t3Dir},
+	)
+	directLogs := filepath.Join(brainDir, directSession, ".system_generated", "logs")
+	directFile := filepath.Join(directLogs, "transcript_full.jsonl")
+	write(t, directFile, string(ag))
+	// The truncated copy beside transcript_full.jsonl is never read.
+	write(t, filepath.Join(directLogs, "transcript.jsonl"), "not a session\n")
+
+	t3Logs := filepath.Join(t3Dir, "abc123", "antigravity-acp", "brain", t3Session, ".system_generated", "logs")
+	t3File := filepath.Join(t3Logs, "transcript_full.jsonl")
+	write(t, t3File, string(ag))
+	write(t, filepath.Join(t3Logs, "transcript.jsonl"), "not a session\n")
+
+	result := f.pass(t)
+	require.Len(t, result.Sent, 3)
+	assert.Equal(t, Outcome{Harness: "antigravity", SessionID: directSession, Path: directFile, Action: "created"}, result.Sent[1])
+	assert.Equal(t, Outcome{Harness: "antigravity", SessionID: t3Session, Path: t3File, Action: "created"}, result.Sent[2])
+	assert.Empty(t, result.Skipped)
+	_, want, err := sessiondecode.DecodeAll(sessiondecode.Antigravity{}, ag)
+	require.NoError(t, err)
+	assert.Len(t, f.server.records(directSession), len(want))
+	assert.Len(t, f.server.records(t3Session), len(want))
+}
+
 func TestPassSendsPiSessions(t *testing.T) {
 	const piSession = "019a3f00-0000-7000-8000-000000000001"
 	f := newFixture(t)

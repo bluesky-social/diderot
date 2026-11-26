@@ -1,0 +1,6 @@
+{"step_index":100,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-01T10:00:00Z","content":"<USER_REQUEST>\nCheck the example project.\n</USER_REQUEST>"}
+{"step_index":103,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:01Z","thinking":"Check the exit status, inspect the example file, and list the project files.","model":"synthetic-gemini","tool_calls":[{"name":"run_command","args":{"CommandLine":"false"}},{"name":"view_file","args":{"AbsolutePath":"/example/missing.txt"}},{"name":"run_command","args":{"CommandLine":"ls /example"}}]}
+{"step_index":104,"source":"MODEL","type":"RUN_COMMAND","status":"DONE","created_at":"2026-11-01T10:00:02Z","exit_code":1,"content":"Command exited with code 1."}
+{"step_index":105,"source":"MODEL","type":"VIEW_FILE","status":"ERROR","created_at":"2026-11-01T10:00:03Z","error":"file missing","content":"Could not read example file: file missing."}
+{"step_index":106,"source":"MODEL","type":"RUN_COMMAND","status":"RUNNING","created_at":"2026-11-01T10:00:04Z","content":"Tool is running as a background task.\nLog output:\nREADME.md"}
+{"step_index":108,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-01T10:00:05Z","model":"synthetic-gemini","content":"The example project contains a README."}

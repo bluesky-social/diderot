@@ -71,6 +71,21 @@ func (h Harness) sessionID(captured, declared string) (string, error) {
 // entry here; it needs a decoder in sessiondecode.
 var Harnesses = []Harness{
 	{
+		Name: "antigravity",
+		Dirs: func(home string) []string {
+			return []string{
+				filepath.Join(home, ".gemini", "antigravity", "brain"),
+				filepath.Join(home, ".gemini", "antigravity-ide", "brain"),
+				filepath.Join(home, ".gemini", "antigravity-cli", "brain"),
+				filepath.Join(home, ".t3", "userdata", "providers", "antigravity"),
+			}
+		},
+		// Each conversation writes transcript_full.jsonl (and a truncated
+		// transcript.jsonl beside it, which is skipped).
+		File:    regexp.MustCompile(`(?:^|/)(` + uuidPattern + `)/\.system_generated/logs/transcript_full\.jsonl$`),
+		Decoder: sessiondecode.Antigravity{},
+	},
+	{
 		Name: "claude-code",
 		Dirs: func(home string) []string {
 			return []string{filepath.Join(envOr("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")), "projects")}
