@@ -41,23 +41,23 @@ which branch of a session is kept.
 
 ### From your own machine
 
-`diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes
-the Antigravity, Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Pi,
-and Polytoken sessions on a person's machine, from a background service that
+`diderot sessions` ([Ship your sessions](cli.md#ship-your-sessions)) pushes the
+Antigravity, Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Pi, and
+Polytoken sessions on a person's machine, from a background service that
 `diderot setup` offers to install. It reads each session file with the same
 decoder the server has for that harness, converts the result to ATIF on that
 machine, and pushes it as `atif-json`, so the server stores and decodes ATIF
-and never receives the harness's own file. Each record becomes one ATIF step. A record ID that
-came from the harness travels in the step's `extra.stable_step_id`, so it is
-the same ID as a push of the file itself would give; a positional ID becomes
-the step's ordinal. The harness's name and version are the trajectory's
-`agent`. ATIF has no field for two things, which are left out: the flag that
-marks a tool result as an error (its output is still there), and the phase of
-a record that is not a system record. Images are left out as every decoder
-leaves them out: a pasted screenshot or an image a tool returned is a
-placeholder with its media type, and here its bytes never leave the machine. A
-tool call whose arguments are not a JSON object (a patch passed as text) is
-carried as `{"input": "<the text>"}`.
+and never receives the harness's own file. Each record becomes one ATIF step. A
+record ID that came from the harness travels in the step's
+`extra.stable_step_id`, so it is the same ID as a push of the file itself would
+give; a positional ID becomes the step's ordinal. The harness's name and
+version are the trajectory's `agent`. ATIF has no field for two things, which
+are left out: the flag that marks a tool result as an error (its output is
+still there), and the phase of a record that is not a system record. Images are
+left out as every decoder leaves them out: a pasted screenshot or an image a
+tool returned is a placeholder with its media type, and here its bytes never
+leave the machine. A tool call whose arguments are not a JSON object (a patch
+passed as text) is carried as `{"input": "<the text>"}`.
 
 It follows the [push protocol](#push-protocol) as any client does: a session
 is created with `If-None-Match: *`, and one that grew is sent again whole
