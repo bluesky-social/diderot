@@ -77,7 +77,7 @@ const GroupID = "client"
 // ServerCommands are the server binary's other commands, which the
 // client-only binary names to say where they are. cmd/diderot's test keeps
 // the list in step with that binary.
-var ServerCommands = []string{"serve", "probe", "qdrant-audit", "reset-admin", "ui-dev", "session-dev"}
+var ServerCommands = []string{"serve", "probe", "qdrant-audit", "reset-admin", "codex-provider", "ui-dev", "session-dev"}
 
 // AddCommands adds the client commands to root, in their own help group,
 // with flag errors as usage errors (exit 2).

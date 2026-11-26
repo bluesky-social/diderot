@@ -21,6 +21,8 @@ import (
 type Listed struct {
 	ID   string `json:"id"`
 	Name string `json:"name,omitempty"`
+	// Protocols names the transports advertised by the provider, if any.
+	Protocols []Protocol `json:"protocols,omitempty"`
 	// ContextTokens is the context window.
 	ContextTokens int `json:"context,omitempty"`
 	// Images is whether the listing says the model takes image input; nil
@@ -30,6 +32,8 @@ type Listed struct {
 	Embedding bool `json:"embedding,omitempty"`
 	// Efforts are the reasoning efforts the listing says the model accepts.
 	Efforts []string `json:"efforts,omitempty"`
+	// DefaultEffort describes the provider's choice when effort is omitted.
+	DefaultEffort string `json:"default_effort,omitempty"`
 	// Tools, Temperature and Reasons are whether the listing says the model
 	// calls tools, accepts a temperature, and reasons; nil when it is
 	// silent.
@@ -118,6 +122,9 @@ type openAIModel struct {
 	// Capabilities is read only when it is an object of flags; servers use
 	// the name for other shapes too.
 	Capabilities        json.RawMessage            `json:"capabilities"`
+	Protocols           []Protocol                 `json:"protocols"`
+	ReasoningEfforts    []string                   `json:"reasoning_efforts"`
+	DefaultEffort       string                     `json:"default_reasoning_effort"`
 	SupportedParameters []string                   `json:"supported_parameters"`
 	Pricing             map[string]json.RawMessage `json:"pricing"`
 	ShutdownDate        string                     `json:"shutdown_date"`
@@ -127,6 +134,11 @@ type openAIModel struct {
 
 func (m openAIModel) listed() Listed {
 	listed := Listed{ID: m.ID, Name: firstNonEmpty(m.Name, m.DisplayName)}
+	for _, p := range m.Protocols {
+		if slices.Contains(KindOpenAI.Protocols(), p) && !slices.Contains(listed.Protocols, p) {
+			listed.Protocols = append(listed.Protocols, p)
+		}
+	}
 	if listed.Name == m.ID {
 		listed.Name = ""
 	}
@@ -153,6 +165,14 @@ func (m openAIModel) listed() Listed {
 	listed.Deprecated = strings.EqualFold(m.Status, "deprecated")
 	listed.OwnedBy = m.OwnedBy
 	listed.OutputTokens = max(m.MaxTokens, m.MaxCompletionTokens)
+	for _, effort := range m.ReasoningEfforts {
+		if slices.Contains(ReasoningEfforts, effort) && !slices.Contains(listed.Efforts, effort) {
+			listed.Efforts = append(listed.Efforts, effort)
+		}
+	}
+	if slices.Contains(ReasoningEfforts, m.DefaultEffort) {
+		listed.DefaultEffort = m.DefaultEffort
+	}
 	// A list of the request parameters a model supports says, by leaving
 	// one out, that the model does not take it.
 	if len(m.SupportedParameters) > 0 {

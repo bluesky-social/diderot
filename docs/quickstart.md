@@ -370,6 +370,43 @@ for memory, exit code 137, as it warms up) and downloads about 2.3 GB more.
 Choose before you ingest if you can: another embedding model embeds every
 passage again, into a collection of its own.
 
+### Signed-in Codex
+
+Sign the server's Codex adapter in to ChatGPT using a device code. Open the
+displayed link in your browser and enter the one-time code. The adapter
+writes the credentials to its dedicated auth file and refreshes them in
+place. Keep the directory private and writable by the adapter.
+
+```sh
+diderot codex-provider login --auth-file /path/to/dedicated/codex/auth.json
+(umask 077; openssl rand -hex 32 > codex-provider.token)
+diderot codex-provider \
+  --auth-file /path/to/dedicated/codex/auth.json --token-file codex-provider.token
+```
+
+ChatGPT may require you to enable device code login in account security
+settings first.
+
+In **Models → Inference providers**, add an **OpenAI-compatible** provider
+with base URL `http://127.0.0.1:9460/v1` for a standalone server on the
+same host. Paste the provider token as its API key.
+
+The provider lists the selectable models for its signed-in account, with
+their supported and default reasoning efforts for direct inference. Codex
+harness modes such as Ultra are omitted. Use `--model` to limit the
+provider to one model, or **Models offered** to limit the picker in Diderot.
+Choose a listed model for **Ask**, **Titles**, or the two session summary
+jobs. Models with vision input can serve **Image captions** and
+**Document extraction**. Codex also serves **Thread summaries**. These jobs
+use native Responses. Keep your separate provider for **Embeddings**. The adapter consumes
+the Codex event stream and gives Diderot a complete Responses result.
+Diderot executes corpus functions itself. The Codex backend receives the
+questions, excerpts and transcripts passed to whichever jobs use it.
+The adapter does not pass through public API output caps or cache retention
+settings. Its backend is a ChatGPT client interface and may change.
+The adapter sends up to two requests at a time by default. It queues up to
+eight more, including model tests, within each request's deadline.
+
 ## What leaves the machine
 
 With the `embedder` container chosen for embeddings, embeddings are

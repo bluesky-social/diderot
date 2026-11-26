@@ -108,9 +108,9 @@
           <div class="field">
             <label for="role-{{.Key}}">Model<span class="visually-hidden"> for {{.Title}}</span></label>
             <select id="role-{{.Key}}" name="role.{{.Key}}">
-              {{$saved := .Saved}}
+              {{$saved := .Saved}}{{$role := .Key}}
               <option value=""{{if not $saved}} selected{{end}}>Off: no model</option>
-              {{range $.OptionGroups .Options}}<optgroup label="{{.Provider}}">{{range .Options}}<option value="{{.Ref}}"{{if eq .Ref $saved}} selected{{end}}>{{.ID}}{{if .Tested}} (tested){{end}}{{if .Retires}} (retires {{.Retires}}){{else if .Deprecated}} (deprecated){{end}}</option>{{end}}</optgroup>{{end}}
+              {{range $.OptionGroups .Options}}<optgroup label="{{.Provider}}">{{range .Options}}<option value="{{.Ref}}"{{if eq .Ref $saved}} selected{{end}}{{if and (eq $role "ask") (or .ReasoningEfforts .DefaultEffort)}} data-reasoning-efforts="{{range .ReasoningEfforts}}{{.}} {{end}}" data-default-effort="{{.DefaultEffort}}"{{end}}>{{.ID}}{{if .Tested}} (tested){{end}}{{if .Retires}} (retires {{.Retires}}){{else if .Deprecated}} (deprecated){{end}}</option>{{end}}</optgroup>{{end}}
             </select>
             {{with $.Price .}}<p class="help">{{.}}</p>{{end}}
             {{with index $.Spend .Key}}<p class="help">{{.}}</p>{{end}}

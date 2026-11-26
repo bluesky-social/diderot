@@ -33,7 +33,7 @@ func buildRootCmd() *cobra.Command {
 
 	clientcmd.AddCommands(root, clientcmd.Options{Version: Version})
 	root.AddGroup(&cobra.Group{ID: groupServer, Title: "Run a Diderot server (where it runs, with its configuration):"})
-	for _, cmd := range []*cobra.Command{serveCmd(), probeCmd(), qdrantAuditCmd(), resetAdminCmd()} {
+	for _, cmd := range []*cobra.Command{serveCmd(), probeCmd(), qdrantAuditCmd(), resetAdminCmd(), codexProviderCmd()} {
 		cmd.GroupID = groupServer
 		root.AddCommand(cmd)
 	}

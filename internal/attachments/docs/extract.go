@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -90,9 +91,9 @@ type Extractor interface {
 	ModelID() string
 }
 
-// GatewayExtractorConfig configures the chat-completions extractor.
+// GatewayExtractorConfig configures the model-backed PDF extractor.
 type GatewayExtractorConfig struct {
-	// BaseURL is the chat-completions endpoint, including any /v1 prefix.
+	// BaseURL is the provider endpoint, including any /v1 prefix.
 	// Required.
 	BaseURL string
 	// APIKey is the credential presented to the endpoint. Empty sends
@@ -103,6 +104,8 @@ type GatewayExtractorConfig struct {
 	// ModelID is the model every request names. Required: there is no
 	// built-in model.
 	ModelID string
+	// Responses selects native Responses file input.
+	Responses bool
 	// TokenParam is the model registry's chat_token_param for ModelID: the
 	// field that carries the output limit. Empty means max_tokens.
 	TokenParam llmclient.ChatTokenParam
@@ -121,7 +124,7 @@ type GatewayExtractorConfig struct {
 	Headers http.Header
 }
 
-// GatewayExtractor transcribes sparse PDF pages through chat completions.
+// GatewayExtractor transcribes sparse PDF pages through the model’s configured protocol.
 type GatewayExtractor struct {
 	cfg    GatewayExtractorConfig
 	client *llmclient.Client
@@ -148,8 +151,10 @@ func NewGatewayExtractor(cfg GatewayExtractorConfig, logger *slog.Logger) (*Gate
 		return nil, errors.New("docs: gateway extractor: reasoning token allowance must not be negative")
 	}
 	extractor := &GatewayExtractor{cfg: cfg, client: client, logger: logger}
-	if _, err := llmclient.WithExtraFields(extractor.request(nil), cfg.ExtraBody); err != nil {
-		return nil, fmt.Errorf("docs: gateway extractor: %w", err)
+	if !cfg.Responses {
+		if _, err := llmclient.WithExtraFields(extractor.request(nil), cfg.ExtraBody); err != nil {
+			return nil, fmt.Errorf("docs: gateway extractor: %w", err)
+		}
 	}
 	return extractor, nil
 }
@@ -184,6 +189,9 @@ func (e *GatewayExtractor) CheckpointIdentity() string {
 	// Appended only when present so identities minted without extra fields
 	// or an allowance stay valid. The allowance raises the limit a page can
 	// be truncated at.
+	if e.cfg.Responses {
+		values = append(values, "protocol=responses")
+	}
 	if len(e.cfg.ExtraBody) > 0 {
 		extra, _ := json.Marshal(e.cfg.ExtraBody)
 		values = append(values, "extra-body="+string(extra))
@@ -258,24 +266,17 @@ func (e *GatewayExtractor) Extract(
 	ctx, cancel := context.WithTimeout(ctx, perCallTimeout)
 	defer cancel()
 
-	filePart := map[string]any{
-		"type": "file",
-		"file": map[string]string{
-			"filename":  safeDocumentName(filename),
-			"file_data": "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data),
-		},
-	}
 	prompt := e.prompt
 	if prompt == "" {
 		prompt = ExtractPrompt()
 	}
-	textPart := map[string]any{"type": "text", "text": prompt}
-
-	payload, err := llmclient.WithExtraFields(e.request([]any{filePart, textPart}), e.cfg.ExtraBody)
-	if err != nil {
-		return nil, fmt.Errorf("docs: %w", err)
+	fileData := "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data)
+	if e.cfg.Responses {
+		filename = safeDocumentName(strings.TrimSuffix(filename, filepath.Ext(filename))) + "." + docFormat
+	} else {
+		filename = safeDocumentName(filename)
 	}
-	raw, err := e.client.PostJSON(ctx, "/chat/completions", payload, maxResponseBytes)
+	answer, err := e.transcribe(ctx, prompt, filename, fileData)
 	if err != nil {
 		var statusError *llmclient.HTTPError
 		var bodyError *llmclient.BodyError
@@ -289,15 +290,7 @@ func (e *GatewayExtractor) Extract(
 		}
 	}
 
-	var gr gatewayResponse
-	if err := json.Unmarshal(raw, &gr); err != nil {
-		return nil, fmt.Errorf("docs: decode gateway response: %w", err)
-	}
-	if len(gr.Choices) == 0 {
-		return nil, errors.New("docs: gateway response carried no choices")
-	}
-
-	text := strings.TrimSpace(stripCodeFence(gr.Choices[0].Message.Content))
+	text := strings.TrimSpace(stripCodeFence(answer.Text))
 	if text == "" {
 		return nil, errors.New("docs: extractor returned empty text")
 	}
@@ -312,9 +305,44 @@ func (e *GatewayExtractor) Extract(
 		PageCount:      markers,
 		PagesExtracted: markers,
 		ModelID:        e.cfg.ModelID,
-		Truncated:      gr.Choices[0].FinishReason == "length",
-		InputTokens:    gr.Usage.PromptTokens,
-		OutputTokens:   gr.Usage.CompletionTokens,
+		Truncated:      answer.Truncated,
+		InputTokens:    answer.InputTokens,
+		OutputTokens:   answer.OutputTokens,
+	}, nil
+}
+
+func (e *GatewayExtractor) transcribe(ctx context.Context, prompt, filename, fileData string) (llmclient.ResponsesTextResult, error) {
+	if e.cfg.Responses {
+		return e.client.TextResponse(ctx, llmclient.ResponsesTextRequest{
+			Model: e.cfg.ModelID, MaxOutputTokens: maxOutputTokens + e.cfg.ReasoningTokenAllowance,
+			Input: []llmclient.ResponsesMessage{{Role: "user", Content: []llmclient.ResponsesPart{
+				{Type: "input_file", FileData: fileData, Filename: filename},
+				{Type: "input_text", Text: prompt},
+			}}},
+		}, maxResponseBytes)
+	}
+	content := []any{
+		map[string]any{"type": "file", "file": map[string]string{"filename": filename, "file_data": fileData}},
+		map[string]string{"type": "text", "text": prompt},
+	}
+	payload, err := llmclient.WithExtraFields(e.request(content), e.cfg.ExtraBody)
+	if err != nil {
+		return llmclient.ResponsesTextResult{}, fmt.Errorf("docs: %w", err)
+	}
+	raw, err := e.client.PostJSON(ctx, "/chat/completions", payload, maxResponseBytes)
+	if err != nil {
+		return llmclient.ResponsesTextResult{}, err
+	}
+	var answer gatewayResponse
+	if err := json.Unmarshal(raw, &answer); err != nil {
+		return llmclient.ResponsesTextResult{}, fmt.Errorf("docs: decode gateway response: %w", err)
+	}
+	if len(answer.Choices) == 0 {
+		return llmclient.ResponsesTextResult{}, errors.New("docs: gateway response carried no choices")
+	}
+	return llmclient.ResponsesTextResult{
+		Text: answer.Choices[0].Message.Content, Truncated: answer.Choices[0].FinishReason == "length",
+		InputTokens: answer.Usage.PromptTokens, OutputTokens: answer.Usage.CompletionTokens,
 	}, nil
 }
 

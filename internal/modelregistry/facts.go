@@ -139,6 +139,7 @@ func (m Model) RequestKey() string { return m.requestKey() }
 // listing, or the catalog. A nil pointer, a zero number, and a nil slice are
 // silence.
 type Facts struct {
+	Protocols []Protocol
 	// Images is whether it takes image input, Tools whether it calls tools,
 	// and Temperature whether a request may carry one.
 	Images, Tools, Temperature *bool
@@ -163,7 +164,7 @@ type Facts struct {
 // Facts is what the listing says about the model.
 func (l Listed) Facts() Facts {
 	return Facts{
-		Images: l.Images, Tools: l.Tools, Temperature: l.Temperature, Reasons: l.Reasons, Efforts: l.Efforts,
+		Protocols: l.Protocols, Images: l.Images, Tools: l.Tools, Temperature: l.Temperature, Reasons: l.Reasons, Efforts: l.Efforts,
 		ContextTokens: l.ContextTokens, OutputTokens: l.OutputTokens,
 		InputPrice: l.InputPrice, OutputPrice: l.OutputPrice,
 		Deprecated: l.Deprecated, Retires: l.Retires,
@@ -311,6 +312,10 @@ func (m Model) WithPublished(p Published, all bool) Model {
 		return source != SourceAdmin && (source != "" || all || m.fresh())
 	}
 	set := func(fact string, source Source) { m = m.WithSource(fact, source) }
+	if len(p.Provider.Protocols) > 0 && open(FactProtocols) {
+		m.Protocols = slices.Clone(p.Provider.Protocols)
+		set(FactProtocols, SourceProvider)
+	}
 	if images, source := p.Images(); images != nil && open(FactImages) {
 		m.Images = *images
 		set(FactImages, source)

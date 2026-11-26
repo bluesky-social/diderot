@@ -840,10 +840,21 @@ key.
 
 | Protocol | Request | Jobs |
 |---|---|---|
-| `responses` | `POST {base}/responses` | Ask, titles, session-summary map and reduce |
+| `responses` | `POST {base}/responses` | Ask, titles, session-summary map and reduce, image captions, PDF extraction, and thread summaries |
 | `anthropic-messages` | `POST {base}/v1/messages` (base with or without `/v1`) | Ask, session-summary map and reduce |
-| `chat` | `POST {base}/chat/completions` | captions and PDF extraction (with an image), thread summaries, session-summary map and reduce |
+| `chat` | `POST {base}/chat/completions` | captions and PDF extraction, thread summaries, session-summary map and reduce |
 | `embeddings` | `POST {base}/embeddings` | the embedder and retrieval |
+
+The optional [Codex provider](quickstart.md#signed-in-codex) sends
+Diderot's Responses requests directly to the ChatGPT Codex backend using
+the configured account's OAuth credentials. Its model listing reads that
+account's Codex catalog and publishes the selectable models, their
+reasoning efforts, and their Responses protocol. Codex captions send
+inline images, and PDF extraction sends single-page PDF files. The
+adapter consumes the event stream
+and returns a complete Responses result, preserving native function calls
+and replayable reasoning. Ask executes functions in Diderot with the
+requester's permissions and replays their results in the next model call.
 
 Ask and the session summaries speak more than one protocol, and which one a
 model is called on follows from its entry alone
@@ -855,7 +866,9 @@ summary is the arguments of one forced tool call on every protocol
 (`tool_choice` naming the tool), read and validated by the same code; an
 answer without that call fails the summary, and a request is never sent
 again on another protocol. A model that lists `anthropic-messages` is sent
-the same Messages request as when that was the only protocol.
+the same Messages request as when that was the only protocol. Captions, PDF
+extraction and thread summaries use Chat when the model already lists it,
+and Responses for models such as Codex that list only Responses.
 
 **The menu.** Saving a provider, and the leader every ten minutes, read its
 listing and keep it under its row (`source_state`, key `check`), with what

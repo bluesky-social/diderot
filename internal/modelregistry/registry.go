@@ -263,7 +263,8 @@ var SummaryProtocols = []Protocol{ProtocolMessages, ProtocolResponses, ProtocolC
 // RoleProtocol returns the protocol role calls the model on, and false when
 // the model lists none the role speaks. Ask drives the first agentic
 // protocol listed, session summaries the first of SummaryProtocols listed,
-// and every other role speaks one protocol.
+// and the caption, document, and thread jobs keep Chat when the model
+// supports it, with Responses available to models that speak it.
 func (m Model) RoleProtocol(role Role) (Protocol, bool) {
 	switch role {
 	case RoleAsk:
@@ -278,7 +279,15 @@ func (m Model) RoleProtocol(role Role) (Protocol, bool) {
 	case RoleTitles:
 		return ProtocolResponses, m.Supports(ProtocolResponses)
 	}
-	return ProtocolChat, m.Supports(ProtocolChat)
+	return m.TextProtocol()
+}
+
+// TextProtocol chooses the transport for text or multimodal jobs without tools.
+func (m Model) TextProtocol() (Protocol, bool) {
+	if m.Supports(ProtocolChat) {
+		return ProtocolChat, true
+	}
+	return ProtocolResponses, m.Supports(ProtocolResponses)
 }
 
 // NeedsImages reports whether a role sends images.

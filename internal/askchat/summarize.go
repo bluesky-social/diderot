@@ -232,13 +232,12 @@ func renderWithGaps(header string, msgs []ThreadMessage, lines []string, include
 	return sb.String()
 }
 
-// SummarizerConfig configures the chat-completions thread summarizer.
+// SummarizerConfig configures the thread summarizer.
 type SummarizerConfig struct {
 	// SystemPrompt is the summary's instructions: the surface's, in its
 	// dialect. Required.
 	SystemPrompt string
-	// BaseURL is the chat-completions endpoint of the model's provider in
-	// the model registry.
+	// BaseURL is the endpoint of the model's provider in the model registry.
 	BaseURL string
 	// APIKey is the credential presented to the endpoint.
 	APIKey string
@@ -247,6 +246,8 @@ type SummarizerConfig struct {
 	// ModelID is the model the Models page chose for thread summaries.
 	// Required.
 	ModelID string
+	// Responses selects the native Responses endpoint.
+	Responses bool
 	// TokenParam is the model registry's chat_token_param for ModelID: the
 	// field that carries the output limit. Empty means max_tokens.
 	TokenParam llmclient.ChatTokenParam
@@ -267,8 +268,7 @@ type SummarizerConfig struct {
 // response.
 const summaryMaxResponseBytes int64 = 4 << 20
 
-// Summarizer calls the model gateway's chat-completions endpoint with a
-// rendered thread transcript and returns the model's summary text.
+// Summarizer sends a rendered thread transcript to the model and returns its summary.
 type Summarizer struct {
 	client     *llmclient.Client
 	modelID    string
@@ -276,6 +276,7 @@ type Summarizer struct {
 	maxTokens  int
 	extraBody  map[string]any
 	prompt     string
+	responses  bool
 }
 
 // NewSummarizer validates cfg without making a network request.
@@ -295,10 +296,12 @@ func NewSummarizer(cfg SummarizerConfig) (*Summarizer, error) {
 	s := &Summarizer{
 		client: client, modelID: modelID, tokenParam: tokenParam,
 		maxTokens: SummaryMaxOutputTokens + cfg.ReasoningTokenAllowance, extraBody: cfg.ExtraBody,
-		prompt: cfg.SystemPrompt,
+		prompt: cfg.SystemPrompt, responses: cfg.Responses,
 	}
-	if _, err := llmclient.WithExtraFields(s.request(""), cfg.ExtraBody); err != nil {
-		return nil, fmt.Errorf("summarizer: %w", err)
+	if !cfg.Responses {
+		if _, err := llmclient.WithExtraFields(s.request(""), cfg.ExtraBody); err != nil {
+			return nil, fmt.Errorf("summarizer: %w", err)
+		}
 	}
 	if modelID == "" {
 		return nil, errors.New("summarizer: a model is required")
@@ -343,6 +346,16 @@ func (s *Summarizer) request(transcript string) map[string]any {
 // Summarize calls the gateway with the rendered transcript and returns
 // the model's summary text plus token usage.
 func (s *Summarizer) Summarize(ctx context.Context, transcript string) (string, SummaryUsage, error) {
+	if s.responses {
+		result, err := s.client.TextResponse(ctx, llmclient.ResponsesTextRequest{
+			Model: s.modelID, Instructions: s.prompt, Input: transcript, MaxOutputTokens: s.maxTokens,
+		}, summaryMaxResponseBytes)
+		if err != nil {
+			return "", SummaryUsage{}, fmt.Errorf("gateway request: %w", err)
+		}
+		return result.Text, SummaryUsage{PromptTokens: result.InputTokens, CompletionTokens: result.OutputTokens}, nil
+	}
+
 	payload, err := llmclient.WithExtraFields(s.request(transcript), s.extraBody)
 	if err != nil {
 		return "", SummaryUsage{}, err
