@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0](https://github.com/bluesky-social/diderot/compare/v1.1.0...v1.2.0) (2026-11-26)
+
+
+### Features
+
+* **sessions:** add Antigravity session decoder and shipping support ([#8](https://github.com/bluesky-social/diderot/issues/8)) ([c6223bc](https://github.com/bluesky-social/diderot/commit/c6223bc0746505615343f94f31abf05840195448))
+* **sessions:** ship sessions from five more agent harnesses ([#9](https://github.com/bluesky-social/diderot/issues/9)) ([da42124](https://github.com/bluesky-social/diderot/commit/da4212437e3a79dd558aeaa71157cfaed6e36e8d))
+
+
+### Bug Fixes
+
+* **deps:** update adobe/s3mock docker tag to v5 ([#5](https://github.com/bluesky-social/diderot/issues/5)) ([45d0d67](https://github.com/bluesky-social/diderot/commit/45d0d671090198acff59a0bce610edd978772934))
+* **deps:** update docker.io/arigaio/atlas docker tag to v1.4.1 ([#13](https://github.com/bluesky-social/diderot/issues/13)) ([096bd75](https://github.com/bluesky-social/diderot/commit/096bd754f5bbe40d0ea4be4c917f5646b69230a0))
+* **deps:** update go dependencies ([#23](https://github.com/bluesky-social/diderot/issues/23)) ([87b4e8f](https://github.com/bluesky-social/diderot/commit/87b4e8fd358b2ebfeb90539ad6963c7564147bdd))
+* **deps:** update go dependencies ([#3](https://github.com/bluesky-social/diderot/issues/3)) ([14f4e36](https://github.com/bluesky-social/diderot/commit/14f4e36ff3014c58ccff16ed6bf0b88137732eed))
+
 ## [1.1.0](https://github.com/bluesky-social/diderot/compare/v1.0.0...v1.1.0) (2026-11-23)
 
 
