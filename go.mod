@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.21.3
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.7.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0
-	github.com/aws/smithy-go v1.28.9
+	github.com/aws/smithy-go v1.28.10
 	github.com/casbin/casbin/v3 v3.11.0
 	github.com/cloudwego/eino v0.9.23
 	github.com/cloudwego/eino-ext/components/model/agenticclaude v0.1.7
@@ -54,7 +54,7 @@ require (
 
 require (
 	ariga.io/atlas v1.4.0 // indirect
-	cloud.google.com/go/auth v0.24.4 // indirect
+	cloud.google.com/go/auth v0.24.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.3.1 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
@@ -144,7 +144,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.25.0 // indirect
-	github.com/huandu/xstrings v1.6.4 // indirect
+	github.com/huandu/xstrings v1.6.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -203,7 +203,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/gjson v1.20.6 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
-	github.com/tidwall/pretty v1.3.0 // indirect
+	github.com/tidwall/pretty v1.3.1 // indirect
 	github.com/tidwall/sjson v1.2.11 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -236,16 +236,16 @@ require (
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/tools v0.53.0 // indirect
-	google.golang.org/api v0.316.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c // indirect
+	google.golang.org/api v0.317.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261118221215-c8830f628b3f // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
 	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab // indirect
-	modernc.org/libc v1.82.12 // indirect
+	modernc.org/libc v1.82.14 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.13.0 // indirect
+	modernc.org/memory v1.13.1 // indirect
 	sigs.k8s.io/json v0.0.0-20260909141634-11ed52e25bc5 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
